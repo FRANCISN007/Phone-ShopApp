@@ -6,6 +6,7 @@ from fastapi.routing import APIRoute
 from app.database import engine, Base
 from app.users.routers import router as user_router
 from app.license.router import router as license_router
+from app.products.router import router as product_router
 
 from backup.backup import router as backup_router
 #from app.system.router import router as system_router
@@ -103,6 +104,7 @@ else:
 # Routers
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(license_router, prefix="/license", tags=["License"])
+app.include_router(product_router, prefix="/products", tags=["Products"])
 
 app.include_router(backup_router)
 

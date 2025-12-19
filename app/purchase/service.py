@@ -4,6 +4,7 @@ from app.stock.inventory import service as inventory_service
 from datetime import datetime
 
 
+# service.py
 def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
     total_cost = purchase.quantity * purchase.cost_price
 
@@ -15,17 +16,14 @@ def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
         total_cost=total_cost
     )
     db.add(db_purchase)
+    # Update inventory
+    inventory_service.add_stock(db, product_id=purchase.product_id, quantity=purchase.quantity, commit=False)
+
     db.commit()
     db.refresh(db_purchase)
 
-    # --- Update inventory automatically ---
-    inventory_service.add_stock(
-        db,
-        product_id=purchase.product_id,
-        quantity=purchase.quantity
-    )
+    return db_purchase  # <-- return SQLAlchemy object
 
-    return db_purchase
 
 
 def list_purchases(db: Session, skip: int = 0, limit: int = 100):
@@ -69,8 +67,12 @@ def delete_purchase(db: Session, purchase_id: int):
     if not purchase:
         return None
 
-    # Reduce inventory automatically
-    inventory_service.remove_stock(db, purchase.product_id, purchase.quantity)
+    # Revert inventory: subtract quantity_in from stock
+    inventory = inventory_service.get_inventory_by_product(db, purchase.product_id)
+    if inventory:
+        inventory.quantity_in -= purchase.quantity
+        inventory.current_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
+        db.add(inventory)
 
     db.delete(purchase)
     db.commit()

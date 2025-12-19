@@ -5,16 +5,25 @@ from typing import List
 from app.database import get_db
 from app.purchase import schemas, service
 from app.stock.inventory import service as inventory_service
+from typing import Any
 
 router = APIRouter()
 
 
-@router.post("/", response_model=schemas.PurchaseOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.PurchaseOut)
 def create_purchase(purchase: schemas.PurchaseCreate, db: Session = Depends(get_db)):
-    db_purchase = service.create_purchase(db, purchase)
-    current_stock = inventory_service.get_inventory_by_product(db, db_purchase.product_id).current_stock
-    return {**db_purchase.__dict__, "current_stock": current_stock}
+    try:
+        db_purchase = service.create_purchase(db, purchase)
+        inventory = inventory_service.get_inventory_by_product(db, db_purchase.product_id)
+        current_stock = inventory.current_stock if inventory else 0
+        return {**db_purchase.__dict__, "current_stock": current_stock}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
+    
 
 @router.get("/", response_model=List[schemas.PurchaseOut])
 def list_purchases(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):

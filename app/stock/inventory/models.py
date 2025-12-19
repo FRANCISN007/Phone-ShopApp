@@ -8,19 +8,19 @@ class Inventory(Base):
     __tablename__ = "inventory"
 
     id = Column(Integer, primary_key=True, index=True)
-    
-    # Reference to Product
+
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     product = relationship("Product")
 
-    # Stock tracking
-    quantity_in = Column(Float, default=0)    # Stock added via purchase
-    quantity_out = Column(Float, default=0)   # Stock removed via sale
-    current_stock = Column(Float, default=0)  # quantity_in - quantity_out
+    quantity_in = Column(Float, default=0)
+    quantity_out = Column(Float, default=0)
 
-    # Optional IMEI tracking for phones
-    imei = Column(String, nullable=True)      # Can be null for accessories
+    # 🔥 NEW
+    adjustment_total = Column(Float, default=0)
 
-    # Audit
+    current_stock = Column(Float, default=0)
+
+    imei = Column(String, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

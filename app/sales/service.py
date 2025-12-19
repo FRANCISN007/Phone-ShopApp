@@ -13,7 +13,7 @@ def generate_invoice_no() -> str:
 
 
 def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
-    product = None
+    # Validate product
     if sale.product_id:
         product = db.query(product_models.Product).filter(
             product_models.Product.id == sale.product_id
@@ -22,19 +22,21 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
             raise HTTPException(status_code=404, detail="Product not found")
 
     # Payment validation
-    if sale.payment_method.lower() == "cash" and sale.bank_id:
+    payment_method = sale.payment_method.lower()
+    if payment_method == "cash" and sale.bank_id:
         raise HTTPException(status_code=400, detail="Bank should not be selected for cash payment")
-    if sale.payment_method.lower() in ["transfer", "pos"] and not sale.bank_id:
+    if payment_method in ["transfer", "pos"] and not sale.bank_id:
         raise HTTPException(status_code=400, detail="Bank is required for transfer or POS payment")
 
-    # Check inventory
+    # Check and update inventory (do NOT commit inside)
     if sale.product_id:
         stock = inventory_service.get_inventory_by_product(db, sale.product_id)
         if not stock or stock.current_stock < sale.quantity:
             raise HTTPException(status_code=400, detail="Insufficient stock")
-        # Deduct inventory
-        inventory_service.remove_stock(db, sale.product_id, sale.quantity)
 
+        inventory_service.remove_stock(db, sale.product_id, sale.quantity, commit=False)
+
+    # Compute total
     total_amount = sale.quantity * sale.selling_price
 
     db_sale = models.Sale(
@@ -53,8 +55,9 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     )
 
     db.add(db_sale)
-    db.commit()
+    db.commit()          # single commit for both sale + inventory
     db.refresh(db_sale)
+
     return db_sale
 
 
@@ -71,9 +74,12 @@ def delete_sale(db: Session, sale_id: int):
     if not sale:
         return None
 
-    # Restore inventory
-    if sale.product_id:
-        inventory_service.add_stock(db, sale.product_id, sale.quantity)
+    # Restore inventory: subtract quantity_out
+    inventory = inventory_service.get_inventory_by_product(db, sale.product_id)
+    if inventory:
+        inventory.quantity_out -= sale.quantity
+        inventory.current_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
+        db.add(inventory)
 
     db.delete(sale)
     db.commit()

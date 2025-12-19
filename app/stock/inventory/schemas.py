@@ -5,10 +5,12 @@ from typing import Optional
 
 class InventoryBase(BaseModel):
     product_id: int
-    quantity_in: Optional[float] = 0
-    quantity_out: Optional[float] = 0
-    current_stock: Optional[float] = 0
+    quantity_in: float
+    quantity_out: float
+    adjustment_total: float
+    current_stock: float
     imei: Optional[str] = None
+
 
 
 class InventoryOut(InventoryBase):

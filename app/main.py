@@ -6,10 +6,18 @@ from fastapi.routing import APIRoute
 from app.database import engine, Base
 from app.users.routers import router as user_router
 from app.license.router import router as license_router
-from app.products.router import router as product_router
+from app.stock.products.router import router as product_router
+from app.stock.inventory.router import router as inventory_router
+
+from app.purchase.router import router as purchase_router
+from app.vendor.router import router as vendor_router
+from app.bank.router import router as bank_router
+from app.sales.router import router as sales_router
+
+
 
 from backup.backup import router as backup_router
-#from app.system.router import router as system_router
+
 
 
 
@@ -104,7 +112,15 @@ else:
 # Routers
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(license_router, prefix="/license", tags=["License"])
-app.include_router(product_router, prefix="/products", tags=["Products"])
+app.include_router(product_router, prefix="/stock/products", tags=["Stock - Products"])
+app.include_router(inventory_router, prefix="/stock/inventory", tags=["Store - Inventory"])
+
+app.include_router(purchase_router, prefix="/purchase", tags=["Purchase"])
+app.include_router(vendor_router, prefix="/vendor", tags=["Vendor"])
+app.include_router(bank_router, prefix="/bank", tags=["Bank"])
+app.include_router(sales_router, prefix="/sales", tags=["Sales"])
+
+
 
 app.include_router(backup_router)
 

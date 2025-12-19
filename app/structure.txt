@@ -1,0 +1,95 @@
+phone-shop/
+│
+├── app/
+│   ├── main.py
+│   ├── database.py
+│   ├── config.py
+│   ├── dependencies.py
+│
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   └── security.py
+│
+│   ├── license/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   ├── service.py
+│   │   └── verifier.py
+│
+│   ├── users/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│
+│   ├── bank/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│
+│   ├── vendors/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│
+│   ├── stock/                         # ✅ MAIN STOCK DOMAIN
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── products/
+│   │   │   ├── __init__.py
+│   │   │   ├── router.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   │
+│   │   ├── inventory/
+│   │   │   ├── __init__.py
+│   │   │   ├── router.py            # READ-ONLY
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py            # add_stock / remove_stock (internal)
+│   │   │
+│   │   ├── purchases/
+│   │   │   ├── __init__.py
+│   │   │   ├── router.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py            # calls inventory.add_stock
+│   │   │
+│   │   ├── sales/
+│   │   │   ├── __init__.py
+│   │   │   ├── router.py
+│   │   │   ├── models.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py            # calls inventory.remove_stock
+│   │
+│   ├── Accounts/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│
+│   ├── reports/
+│   │   ├── __init__.py
+│   │   ├── router.py
+│   │   ├── schemas.py
+│   │   └── service.py
+│
+│   └── utils/
+│       ├── __init__.py
+│       ├── enums.py
+│       └── helpers.py
+│
+├── requirements.txt
+└── README.md

@@ -16,7 +16,7 @@ def get_inventory_by_product(db: Session, product_id: int):
 # --------------------------
 # Internal: add stock (Purchase)
 # --------------------------
-def add_stock(db: Session, product_id: int, quantity: float, imei: str = None, commit: bool = False):
+def add_stock(db: Session, product_id: int, quantity: float, commit: bool = False):
     inventory = get_inventory_by_product(db, product_id)
     if not inventory:
         inventory = models.Inventory(
@@ -24,8 +24,7 @@ def add_stock(db: Session, product_id: int, quantity: float, imei: str = None, c
             quantity_in=quantity,
             adjustment_total=0,
             quantity_out=0,
-            current_stock=quantity,
-            imei=imei
+            current_stock=quantity
         )
         db.add(inventory)
     else:
@@ -41,16 +40,9 @@ def add_stock(db: Session, product_id: int, quantity: float, imei: str = None, c
 # --------------------------
 # Internal: remove stock (Sale)
 # --------------------------
-def remove_stock(db: Session, product_id: int, quantity: float, commit: bool = False, imei: str = None):
+def remove_stock(db: Session, product_id: int, quantity: float, commit: bool = False):
     """
     Deduct stock from inventory for a product.
-
-    Parameters:
-    - db: SQLAlchemy Session
-    - product_id: ID of the product
-    - quantity: Quantity to remove
-    - commit: Whether to commit the transaction (default False)
-    - imei: Optional IMEI for phones (ignored for accessories)
     """
     inventory = get_inventory_by_product(db, product_id)
     if not inventory or inventory.current_stock < quantity:
@@ -59,14 +51,12 @@ def remove_stock(db: Session, product_id: int, quantity: float, commit: bool = F
     inventory.quantity_out += quantity
     inventory.current_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
 
-    if imei:
-        inventory.imei = imei
-
     if commit:
         db.commit()
         db.refresh(inventory)
 
     return inventory
+
 
 # --------------------------
 # Admin-only: Adjust stock

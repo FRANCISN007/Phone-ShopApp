@@ -1,0 +1,118 @@
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from datetime import datetime
+from app.sales import models as sales_models
+from app.stock.products import models as product_models
+from app.purchase import models as purchase_models
+from app.accounts.expenses import models as expense_models
+import calendar
+
+def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: datetime = None):
+    """
+    Returns P&L report for the given date range.
+    Defaults to the current month if dates are not provided.
+    """
+
+    # Default to current month
+    today = datetime.utcnow()
+    if start_date is None:
+        start_date = datetime(today.year, today.month, 1)
+    if end_date is None:
+        end_date = datetime(today.year, today.month, today.day, 23, 59, 59)
+
+    # -------------------------
+    # 1. Revenue by category
+    # -------------------------
+    revenue_query = (
+        db.query(
+            product_models.Product.category,
+            func.sum(sales_models.Sale.selling_price * sales_models.Sale.quantity).label("revenue")
+        )
+        .select_from(sales_models.Sale)
+        .join(product_models.Product, sales_models.Sale.product_id == product_models.Product.id)
+        .filter(
+            sales_models.Sale.sold_at >= start_date,
+            sales_models.Sale.sold_at <= end_date
+        )
+        .group_by(product_models.Product.category)
+        .all()
+    )
+
+    revenue = {row.category: row.revenue for row in revenue_query}
+    total_revenue = sum(revenue.values()) if revenue else 0
+
+    # -------------------------
+    # 2. Cost of Sales (CoS) using Purchase
+    # -------------------------
+    latest_purchase_subquery = (
+        db.query(
+            purchase_models.Purchase.product_id,
+            func.max(purchase_models.Purchase.purchase_date).label("latest_date")
+        )
+        .group_by(purchase_models.Purchase.product_id)
+        .subquery()
+    )
+
+    cos_query = (
+        db.query(
+            func.sum(purchase_models.Purchase.cost_price * sales_models.Sale.quantity).label("cos")
+        )
+        .select_from(sales_models.Sale)
+        .join(product_models.Product, sales_models.Sale.product_id == product_models.Product.id)
+        .join(
+            purchase_models.Purchase,
+            (purchase_models.Purchase.product_id == sales_models.Sale.product_id)
+        )
+        .join(
+            latest_purchase_subquery,
+            (latest_purchase_subquery.c.product_id == purchase_models.Purchase.product_id) &
+            (latest_purchase_subquery.c.latest_date == purchase_models.Purchase.purchase_date)
+        )
+        .filter(
+            sales_models.Sale.sold_at >= start_date,
+            sales_models.Sale.sold_at <= end_date
+        )
+        .first()
+    )
+
+    cost_of_sales = cos_query.cos or 0
+    gross_profit = total_revenue - cost_of_sales
+
+    # -------------------------
+    # 3. Expenses grouped by category
+    # -------------------------
+    expense_query = (
+        db.query(
+            expense_models.Expense.category,
+            func.sum(expense_models.Expense.amount).label("total")
+        )
+        .filter(
+            expense_models.Expense.expense_date >= start_date,
+            expense_models.Expense.expense_date <= end_date
+        )
+        .group_by(expense_models.Expense.category)
+        .all()
+    )
+
+    expenses = {row.category: row.total for row in expense_query}
+    total_expenses = sum(expenses.values()) if expenses else 0
+
+    # -------------------------
+    # 4. Net Profit
+    # -------------------------
+    net_profit = gross_profit - total_expenses
+
+    # -------------------------
+    # 5. Assemble report
+    # -------------------------
+    report = {
+        "revenue": revenue,
+        "total_revenue": total_revenue,
+        "cost_of_sales": cost_of_sales,
+        "gross_profit": gross_profit,
+        "expenses": expenses,
+        "total_expenses": total_expenses,
+        "net_profit": net_profit
+    }
+
+    return report

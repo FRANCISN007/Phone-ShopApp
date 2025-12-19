@@ -20,7 +20,6 @@ class Inventory(Base):
 
     current_stock = Column(Float, default=0)
 
-    imei = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

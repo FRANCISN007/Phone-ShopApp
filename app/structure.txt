@@ -35,7 +35,7 @@ phone-shop/
 │   │   ├── schemas.py
 │   │   └── service.py
 │
-│   ├── vendors/
+│   ├── vendor/
 │   │   ├── __init__.py
 │   │   ├── router.py
 │   │   ├── models.py
@@ -59,7 +59,7 @@ phone-shop/
 │   │   │   ├── schemas.py
 │   │   │   └── service.py            # add_stock / remove_stock (internal)
 │   │   │
-│   │   ├── purchases/
+│   │   ├── purchase/
 │   │   │   ├── __init__.py
 │   │   │   ├── router.py
 │   │   │   ├── models.py

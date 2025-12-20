@@ -12,7 +12,7 @@ class ExpenseBase(BaseModel):
     description: Optional[str] = None
     amount: float
     payment_method: str          # cash / transfer / pos
-    account_type: str            # operating / admin / cost_of_sales
+    bank_id: Optional[int] = None
     expense_date: datetime
 
 
@@ -28,11 +28,11 @@ class ExpenseCreate(ExpenseBase):
 # =========================
 class ExpenseUpdate(BaseModel):
     vendor_id: Optional[int] = None
-    category: Optional[str] = None   # Rent, Utilities, Salary, Maintenance, general etc.
+    category: Optional[str] = None   # Transpot, Rent, Utilities, Salary, Maintenance, general, Cost of Sales, Telephone Expense, Generator & fuel etc.
     description: Optional[str] = None
     amount: Optional[float] = None
     payment_method: Optional[str] = None
-    account_type: Optional[str] = None  #operating / admin / cost_of_sales (important for P&L grouping)
+    bank_id: Optional[int] = None
     expense_date: Optional[datetime] = None
     status: Optional[str] = None
 

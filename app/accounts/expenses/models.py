@@ -17,8 +17,8 @@ class Expense(Base):
     amount = Column(Float, nullable=False)
 
     payment_method = Column(String, nullable=False)
-    account_type = Column(String, nullable=False)
-
+    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)
+   
     expense_date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

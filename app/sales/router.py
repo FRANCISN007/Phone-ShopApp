@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import date
+from typing import Optional
+
 
 from app.database import get_db
 from . import schemas, service
@@ -23,10 +26,20 @@ def create_sale(
 def list_sales(
     skip: int = 0,
     limit: int = 100,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
+    current_user: UserDisplaySchema = Depends(
+        role_required(["staff", "manager", "admin"])
+    )
 ):
-    return service.list_sales(db, skip, limit)
+    return service.list_sales(
+        db=db,
+        skip=skip,
+        limit=limit,
+        start_date=start_date,
+        end_date=end_date
+    )
 
 
 @router.get("/{sale_id}", response_model=schemas.SaleOut)

@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
+import pandas as pd
 
 from app.database import get_db
-from app.stock.products import schemas, service
+from app.stock.products import schemas, service, models
+
 
 router = APIRouter()
 
@@ -72,3 +74,17 @@ def update_product(
 @router.delete("/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     return service.delete_product(db, product_id)
+
+
+@router.post("/import-excel", status_code=status.HTTP_201_CREATED)
+def import_products_from_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    if not file.filename.endswith(".xlsx"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only Excel files are allowed"
+        )
+
+    return service.import_products_from_excel(db, file)

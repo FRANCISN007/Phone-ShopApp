@@ -93,3 +93,29 @@ phone-shop/
 │
 ├── requirements.txt
 └── README.md
+
+
+
+import axios from "axios";
+
+const importProducts = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axios.post(
+    "http://localhost:8000/products/import-excel",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return response.data;
+};
+
+
+sales analysis
+products        cost price         selling price      margin
+iphone 11       200,000             300,000           100,000

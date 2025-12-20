@@ -4,6 +4,11 @@ from app.stock.products import models, schemas
 from app.stock.inventory import models as inventory_models
 from app.purchase import models as purchase_models
 
+import pandas as pd
+
+from .models import Product
+
+
 
 def create_product(
     db: Session,
@@ -91,3 +96,63 @@ def delete_product(db: Session, product_id: int):
     db.delete(product)
     db.commit()
     return {"detail": "Product deleted successfully"}
+
+
+def import_products_from_excel(db: Session, file):
+    try:
+        df = pd.read_excel(file.file)
+
+        required_columns = {
+            "name",
+            "category",
+            "brand",
+            "cost_price",
+            "selling_price"
+        }
+
+        if not required_columns.issubset(df.columns):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Excel must contain columns: {required_columns}"
+            )
+
+        products = []
+        skipped = 0
+
+        for _, row in df.iterrows():
+            if pd.isna(row["name"]) or pd.isna(row["category"]):
+                skipped += 1
+                continue
+
+            # Prevent duplicates
+            #exists = db.query(Product).filter(
+                #Product.name == row["name"]
+            #).first()
+
+            #if exists:
+                #skipped += 1
+                #continue
+
+            product = Product(
+                name=str(row["name"]).strip(),
+                category=str(row["category"]).strip(),
+                brand=str(row["brand"]).strip(),
+                cost_price=None if pd.isna(row["cost_price"]) else float(row["cost_price"]),
+                selling_price=None if pd.isna(row["selling_price"]) else float(row["selling_price"])
+            )
+
+            products.append(product)
+
+        if products:
+            db.bulk_save_objects(products)
+            db.commit()
+
+        return {
+            "message": "Import completed",
+            "imported": len(products),
+            "skipped": skipped
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

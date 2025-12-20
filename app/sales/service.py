@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from datetime import datetime
+from datetime import datetime, time
 import uuid
+
+
 
 from . import models, schemas
 from app.stock.inventory import service as inventory_service
@@ -67,14 +69,40 @@ def get_sale(db: Session, sale_id: int):
     sale.balance_due = sale.total_amount - total_paid
     return sale
 
-def list_sales(db: Session, skip: int = 0, limit: int = 100):
-    sales = db.query(models.Sale).order_by(models.Sale.sold_at.desc()).offset(skip).limit(limit).all()
-    # Add total_paid and balance_due for each sale
+def list_sales(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    start_date=None,
+    end_date=None
+):
+    query = db.query(models.Sale)
+
+    # Apply date filters
+    if start_date:
+        start_datetime = datetime.combine(start_date, time.min)
+        query = query.filter(models.Sale.sold_at >= start_datetime)
+
+    if end_date:
+        end_datetime = datetime.combine(end_date, time.max)
+        query = query.filter(models.Sale.sold_at <= end_datetime)
+
+    sales = (
+        query
+        .order_by(models.Sale.sold_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    # Add computed fields
     for sale in sales:
         total_paid = sum(p.amount_paid for p in sale.payments)
         sale.total_paid = total_paid
         sale.balance_due = sale.total_amount - total_paid
+
     return sales
+
 
 def update_sale(db: Session, sale_id: int, sale_update: schemas.SaleUpdate):
     sale = db.query(models.Sale).filter(models.Sale.id == sale_id).first()

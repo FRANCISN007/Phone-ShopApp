@@ -16,6 +16,7 @@ from app.sales.router import router as sales_router
 from app.stock.inventory.adjustments.router import router as adjustment_router
 from app.accounts.expenses.router import router as expenses_router
 from app.accounts.profit_loss.router import router as profit_loss_router
+from app.payments.router import router as payment_router
 
 
 
@@ -125,6 +126,7 @@ app.include_router(purchase_router, prefix="/purchase", tags=["Purchase"])
 app.include_router(vendor_router, prefix="/vendor", tags=["Vendor"])
 app.include_router(bank_router, prefix="/bank", tags=["Bank"])
 app.include_router(sales_router, prefix="/sales", tags=["Sales"])
+app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 
 
 

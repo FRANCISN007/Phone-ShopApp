@@ -5,6 +5,8 @@ from typing import Dict, Any
 
 from app.database import get_db
 from . import service
+from app.users.permissions import role_required
+
 
 router = APIRouter()
 
@@ -13,10 +15,11 @@ router = APIRouter()
 def get_profit_loss(
     start_date: datetime = Query(None, description="Start date for P&L period"),
     end_date: datetime = Query(None, description="End date for P&L period"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required(["admin"]))  # 🔐 ADMIN ONLY
 ):
     """
-    Returns P&L report for the given period.
-    If no dates are provided, defaults to the current month.
+    Profit & Loss report (Admin only).
+    Defaults to current month if dates are not provided.
     """
     return service.get_profit_and_loss(db, start_date, end_date)

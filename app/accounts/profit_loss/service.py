@@ -7,18 +7,30 @@ from app.purchase import models as purchase_models
 from app.accounts.expenses import models as expense_models
 import calendar
 
-def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: datetime = None):
+def get_profit_and_loss(
+    db: Session,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None
+):
     """
-    Returns P&L report for the given date range.
-    Defaults to the current month if dates are not provided.
+    Returns P&L report.
+    - Defaults to current month if dates are not provided
+    - Supports same-day ranges (e.g. 2015-12-20 → 2015-12-20)
     """
 
-    # Default to current month
+    # -------------------------
+    # Date handling
+    # -------------------------
     today = datetime.utcnow()
+
     if start_date is None:
         start_date = datetime(today.year, today.month, 1)
+
     if end_date is None:
         end_date = datetime(today.year, today.month, today.day, 23, 59, 59)
+    else:
+        # 🔥 Ensure full-day inclusion
+        end_date = end_date.replace(hour=23, minute=59, second=59)
 
     # -------------------------
     # 1. Revenue by category
@@ -26,10 +38,12 @@ def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: date
     revenue_query = (
         db.query(
             product_models.Product.category,
-            func.sum(sales_models.Sale.selling_price * sales_models.Sale.quantity).label("revenue")
+            func.sum(
+                sales_models.Sale.selling_price * sales_models.Sale.quantity
+            ).label("revenue")
         )
         .select_from(sales_models.Sale)
-        .join(product_models.Product, sales_models.Sale.product_id == product_models.Product.id)
+        .join(product_models.Product)
         .filter(
             sales_models.Sale.sold_at >= start_date,
             sales_models.Sale.sold_at <= end_date
@@ -42,7 +56,7 @@ def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: date
     total_revenue = sum(revenue.values()) if revenue else 0
 
     # -------------------------
-    # 2. Cost of Sales (CoS) using Purchase
+    # 2. Cost of Sales (from Purchase)
     # -------------------------
     latest_purchase_subquery = (
         db.query(
@@ -55,18 +69,19 @@ def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: date
 
     cos_query = (
         db.query(
-            func.sum(purchase_models.Purchase.cost_price * sales_models.Sale.quantity).label("cos")
+            func.sum(
+                purchase_models.Purchase.cost_price * sales_models.Sale.quantity
+            ).label("cos")
         )
         .select_from(sales_models.Sale)
-        .join(product_models.Product, sales_models.Sale.product_id == product_models.Product.id)
         .join(
             purchase_models.Purchase,
-            (purchase_models.Purchase.product_id == sales_models.Sale.product_id)
+            purchase_models.Purchase.product_id == sales_models.Sale.product_id
         )
         .join(
             latest_purchase_subquery,
-            (latest_purchase_subquery.c.product_id == purchase_models.Purchase.product_id) &
-            (latest_purchase_subquery.c.latest_date == purchase_models.Purchase.purchase_date)
+            (latest_purchase_subquery.c.product_id == purchase_models.Purchase.product_id)
+            & (latest_purchase_subquery.c.latest_date == purchase_models.Purchase.purchase_date)
         )
         .filter(
             sales_models.Sale.sold_at >= start_date,
@@ -79,7 +94,7 @@ def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: date
     gross_profit = total_revenue - cost_of_sales
 
     # -------------------------
-    # 3. Expenses grouped by category
+    # 3. Expenses
     # -------------------------
     expense_query = (
         db.query(
@@ -103,9 +118,13 @@ def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: date
     net_profit = gross_profit - total_expenses
 
     # -------------------------
-    # 5. Assemble report
+    # 5. Report
     # -------------------------
-    report = {
+    return {
+        "period": {
+            "start_date": start_date,
+            "end_date": end_date
+        },
         "revenue": revenue,
         "total_revenue": total_revenue,
         "cost_of_sales": cost_of_sales,
@@ -114,5 +133,3 @@ def get_profit_and_loss(db: Session, start_date: datetime = None, end_date: date
         "total_expenses": total_expenses,
         "net_profit": net_profit
     }
-
-    return report

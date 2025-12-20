@@ -36,9 +36,21 @@ def get_sale(
     current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
 ):
     sale = service.get_sale(db, sale_id)
-    if not sale:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
     return sale
+
+
+@router.put("/{sale_id}", response_model=schemas.SaleOut)
+def update_sale(
+    sale_id: int,
+    sale_update: schemas.SaleUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
+):
+    """
+    Update a sale (quantity, price, payment method, bank, etc.).
+    Recalculates total_amount and balance_due automatically.
+    """
+    return service.update_sale(db, sale_id, sale_update)
 
 
 @router.delete("/{sale_id}")

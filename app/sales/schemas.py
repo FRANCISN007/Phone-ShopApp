@@ -27,11 +27,12 @@ class SaleUpdate(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
 
-
 class SaleOut(SaleBase):
     id: int
     invoice_no: str
     total_amount: float
+    total_paid: float = 0.0       # computed from payments
+    balance_due: float = 0.0      # computed: total_amount - total_paid
     sold_by: Optional[int]
     sold_at: datetime
 

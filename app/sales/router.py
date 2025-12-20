@@ -65,6 +65,22 @@ def update_sale(
     """
     return service.update_sale(db, sale_id, sale_update)
 
+@router.get("/report/analysis", response_model=schemas.SaleAnalysisOut)
+def sales_analysis(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin"])
+    )
+):
+    return service.sales_analysis(
+        db=db,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
 
 @router.delete("/{sale_id}")
 def delete_sale(

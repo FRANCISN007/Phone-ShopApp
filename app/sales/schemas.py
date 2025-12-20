@@ -38,3 +38,19 @@ class SaleOut(SaleBase):
 
     class Config:
         from_attributes = True
+
+
+class SaleAnalysisItem(BaseModel):
+    product_id: int
+    product_name: str
+    quantity_sold: int
+    cost_price: float
+    selling_price: float
+    total_sales: float
+    margin: float
+
+
+class SaleAnalysisOut(BaseModel):
+    items: list[SaleAnalysisItem]
+    total_sales: float
+    total_margin: float

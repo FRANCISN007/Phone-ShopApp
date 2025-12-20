@@ -3,12 +3,21 @@ from fastapi import HTTPException
 from datetime import datetime, time
 import uuid
 
-
-
 from . import models, schemas
 from app.stock.inventory import service as inventory_service
 from app.stock.products import models as product_models
 from app.payments.models import Payment
+
+from sqlalchemy import func
+from app.stock.products.models import Product
+
+from sqlalchemy import func, desc
+
+from app.purchase.models import Purchase
+
+
+
+
 
 def generate_invoice_no() -> str:
     return f"INV-{uuid.uuid4().hex[:8].upper()}"
@@ -141,3 +150,75 @@ def delete_sale(db: Session, sale_id: int):
     db.delete(sale)
     db.commit()
     return {"detail": "Sale deleted successfully"}
+
+
+
+
+
+def sales_analysis(db: Session, start_date=None, end_date=None):
+    # Subquery: latest purchase per product
+    latest_purchase = (
+        db.query(
+            Purchase.product_id,
+            Purchase.cost_price
+        )
+        .order_by(Purchase.product_id, desc(Purchase.id))  # fixed
+        .distinct(Purchase.product_id)
+        .subquery()
+    )
+
+    query = (
+        db.query(
+            models.Sale.product_id,
+            Product.name.label("product_name"),
+            func.sum(models.Sale.quantity).label("quantity_sold"),
+            func.avg(models.Sale.selling_price).label("avg_selling_price"),
+            latest_purchase.c.cost_price
+        )
+        .join(Product, Product.id == models.Sale.product_id)
+        .outerjoin(latest_purchase, latest_purchase.c.product_id == models.Sale.product_id)
+    )
+
+    # Apply date filters
+    if start_date:
+        query = query.filter(models.Sale.sold_at >= datetime.combine(start_date, time.min))
+    if end_date:
+        query = query.filter(models.Sale.sold_at <= datetime.combine(end_date, time.max))
+
+    query = query.group_by(
+        models.Sale.product_id,
+        Product.name,
+        latest_purchase.c.cost_price
+    )
+
+    results = query.all()
+
+    items = []
+    total_sales = 0.0
+    total_margin = 0.0
+
+    for row in results:
+        cost_price = row.cost_price or 0.0
+        selling_price = row.avg_selling_price or 0.0
+
+        product_total_sales = row.quantity_sold * selling_price
+        product_margin = (selling_price - cost_price) * row.quantity_sold
+
+        total_sales += product_total_sales
+        total_margin += product_margin
+
+        items.append({
+            "product_id": row.product_id,
+            "product_name": row.product_name,
+            "quantity_sold": row.quantity_sold,
+            "cost_price": cost_price,
+            "selling_price": selling_price,
+            "total_sales": product_total_sales,
+            "margin": product_margin
+        })
+
+    return {
+        "items": items,
+        "total_sales": total_sales,
+        "total_margin": total_margin
+    }

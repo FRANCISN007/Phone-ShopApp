@@ -70,6 +70,7 @@ const RegisterPage = () => {
           <li>Payments & Receipts</li>
           <li>Secured Database Integration</li>
           <li>Stock & Inventory Control</li>
+          <li>Profit & Loss Account</li>
         </ul>
 
         <p className="app-tagline">

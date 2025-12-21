@@ -6,6 +6,7 @@ from app.database import get_db
 from . import schemas, service
 from app.users.schemas import UserDisplaySchema
 from app.users.permissions import role_required
+from app.bank.schemas import BankSimpleSchema
 
 router = APIRouter()
 
@@ -28,16 +29,19 @@ def create_bank(
 @router.get("/", response_model=List[schemas.BankDisplay])
 def list_banks(
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["dashboard", "admin"]))
+    current_user: UserDisplaySchema = Depends(role_required(["manager", "admin"]))
 ):
     return service.list_banks(db)
 
 
-@router.get("/simple", response_model=List[dict])
+@router.get("/simple", response_model=List[BankSimpleSchema])
 def list_banks_simple(
     db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["user","manager", "admin"]))
 ):
-    return service.list_banks_simple(db)
+    banks = service.list_banks(db)
+    # Return only id and name
+    return [{"id": b.id, "name": b.name} for b in banks]
 
 
 # ----------------------------------------

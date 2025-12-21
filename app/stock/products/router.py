@@ -5,6 +5,7 @@ import pandas as pd
 
 from app.database import get_db
 from app.stock.products import schemas, service, models
+from app.stock.products.schemas import ProductSimpleSchema
 
 
 router = APIRouter()
@@ -32,6 +33,13 @@ def list_products(
     db: Session = Depends(get_db)
 ):
     return service.get_products(db, skip=skip, limit=limit)
+
+
+@router.get("/simple", response_model=List[ProductSimpleSchema])
+def list_products_simple(db: Session = Depends(get_db)):
+    products = service.get_products(db, skip=0, limit=1000)  # or remove limit as needed
+    # Return only id and name
+    return [{"id": p.id, "name": p.name} for p in products]
 
 
 @router.get(

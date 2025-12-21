@@ -41,3 +41,14 @@ class ProductOut(ProductBase):
 
     class Config:
         from_attributes = True
+
+
+# -------------------------------
+# Simple product list for dropdown
+# -------------------------------
+class ProductSimpleSchema(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True

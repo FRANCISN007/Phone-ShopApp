@@ -21,15 +21,8 @@ const LoginPage = () => {
       const user = await loginUser(username.trim().toLowerCase(), password);
       localStorage.setItem("token", user.access_token);
 
-      if (user.roles.includes("admin")) {
-        navigate("/dashboard/users");
-      } else if (user.roles.includes("dashboard")) {
-        navigate("/dashboard/rooms/status");
-      } else if (user.roles.includes("event")) {
-        navigate("/dashboard/events");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate("/dashboard");
+
     } catch (err) {
       setError(err?.message || "Invalid username or password.");
     }

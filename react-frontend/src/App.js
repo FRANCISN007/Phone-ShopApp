@@ -8,6 +8,11 @@ import RegisterPage from "./modules/auth/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 
+import PosSales from "./components/pos/PosSales";
+
+
+
+
 console.log("✅ API BASE:", process.env.REACT_APP_API_BASE_URL);
 
 const App = () => {
@@ -34,14 +39,11 @@ const App = () => {
         />
 
         {/* Protected Dashboard routes */}
-        <Route
-          path="/dashboard/*"
-          element={isLicenseVerified ? <DashboardPage /> : <Navigate to="/license" replace />}
-        >
-          {/* Nested dashboard routes */}
+        <Route path="/dashboard/*" element={isLicenseVerified ? <DashboardPage /> : <Navigate to="/license" replace />} >
           <Route path="users" element={<UsersPage />} />
-          {/* Add more nested routes here */}
+          <Route path="pos" element={<PosSales />} />
         </Route>
+
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

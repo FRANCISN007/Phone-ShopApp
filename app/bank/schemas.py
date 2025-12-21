@@ -14,3 +14,11 @@ class BankDisplay(BankBase):
 
     class Config:
         from_attributes = True
+
+
+class BankSimpleSchema(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True

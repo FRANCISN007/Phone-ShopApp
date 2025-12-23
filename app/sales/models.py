@@ -8,7 +8,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
-    invoice_no = Column(String, unique=True, nullable=False)
+    invoice_no = Column(String, index=True, nullable=False)
 
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     quantity = Column(Integer, nullable=False)
@@ -17,7 +17,7 @@ class Sale(Base):
 
     payment_method = Column(String, nullable=False)  # cash / transfer / pos
     bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)
-    ref_no = Column(String, nullable=True)  # IMEI / POS ref / Transfer ref
+    ref_no = Column(String, nullable=True)
 
     customer_name = Column(String, nullable=True)
     customer_phone = Column(String, nullable=True)

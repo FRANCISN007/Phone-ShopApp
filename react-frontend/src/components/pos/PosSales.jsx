@@ -1,118 +1,306 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "./PosSales.css";
+
+import { SHOP_NAME } from "../../config/constants";
+
 
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||
   `http://${window.location.hostname}:8000`;
 
-const PosSales = () => {
+const PosSales = ({ onClose }) => {
   const [products, setProducts] = useState([]);
   const [banks, setBanks] = useState([]);
-  const [saleItems, setSaleItems] = useState([{ productId: "", quantity: 1, sellingPrice: 0 }]);
+  const [saleItems, setSaleItems] = useState([
+    { productId: "", quantity: 1, sellingPrice: 0 }
+  ]);
+
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [bankId, setBankId] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState("");
   const [refNo, setRefNo] = useState("");
   const [showBankDropdown, setShowBankDropdown] = useState(false);
 
-  // Fetch products and banks on mount
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  const receiptRef = useRef(null);
 
-    axios
-      .get(`${API_BASE_URL}/stock/products/simple`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setProducts(res.data))
-      .catch(console.error);
-
-    axios
-      .get(`${API_BASE_URL}/banks/simple`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setBanks(res.data))
-      .catch(console.error);
-
-    // Generate invoice number immediately
-    const generateInvoice = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/sales/invoice/generate`, { headers: { Authorization: `Bearer ${token}` } });
-        setInvoiceNo(res.data.invoice_no);
-      } catch {
-        setInvoiceNo(`INV-${Math.random().toString(36).substring(2, 10).toUpperCase()}`);
-      }
-    };
-    generateInvoice();
-  }, []);
-
-  // Add a new sale row
-  const addItem = () => {
-    setSaleItems([...saleItems, { productId: "", quantity: 1, sellingPrice: 0 }]);
+  /* ===============================
+     Currency Formatter
+  ================================ */
+  const formatCurrency = (amount) => {
+    return `N${Number(amount || 0).toLocaleString("en-NG")}`;
   };
 
-  // Update row values
+  /* ===============================
+     Fetch data on mount
+  ================================ */
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    
+    axios.get(`${API_BASE_URL}/stock/products/simple`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => setProducts(res.data))
+      .catch(console.error);
+
+    axios.get(`${API_BASE_URL}/banks/simple`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => setBanks(res.data))
+      .catch(console.error);
+
+    const today = new Date().toISOString().split("T")[0];
+    setInvoiceDate(today);
+
+    // ✅ Generate first invoice immediately
+    
+  }, []);
+
+
+    
+
+  
+
+  /* ===============================
+     Add / Update / Remove Items
+  ================================ */
+  const addItem = () => {
+    setSaleItems([
+      ...saleItems,
+      { productId: "", quantity: 1, sellingPrice: 0 },
+    ]);
+  };
+
   const updateItem = (index, key, value) => {
     const newItems = [...saleItems];
     newItems[index][key] = value;
 
-    // Auto-fill price when product is selected
     if (key === "productId") {
-      const product = products.find(p => p.id === Number(value));
-      newItems[index].sellingPrice = product ? product.selling_price || 0 : 0;
+      const product = products.find((p) => p.id === Number(value));
+      newItems[index].sellingPrice = product
+        ? product.selling_price || 0
+        : 0;
     }
 
     setSaleItems(newItems);
   };
 
-  // Remove row
   const removeItem = (index) => {
     const newItems = [...saleItems];
     newItems.splice(index, 1);
     setSaleItems(newItems);
   };
 
-  // Total calculation
-  const totalAmount = saleItems.reduce((acc, item) => acc + item.quantity * item.sellingPrice, 0);
+  /* ===============================
+     Total
+  ================================ */
+  const totalAmount = saleItems.reduce(
+    (acc, item) => acc + item.quantity * item.sellingPrice,
+    0
+  );
 
-  // Submit sale
-  const handleSubmit = async () => {
-    const token = localStorage.getItem("token");
-    try {
-      for (const item of saleItems) {
-        if (!item.productId) continue;
+  
+    
 
-        await axios.post(
-          `${API_BASE_URL}/sales/`,
-          {
-            product_id: item.productId,
-            quantity: item.quantity,
-            selling_price: item.sellingPrice,
-            payment_method: paymentMethod,
-            bank_id: paymentMethod !== "cash" ? bankId : null,
-            customer_name: customerName,
-            customer_phone: customerPhone,
-            ref_no: refNo,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-
-      alert("Sale completed successfully!");
-      setSaleItems([{ productId: "", quantity: 1, sellingPrice: 0 }]);
-      setCustomerName("");
-      setCustomerPhone("");
-      setBankId("");
-      setRefNo("");
-      setShowBankDropdown(false);
-    } catch (err) {
-      alert(err.response?.data?.detail || "Error creating sale");
-    }
+  /* ===============================
+    Reset Form
+  =============================== */
+  const resetForm = () => {
+    // Reset everything except invoice
+    setSaleItems([{ productId: "", quantity: 1, sellingPrice: 0 }]);
+    setCustomerName("");
+    setCustomerPhone("");
+    setPaymentMethod("cash");
+    setBankId("");
+    setRefNo("");
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
   };
+
+
+
+  /* ===============================
+     Print Receipt
+  ================================ */
+  const handlePrintReceipt = (invoice) => {
+
+  const printWindow = window.open("", "", "width=380,height=600");
+
+  const itemsHtml = saleItems
+    .map((item) => {
+      const product = products.find(
+        (p) => p.id === Number(item.productId)
+      );
+      if (!product) return "";
+      return `
+        <tr>
+          <td>${product.name}</td>
+          <td style="text-align:center;">${item.quantity}</td>
+          <td style="text-align:right;">${formatCurrency(item.sellingPrice)}</td>
+          <td style="text-align:right;">${formatCurrency(
+            item.quantity * item.sellingPrice
+          )}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Receipt</title>
+        <style>
+          body {
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+          }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th {
+            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+            text-align: left;
+          }
+          td {
+            padding: 4px 0;
+          }
+          .total {
+            font-weight: bold;
+            text-align: right;
+            margin-top: 8px;
+          }
+          .footer {
+            margin-top: 10px;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="center bold">${SHOP_NAME}</div>
+        <div class="center">SALES RECEIPT</div>
+
+        <hr />
+
+        <div>Invoice: ${invoice}</div>
+        <div>Date: ${invoiceDate}</div>
+        <div>Customer: ${customerName || "-"}</div>
+        <div>Phone: ${customerPhone || "-"}</div>
+        <div>Ref No: ${refNo || "-"}</div>
+        <div>Payment: ${paymentMethod.toUpperCase()}</div>
+
+        <hr />
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align:center;">Qty</th>
+              <th style="text-align:right;">Price</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <hr />
+
+        <div class="total">
+          TOTAL: ${formatCurrency(totalAmount)}
+        </div>
+
+        <div class="footer">
+          Thank you for your patronage
+        </div>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+};
+
+
+/* ===============================
+    Submit Sale
+  =============================== */
+  // Updated handleSubmit
+const handleSubmit = async () => {
+  const token = localStorage.getItem("token");
+
+  try {
+    let backendInvoice = "";
+
+    for (let item of saleItems) {
+      if (!item.productId) continue;
+
+      const res = await axios.post(
+        `${API_BASE_URL}/sales/`,
+        {
+          invoice_date: invoiceDate,
+          payment_method: paymentMethod,
+          bank_id: paymentMethod !== "cash" ? bankId : null,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          ref_no: refNo,
+          product_id: item.productId,
+          quantity: item.quantity,
+          selling_price: item.sellingPrice,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // ✅ Capture invoice number ONCE
+      if (!backendInvoice) {
+        backendInvoice = res.data.invoice_no;
+      }
+    }
+
+    // ✅ Update UI
+    setInvoiceNo(backendInvoice);
+
+    // ✅ Print receipt with real invoice
+    handlePrintReceipt(backendInvoice);
+
+    alert("Sale completed successfully!");
+
+    resetForm();
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.detail || "Error creating sale");
+  }
+};
+
+
 
   return (
     <div className="pos-sales-container">
-      <h2 className="pos-heading">POS Sales Entry</h2>
+      {/* ===============================
+          Header with Correct Close Button
+      ================================ */}
+      <div className="pos-header">
+        <h2 className="pos-heading">POS Sales Entry</h2>
+        <button
+          type="button"
+          className="pos-close-btn"
+          onClick={() => (onClose ? onClose() : window.history.back())}
+        >
+          ✕
+        </button>
+      </div>
 
-      {/* Top Info */}
+      {/* ===============================
+          Top Info
+      ================================ */}
       <div className="pos-top-info">
         <div className="input-group">
           <label>Customer Name</label>
@@ -122,6 +310,11 @@ const PosSales = () => {
         <div className="input-group">
           <label>Customer Phone</label>
           <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+        </div>
+
+        <div className="input-group">
+          <label>Invoice Date</label>
+          <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
         </div>
 
         <div className="input-group">
@@ -145,26 +338,11 @@ const PosSales = () => {
         </div>
 
         {invoiceNo && <div className="invoice-no">Invoice No: {invoiceNo}</div>}
-
-        {/* Show Bank Dropdown only after Payment button clicked */}
-        {showBankDropdown && paymentMethod !== "cash" && (
-          <div className="input-group">
-            <label>Select Bank</label>
-            <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
-              <option value="">--Select--</option>
-              {banks.map(bank => (
-                <option key={bank.id} value={bank.id}>{bank.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {paymentMethod !== "cash" && !showBankDropdown && (
-          <button onClick={() => setShowBankDropdown(true)}>Select Bank</button>
-        )}
       </div>
 
-      {/* Sale Items Table */}
+      {/* ===============================
+          Sale Items Table
+      ================================ */}
       <table className="pos-sales-table">
         <thead>
           <tr>
@@ -179,42 +357,71 @@ const PosSales = () => {
           {saleItems.map((item, index) => (
             <tr key={index}>
               <td>
-                <select value={item.productId} onChange={(e) => updateItem(index, "productId", e.target.value)}>
+                <select
+                  value={item.productId}
+                  onChange={(e) => updateItem(index, "productId", e.target.value)}
+                >
                   <option value="">--Select--</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
               </td>
+
               <td>
                 <input
                   type="number"
                   min="1"
                   value={item.quantity}
-                  onChange={(e) => updateItem(index, "quantity", Number(e.target.value))}
+                  onChange={(e) =>
+                    updateItem(index, "quantity", Number(e.target.value))
+                  }
                 />
               </td>
+
               <td>
                 <input
                   type="number"
                   min="0"
                   value={item.sellingPrice}
-                  onChange={(e) => updateItem(index, "sellingPrice", Number(e.target.value))}
+                  onChange={(e) =>
+                    updateItem(index, "sellingPrice", Number(e.target.value))
+                  }
                 />
               </td>
-              <td>{item.quantity * item.sellingPrice}</td>
+
+              <td>{formatCurrency(item.quantity * item.sellingPrice)}</td>
+
               <td>
-                <button className="remove-btn" onClick={() => removeItem(index)}>Remove</button>
+                <button className="remove-btn" onClick={() => removeItem(index)}>
+                  Remove
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      {/* ===============================
+          Bottom Actions
+      ================================ */}
       <div className="pos-bottom-actions">
-        <button className="add-btn" onClick={addItem}>Add Product</button>
-        <div className="total-display">Total: {totalAmount}</div>
-        <button className="submit-btn" onClick={handleSubmit}>Complete Sale</button>
+        <button className="add-btn" onClick={addItem}>
+          Add Product
+        </button>
+
+        <div className="total-display">
+          Total: {formatCurrency(totalAmount)}
+        </div>
+
+        <button className="submit-btn" onClick={handleSubmit}>
+          Complete Sale
+        </button>
+
+        
+
       </div>
     </div>
   );

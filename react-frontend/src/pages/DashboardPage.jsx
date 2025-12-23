@@ -33,7 +33,7 @@ const DashboardPage = () => {
       { label: "Reports", icon: "📊", path: "/dashboard/reports" },
       { label: "Maintenance", icon: "🛠", path: "/dashboard/maintenance" },
       { label: "Export", icon: "📤", action: "export" },
-      { label: "Print", icon: "🖨", action: "print" },
+      { label: "Print", icon: "🖨️", action: "print" },
       {
         label: "Exit",
         icon: "⎋",

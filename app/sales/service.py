@@ -12,6 +12,7 @@ from sqlalchemy import func
 from app.stock.products.models import Product
 
 from sqlalchemy import func, desc
+from sqlalchemy import text
 
 from app.purchase.models import Purchase
 
@@ -19,8 +20,6 @@ from app.purchase.models import Purchase
 
 
 
-def generate_invoice_no() -> str:
-    return f"INV-{uuid.uuid4().hex[:8].upper()}"
 
 def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     # Validate product
@@ -36,7 +35,7 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     if payment_method in ["transfer", "pos"] and not sale.bank_id:
         raise HTTPException(status_code=400, detail="Bank is required for transfer or POS payment")
 
-    # Check and update inventory
+    # Inventory check
     if sale.product_id:
         stock = inventory_service.get_inventory_by_product(db, sale.product_id)
         if not stock or stock.current_stock < sale.quantity:
@@ -46,8 +45,13 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     # Compute total
     total_amount = sale.quantity * sale.selling_price
 
+    # Generate incremental invoice number from PostgreSQL sequence
+    next_val = db.execute(text("SELECT nextval('sales_invoice_seq')")).scalar()
+    invoice_no = str(next_val)  # convert to string for Pydantic + frontend compatibility
+
+    # Save sale
     db_sale = models.Sale(
-        invoice_no=generate_invoice_no(),
+        invoice_no=invoice_no,
         product_id=sale.product_id,
         quantity=sale.quantity,
         selling_price=sale.selling_price,
@@ -67,6 +71,7 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
 
     return db_sale
 
+    
 def get_sale(db: Session, sale_id: int):
     sale = db.query(models.Sale).filter(models.Sale.id == sale_id).first()
     if not sale:
@@ -221,4 +226,44 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
         "items": items,
         "total_sales": total_sales,
         "total_margin": total_margin
+    }
+
+
+
+
+def delete_all_sales(db: Session):
+    sales = db.query(models.Sale).all()
+
+    if not sales:
+        return {
+            "message": "No sales to delete",
+            "deleted_count": 0
+        }
+
+    deleted_count = 0
+
+    for sale in sales:
+        # Restore inventory
+        if sale.product_id:
+            inventory = inventory_service.get_inventory_by_product(db, sale.product_id)
+            if inventory:
+                inventory.quantity_out -= sale.quantity
+                inventory.current_stock = (
+                    inventory.quantity_in
+                    - inventory.quantity_out
+                    + inventory.adjustment_total
+                )
+                db.add(inventory)
+
+        db.delete(sale)
+        deleted_count += 1
+
+    # OPTIONAL: reset invoice sequence
+    db.execute(text("ALTER SEQUENCE sales_invoice_seq RESTART WITH 1"))
+
+    db.commit()
+
+    return {
+        "message": "All sales deleted successfully and stock restored",
+        "deleted_count": deleted_count
     }

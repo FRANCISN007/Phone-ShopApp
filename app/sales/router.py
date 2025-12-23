@@ -3,23 +3,31 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import date
 from typing import Optional
+from sqlalchemy import text
+
 
 
 from app.database import get_db
 from . import schemas, service
 from app.users.schemas import UserDisplaySchema
 from app.users.permissions import role_required
+import uuid
 
 router = APIRouter()
 
 
+
+
+
 @router.post("/", response_model=schemas.SaleOut, status_code=status.HTTP_201_CREATED)
-def create_sale(
+def create_sale_endpoint(
     sale: schemas.SaleCreate,
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
 ):
     return service.create_sale(db, sale, current_user.id)
+
+
 
 
 @router.get("/", response_model=List[schemas.SaleOut])
@@ -92,3 +100,15 @@ def delete_sale(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
     return deleted
+
+
+@router.delete("/clear/all", status_code=status.HTTP_200_OK)
+def delete_all_sales(
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["admin"]))
+):
+    """
+    Delete ALL sales records.
+    Admin only.
+    """
+    return service.delete_all_sales(db)

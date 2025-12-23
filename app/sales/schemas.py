@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class SaleBase(BaseModel):
+    invoice_no: Optional[str] = None  # ✅ ADD THIS
     product_id: Optional[int]
     quantity: int
     selling_price: float

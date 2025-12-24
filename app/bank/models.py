@@ -10,6 +10,6 @@ class Bank(Base):
     name = Column(String, unique=True, nullable=False)
 
     # payments relationship
-    sales = relationship("Sale", back_populates="bank")
+    
 
     

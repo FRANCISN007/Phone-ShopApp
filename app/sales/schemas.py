@@ -4,13 +4,11 @@ from datetime import datetime
 
 
 class SaleBase(BaseModel):
-    invoice_no: Optional[str] = None  # ✅ ADD THIS
-    product_id: Optional[int]
+    invoice_no: Optional[str] = None
+    product_id: int
     quantity: int
     selling_price: float
-    payment_method: str          # cash / transfer / pos
-    bank_id: Optional[int] = None
-    ref_no: Optional[str] = None
+    ref_no: Optional[str] = None       # IMEI / Serial / Any reference
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
 
@@ -22,8 +20,6 @@ class SaleCreate(SaleBase):
 class SaleUpdate(BaseModel):
     quantity: Optional[int] = None
     selling_price: Optional[float] = None
-    payment_method: Optional[str] = None
-    bank_id: Optional[int] = None
     ref_no: Optional[str] = None
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None

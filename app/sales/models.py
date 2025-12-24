@@ -15,8 +15,7 @@ class Sale(Base):
     selling_price = Column(Float, nullable=False)
     total_amount = Column(Float, nullable=False)
 
-    payment_method = Column(String, nullable=False)  # cash / transfer / pos
-    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)
+    
     ref_no = Column(String, nullable=True)
 
     customer_name = Column(String, nullable=True)
@@ -27,4 +26,4 @@ class Sale(Base):
 
     # Relationships
     product = relationship("Product")
-    bank = relationship("Bank")
+    

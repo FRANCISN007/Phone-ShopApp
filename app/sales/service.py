@@ -22,43 +22,56 @@ from app.purchase.models import Purchase
 
 
 def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
-    # Validate product
-    if sale.product_id:
-        product = db.query(product_models.Product).filter(product_models.Product.id == sale.product_id).first()
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
 
-    # Payment validation
-    payment_method = sale.payment_method.lower()
-    if payment_method == "cash" and sale.bank_id:
-        raise HTTPException(status_code=400, detail="Bank should not be selected for cash payment")
-    if payment_method in ["transfer", "pos"] and not sale.bank_id:
-        raise HTTPException(status_code=400, detail="Bank is required for transfer or POS payment")
+    # ---------- REQUIRED FIELD VALIDATION ----------
+    if not sale.product_id:
+        raise HTTPException(status_code=400, detail="Product is required")
 
-    # Inventory check
-    if sale.product_id:
-        stock = inventory_service.get_inventory_by_product(db, sale.product_id)
-        if not stock or stock.current_stock < sale.quantity:
-            raise HTTPException(status_code=400, detail="Insufficient stock")
-        inventory_service.remove_stock(db, sale.product_id, sale.quantity, commit=False)
+    if not sale.quantity or sale.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be greater than zero")
 
-    # Compute total
+    if not sale.selling_price or sale.selling_price <= 0:
+        raise HTTPException(status_code=400, detail="Selling price must be greater than zero")
+
+    # Default customer name
+    if not sale.customer_name:
+        sale.customer_name = "Walk-in"
+
+    # ---------- PRODUCT VALIDATION ----------
+    product = (
+        db.query(product_models.Product)
+        .filter(product_models.Product.id == sale.product_id)
+        .first()
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # ---------- INVENTORY CHECK ----------
+    stock = inventory_service.get_inventory_by_product(db, sale.product_id)
+    if not stock or stock.current_stock < sale.quantity:
+        raise HTTPException(status_code=400, detail="Insufficient stock")
+
+    inventory_service.remove_stock(
+        db, sale.product_id, sale.quantity, commit=False
+    )
+
+    # ---------- TOTAL ----------
     total_amount = sale.quantity * sale.selling_price
 
-    # Generate incremental invoice number from PostgreSQL sequence
-    next_val = db.execute(text("SELECT nextval('sales_invoice_seq')")).scalar()
-    invoice_no = str(next_val)  # convert to string for Pydantic + frontend compatibility
+    # ---------- INVOICE ----------
+    next_val = db.execute(
+        text("SELECT nextval('sales_invoice_seq')")
+    ).scalar()
+    invoice_no = str(next_val)
 
-    # Save sale
+    # ---------- SAVE ----------
     db_sale = models.Sale(
         invoice_no=invoice_no,
         product_id=sale.product_id,
         quantity=sale.quantity,
         selling_price=sale.selling_price,
         total_amount=total_amount,
-        payment_method=sale.payment_method,
-        bank_id=sale.bank_id,
-        ref_no=sale.ref_no,
+        ref_no=sale.ref_no,                 # IMEI / serial / universal ref
         customer_name=sale.customer_name,
         customer_phone=sale.customer_phone,
         sold_by=user_id,

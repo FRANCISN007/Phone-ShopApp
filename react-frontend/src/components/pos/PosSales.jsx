@@ -230,28 +230,75 @@ const PosSales = ({ onClose }) => {
 };
 
 
+const validateSale = () => {
+  if (!customerName.trim()) {
+    alert("Customer name is required");
+    return false;
+  }
+
+  if (!paymentMethod) {
+    alert("Payment method is required");
+    return false;
+  }
+
+  
+
+  if (!saleItems.length) {
+    alert("Add at least one product");
+    return false;
+  }
+
+  for (let i = 0; i < saleItems.length; i++) {
+    const item = saleItems[i];
+
+    if (!item.productId) {
+      alert(`Product not selected on row ${i + 1}`);
+      return false;
+    }
+
+    if (!item.quantity || item.quantity <= 0) {
+      alert(`Invalid quantity on row ${i + 1}`);
+      return false;
+    }
+
+    if (!item.sellingPrice || item.sellingPrice <= 0) {
+      alert(`Invalid selling price on row ${i + 1}`);
+      return false;
+    }
+  }
+
+  if (totalAmount <= 0) {
+    alert("Total amount must be greater than zero");
+    return false;
+  }
+
+  return true;
+};
+
+
+
 /* ===============================
     Submit Sale
   =============================== */
   // Updated handleSubmit
 const handleSubmit = async () => {
+  if (!validateSale()) return; // ⛔ STOP HERE IF INVALID
+
   const token = localStorage.getItem("token");
 
   try {
     let backendInvoice = "";
 
     for (let item of saleItems) {
-      if (!item.productId) continue;
-
       const res = await axios.post(
         `${API_BASE_URL}/sales/`,
         {
           invoice_date: invoiceDate,
-          payment_method: paymentMethod,
-          bank_id: paymentMethod !== "cash" ? bankId : null,
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          ref_no: refNo,
+          //payment_method: paymentMethod,
+          //bank_id: paymentMethod !== "cash" ? bankId : null,
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          ref_no: refNo.trim(),
           product_id: item.productId,
           quantity: item.quantity,
           selling_price: item.sellingPrice,
@@ -259,16 +306,13 @@ const handleSubmit = async () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // ✅ Capture invoice number ONCE
       if (!backendInvoice) {
         backendInvoice = res.data.invoice_no;
       }
     }
 
-    // ✅ Update UI
     setInvoiceNo(backendInvoice);
 
-    // ✅ Print receipt with real invoice
     handlePrintReceipt(backendInvoice);
 
     alert("Sale completed successfully!");
@@ -301,7 +345,8 @@ const handleSubmit = async () => {
       {/* ===============================
           Top Info
       ================================ */}
-      <div className="pos-top-info">
+      <div className="pos-meta-grid">
+
         <div className="input-group">
           <label>Customer Name</label>
           <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
@@ -317,20 +362,7 @@ const handleSubmit = async () => {
           <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
         </div>
 
-        <div className="input-group">
-          <label>Payment Method</label>
-          <select
-            value={paymentMethod}
-            onChange={(e) => {
-              setPaymentMethod(e.target.value);
-              setShowBankDropdown(false);
-            }}
-          >
-            <option value="cash">Cash</option>
-            <option value="transfer">Transfer</option>
-            <option value="pos">POS</option>
-          </select>
-        </div>
+        
 
         <div className="input-group">
           <label>Ref No</label>
@@ -341,89 +373,112 @@ const handleSubmit = async () => {
       </div>
 
       {/* ===============================
-          Sale Items Table
-      ================================ */}
-      <table className="pos-sales-table">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Total</th>
-            <th>Action</th>
+        Sale Items Table
+    ================================ */}
+    <table className="pos-sales-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {saleItems.map((item, index) => (
+          <tr key={index}>
+            <td>
+              <select
+                value={item.productId}
+                onChange={(e) =>
+                  updateItem(index, "productId", e.target.value)
+                }
+              >
+                <option value="">--Select--</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </td>
+
+            <td>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) =>
+                  updateItem(index, "quantity", Number(e.target.value))
+                }
+              />
+            </td>
+
+            <td>
+              <input
+                type="number"
+                min="0"
+                value={item.sellingPrice}
+                onChange={(e) =>
+                  updateItem(index, "sellingPrice", Number(e.target.value))
+                }
+              />
+            </td>
+
+            <td>{formatCurrency(item.quantity * item.sellingPrice)}</td>
+
+            <td>
+              <button
+                className="remove-btn"
+                onClick={() => removeItem(index)}
+              >
+                Remove
+              </button>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {saleItems.map((item, index) => (
-            <tr key={index}>
-              <td>
-                <select
-                  value={item.productId}
-                  onChange={(e) => updateItem(index, "productId", e.target.value)}
-                >
-                  <option value="">--Select--</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </td>
+        ))}
 
-              <td>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) =>
-                    updateItem(index, "quantity", Number(e.target.value))
-                  }
-                />
-              </td>
+        {/* ===============================
+            ADD PRODUCT ROW INSIDE TABLE
+        ================================= */}
+        <tr>
+          <td colSpan="5" className="add-product-row">
+            <button className="add-btn" onClick={addItem}>
+              + Add Product
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  value={item.sellingPrice}
-                  onChange={(e) =>
-                    updateItem(index, "sellingPrice", Number(e.target.value))
-                  }
-                />
-              </td>
+    {/* ===============================
+        GRAND TOTAL (ALIGNED UNDER TOTAL)
+    ================================ */}
+    <div className="grand-total-container">
+      <span className="gt-label">Grand Total</span>
+      <span className="gt-amount">
+        {formatCurrency(
+          saleItems.reduce(
+            (sum, item) => sum + item.quantity * item.sellingPrice,
+            0
+          )
+        )}
+      </span>
+    </div>
 
-              <td>{formatCurrency(item.quantity * item.sellingPrice)}</td>
-
-              <td>
-                <button className="remove-btn" onClick={() => removeItem(index)}>
-                  Remove
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* ===============================
-          Bottom Actions
-      ================================ */}
-      <div className="pos-bottom-actions">
-        <button className="add-btn" onClick={addItem}>
-          Add Product
-        </button>
-
-        <div className="total-display">
-          Total: {formatCurrency(totalAmount)}
-        </div>
-
-        <button className="submit-btn" onClick={handleSubmit}>
-          Complete Sale
-        </button>
-
-        
+    {/* ===============================
+        COMPLETE SALE BUTTON CENTERED
+    ================================ */}
+    <div className="complete-sale-container">
+      <button className="submit-btn" onClick={handleSubmit}>
+        Complete Sale
+      </button>
+    </div>  
 
       </div>
-    </div>
+    
   );
 };
 

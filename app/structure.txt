@@ -116,4 +116,85 @@ const importProducts = async (file) => {
 };
 
 
-3 corrections 1, this error Line 30:9: The 'mainMenu' array makes the dependencies of useEffect Hook (at line 154) change on every render. To fix this, wrap the initialization of 'mainMenu' in its own useMemo() Hook react-hooks/exhaustive-deps webpack compiled with 1 warning 2. use the right symbol for exit like the professional one 3. fill the horizontal menu space, the exit ended and there is space to the end of the screen, fill it, so there will be no space that will bring the beauty of the dashboard /* =============================== TOP MENU CONTAINER ================================ */ .top-menu { display: flex; align-items: center; gap: 10px; /* ⬅ reduced */ padding: 10px 14px; background: #b8bdca; border-bottom: 2px solid #8a94a6; flex-wrap: wrap; } /* =============================== MENU CARD (BUTTON STYLE) ================================ */ .menu-card { min-width: 100px; /* ⬅ reduced */ height: 75px; /* ⬅ reduced */ border: 2px solid #687e9c; border-radius: 8px; /* slightly tighter */ background: #f7f4f4; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease; } /* =============================== HOVER EFFECT ================================ */ .menu-card:hover { background: #e9edf5; border-color: #0753f7; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12); } /* =============================== ACTIVE (KEYBOARD FOCUS) ================================ */ .menu-card.active { background: #dde6ff; border-color: #0753f7; box-shadow: 0 0 0 2px rgba(7, 83, 247, 0.25); transform: translateY(-1px); } /* =============================== ICON (SYMBOL) ================================ */ .menu-icon { font-size: 28px; /* ⬅ reduced from 34px */ margin-bottom: 4px; line-height: 1; } /* =============================== LABEL ================================ */ .menu-label { font-size: 14px; font-weight: 700; color: #1f2937; } /* =============================== DANGER (EXIT) ================================ */ .menu-card.danger { border-color: #dc2626; color: #dc2626; background: #fff5f5; } .menu-card.danger:hover { background: #fee2e2; border-color: #b91c1c; } /* =============================== TOP ACTION BUTTONS ================================ */ .top-actions { margin-left: auto; display: flex; gap: 10px; } .action-button { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 6px; border: 1px solid #687e9c; background: #ffffff; cursor: pointer; font-weight: 600; transition: background 0.2s ease, box-shadow 0.2s ease; } .action-button:hover { background: #eef2ff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12); }
+
+
+
+
+def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
+
+    # ---------- REQUIRED FIELD VALIDATION ----------
+    if not sale.product_id:
+        raise HTTPException(status_code=400, detail="Product is required")
+
+    if not sale.quantity or sale.quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be greater than zero")
+
+    if not sale.selling_price or sale.selling_price <= 0:
+        raise HTTPException(status_code=400, detail="Selling price must be greater than zero")
+
+    if not sale.payment_method:
+        raise HTTPException(status_code=400, detail="Payment method is required")
+
+    # Default customer name
+    if not sale.customer_name:
+        sale.customer_name = "Walk-in"
+
+    # ---------- PRODUCT VALIDATION ----------
+    product = (
+        db.query(product_models.Product)
+        .filter(product_models.Product.id == sale.product_id)
+        .first()
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # ---------- PAYMENT VALIDATION ----------
+    payment_method = sale.payment_method.lower()
+
+    if payment_method == "cash" and sale.bank_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Bank should not be selected for cash payment"
+        )
+
+    if payment_method in ["transfer", "pos"] and not sale.bank_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Bank is required for transfer or POS payment"
+        )
+
+    # ---------- INVENTORY CHECK ----------
+    stock = inventory_service.get_inventory_by_product(db, sale.product_id)
+    if not stock or stock.current_stock < sale.quantity:
+        raise HTTPException(status_code=400, detail="Insufficient stock")
+
+    inventory_service.remove_stock(db, sale.product_id, sale.quantity, commit=False)
+
+    # ---------- TOTAL ----------
+    total_amount = sale.quantity * sale.selling_price
+
+    # ---------- INVOICE ----------
+    next_val = db.execute(text("SELECT nextval('sales_invoice_seq')")).scalar()
+    invoice_no = str(next_val)
+
+    # ---------- SAVE ----------
+    db_sale = models.Sale(
+        invoice_no=invoice_no,
+        product_id=sale.product_id,
+        quantity=sale.quantity,
+        selling_price=sale.selling_price,
+        total_amount=total_amount,
+        payment_method=sale.payment_method,
+        bank_id=sale.bank_id,
+        ref_no=sale.ref_no,
+        customer_name=sale.customer_name,
+        customer_phone=sale.customer_phone,
+        sold_by=user_id,
+        sold_at=datetime.utcnow()
+    )
+
+    db.add(db_sale)
+    db.commit()
+    db.refresh(db_sale)
+
+    return db_sale

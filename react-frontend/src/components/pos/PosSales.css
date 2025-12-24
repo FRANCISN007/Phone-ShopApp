@@ -167,6 +167,9 @@
   display: flex;
   justify-content: flex-start;
   margin-top: 1px;
+
+
+
 }
 
 .add-btn {
@@ -203,16 +206,17 @@
 /* ===============================
    REMOVE BUTTON
 ================================ */
-.remove-btn {
-  background: none;
-  border: none;
-  color: #dc2626;
-  font-size: 12px;
-  cursor: pointer;
-}
+.remove-btn { 
+  background: #f87171; 
+  color: white; 
+  font-weight: 600; 
+  padding: 4px 8px; 
+  border-radius: 5px; 
+  cursor: pointer; }
 
 .remove-btn:hover {
   text-decoration: underline;
+  background: #bdc1ca;
 }
 
 /* ===============================

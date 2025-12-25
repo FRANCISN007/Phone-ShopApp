@@ -169,10 +169,10 @@ const DashboardPage = () => {
           style={{
             backgroundImage:
               location.pathname === "/dashboard"
-                ? `url(${HotelPhoto3})`
-                : "none",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+                
+                
+            
+            
           }}
         >
           <Outlet />

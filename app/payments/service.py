@@ -2,10 +2,14 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from . import models, schemas
 from app.sales import models as sales_models
+import uuid
+
 
 # -------------------------
 # Create Payment
 # -------------------------
+import uuid
+
 def create_payment(
     db: Session,
     invoice_no: int,
@@ -38,6 +42,9 @@ def create_payment(
     else:
         status = "completed"
 
+    # Force generate reference_no, ignore frontend input
+    generated_reference_no = str(uuid.uuid4())
+
     # Create payment
     new_payment = models.Payment(
         sale_invoice_no=invoice_no,
@@ -45,7 +52,7 @@ def create_payment(
         discount_allowed=payment.discount_allowed or 0,
         payment_method=payment.payment_method,
         bank_id=payment.bank_id,
-        reference_no=payment.reference_no,
+        reference_no=generated_reference_no,  # <-- ALWAYS use UUID
         payment_date=payment.payment_date,
         created_by=user_id,
         balance_due=new_balance_due,

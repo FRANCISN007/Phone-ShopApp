@@ -118,3 +118,50 @@
   background: #eef2ff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
+
+
+
+/* ===============================
+   DASHBOARD CONTAINER
+================================ */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* full viewport height */
+  overflow: hidden; /* prevent whole page scroll */
+}
+
+/* ===============================
+   TOP MENU CONTAINER (existing)
+================================ */
+.top-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+  padding: 10px 14px;
+  background: #b8bdca;
+  border-bottom: 2px solid #8a94a6;
+  flex-shrink: 0; /* keep menu fixed */
+}
+
+/* ===============================
+   MAIN CONTENT
+================================ */
+.main-content {
+  flex-grow: 1;          /* fill remaining height */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;      /* no overflow for container itself */
+}
+
+/* ===============================
+   CONTENT AREA (SCROLLABLE)
+================================ */
+.content-area {
+  flex-grow: 1;         /* fill space inside main-content */
+  overflow-y: auto;     /* vertical scroll */
+  padding: 15px;
+  box-sizing: border-box;
+  background-size: cover;
+  background-position: center;
+}

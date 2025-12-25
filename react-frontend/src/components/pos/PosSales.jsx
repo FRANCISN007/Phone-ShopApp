@@ -225,6 +225,9 @@ const PosSales = ({ onClose }) => {
 
   const amountInWords = numberToWords(totalAmount);
 
+  const balance = totalAmount - amountPaid;
+
+
 
   printWindow.document.write(`
     <html>
@@ -289,15 +292,21 @@ const PosSales = ({ onClose }) => {
           <tbody>
             ${itemsHtml}
           </tbody>
-        </table>
+        
+          </table>
 
-        <hr />
+          <hr />
 
-        <hr />
+          <table style="width:100%; font-size:12px;">
+            <tr>
+              <td><strong>Total:</strong> ${formatCurrency(totalAmount)}</td>
+              <td style="text-align:center;"><strong>Paid:</strong> ${formatCurrency(amountPaid)}</td>
+              <td style="text-align:right;"><strong>Balance:</strong> ${formatCurrency(balance)}</td>
+            </tr>
+          </table>
 
-        <div class="total">
-          TOTAL: ${formatCurrency(totalAmount)}
-        </div>
+
+        
 
         <div style="margin-top:6px; font-size:11px;">
           <strong>Amount in Words:</strong><br/>
@@ -376,76 +385,63 @@ const handleSubmit = async () => {
   const token = localStorage.getItem("token");
 
   try {
-    /* ===============================
-       1. CREATE SALE (ONCE)
-    ================================ */
+    const salePayload = {
+      invoice_date: invoiceDate,
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim() || null,
+      ref_no: refNo.trim() || null,
+      items: saleItems.map(item => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+        selling_price: item.sellingPrice,
+      })),
+    };
+
+    // ✅ ONE REQUEST ONLY
     const saleRes = await axios.post(
       `${API_BASE_URL}/sales/`,
-      {
-        invoice_date: invoiceDate,
-        customer_name: customerName.trim(),
-        customer_phone: customerPhone.trim(),
-        ref_no: refNo.trim(),
-      },
+      salePayload,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    const saleId = saleRes.data.id;
     const invoice = saleRes.data.invoice_no;
-
-    setCreatedSaleId(saleId);
     setInvoiceNo(invoice);
 
     /* ===============================
-       2. CREATE SALE ITEMS
-    ================================ */
-    for (let item of saleItems) {
-      await axios.post(
-        `${API_BASE_URL}/sales/items`,
-        {
-          sale_id: saleId,
-          product_id: item.productId,
-          quantity: item.quantity,
-          selling_price: item.sellingPrice,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    }
-
-    /* ===============================
-       3. CREATE PAYMENT
+       CREATE PAYMENT (uses invoice_no)
     ================================ */
     const paymentPayload = {
-      sale_id: saleId,
-      amount: amountPaid,
+      amount_paid: amountPaid,
       payment_method: paymentMethod,
     };
 
     if (paymentMethod !== "cash") {
       if (!bankId) {
-        alert("Please select a bank for this payment method.");
+        alert("Please select a bank");
         return;
       }
       paymentPayload.bank_id = bankId;
     }
 
-    await axios.post(`${API_BASE_URL}/payments`, paymentPayload, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    if (amountPaid > 0) {
+      await axios.post(
+        `${API_BASE_URL}/payments/sale/${invoice}`,
+        paymentPayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    }
 
 
-    setPaymentStatus("paid");
-
-    /* ===============================
-       4. PRINT & RESET
-    ================================ */
     handlePrintReceipt(invoice);
     alert("Sale completed successfully");
 
     resetForm();
     setShowPayment(false);
     setPaymentStatus(null);
-    setCreatedSaleId(null);
+
+    setAmountPaid(0);
+    setBankId("");
+    setInvoiceNo("");
 
   } catch (err) {
     console.error(err);
@@ -453,67 +449,57 @@ const handleSubmit = async () => {
 
     if (Array.isArray(detail)) {
       alert(detail.map(d => d.msg).join("\n"));
-    } else if (typeof detail === "string") {
-      alert(detail);
     } else {
-      alert("Transaction failed");
+      alert(detail || "Transaction failed");
     }
-
-      }
-    };
+  }
+};
 
 
 
 
   return (
     <div className="pos-sales-container">
-      {/* ===============================
-          Header with Correct Close Button
-      ================================ */}
-      <div className="pos-header">
-        <h2 className="pos-heading">POS Sales Entry</h2>
-        <button
-          type="button"
-          className="pos-close-btn"
-          onClick={() => (onClose ? onClose() : window.history.back())}
-        >
-          ✕
-        </button>
+  {/* Header */}
+  <div className="pos-header">
+    <h2 className="pos-heading">POS Sales Entry</h2>
+    <button
+      type="button"
+      className="pos-close-btn"
+      onClick={() => (onClose ? onClose() : window.history.back())}
+    >
+      ✕
+    </button>
+  </div>
+
+  {/* Scrollable Form Area */}
+  <div className="pos-scrollable-content">
+    {/* Top Info */}
+    <div className="pos-meta-grid">
+      <div className="input-group">
+        <label>Customer Name</label>
+        <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
       </div>
 
-      {/* ===============================
-          Top Info
-      ================================ */}
-      <div className="pos-meta-grid">
-
-        <div className="input-group">
-          <label>Customer Name</label>
-          <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-        </div>
-
-        <div className="input-group">
-          <label>Customer Phone</label>
-          <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-        </div>
-
-        <div className="input-group">
-          <label>Invoice Date</label>
-          <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
-        </div>
-
-        
-
-        <div className="input-group">
-          <label>Ref No</label>
-          <input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
-        </div>
-
-        {invoiceNo && <div className="invoice-no">Invoice No: {invoiceNo}</div>}
+      <div className="input-group">
+        <label>Customer Phone</label>
+        <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
       </div>
 
-      {/* ===============================
-        Sale Items Table
-    ================================ */}
+      <div className="input-group">
+        <label>Invoice Date</label>
+        <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+      </div>
+
+      <div className="input-group">
+        <label>Ref No</label>
+        <input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+      </div>
+
+      {invoiceNo && <div className="invoice-no">Invoice No: {invoiceNo}</div>}
+    </div>
+
+    {/* Sale Items Table */}
     <table className="pos-sales-table">
       <thead>
         <tr>
@@ -524,169 +510,110 @@ const handleSubmit = async () => {
           <th>Action</th>
         </tr>
       </thead>
-
       <tbody>
         {saleItems.map((item, index) => (
           <tr key={index}>
             <td>
               <select
                 value={item.productId}
-                onChange={(e) =>
-                  updateItem(index, "productId", Number(e.target.value))
-                }
+                onChange={(e) => updateItem(index, "productId", Number(e.target.value))}
               >
                 <option value="">--Select--</option>
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
             </td>
-
             <td>
               <input
                 type="number"
                 min="1"
                 value={item.quantity}
-                onChange={(e) =>
-                  updateItem(index, "quantity", Number(e.target.value))
-                }
+                onChange={(e) => updateItem(index, "quantity", Number(e.target.value))}
               />
             </td>
-
             <td>
               <input
                 type="number"
                 min="0"
                 value={item.sellingPrice}
-                onChange={(e) =>
-                  updateItem(index, "sellingPrice", Number(e.target.value))
-                }
+                onChange={(e) => updateItem(index, "sellingPrice", Number(e.target.value))}
               />
             </td>
-
             <td>{formatCurrency(item.quantity * item.sellingPrice)}</td>
-
             <td>
-              <button
-                className="remove-btn"
-                onClick={() => removeItem(index)}
-              >
-                Remove
-              </button>
+              <button className="remove-btn" onClick={() => removeItem(index)}>Remove</button>
             </td>
           </tr>
         ))}
-
-        {/* ===============================
-            ADD PRODUCT ROW INSIDE TABLE
-        ================================= */}
         <tr>
           <td colSpan="5" className="add-product-row">
-            <button className="add-btn" onClick={addItem}>
-              + Add Product
-            </button>
+            <button className="add-btn" onClick={addItem}>+ Add Product</button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    {/* ===============================
-        GRAND TOTAL (ALIGNED UNDER TOTAL)
-    ================================ */}
+    {/* Grand Total & Payment Section */}
     <div className="grand-total-container">
-    <span className="gt-label">Grand Total</span>
-    <span className="gt-amount">{formatCurrency(totalAmount)}</span>
+      <span className="gt-label">Grand Total</span>
+      <span className="gt-amount">{formatCurrency(totalAmount)}</span>
 
-    <div className="pay-area">
-      <button
-        className="pay-now-btn"
-        onClick={() => {
-          setShowPayment(true);
-          setAmountPaid(totalAmount);
-        }}
-      >
-        Pay Now
-      </button>
+      <div className="pay-area">
+        <button className="pay-now-btn" onClick={() => { setShowPayment(true); setAmountPaid(totalAmount); }}>
+          Pay Now
+        </button>
 
-      {showPayment && (
-        <div className="payment-card">
-          <div className="payment-title">Payment</div>
+        {showPayment && (
+          <div className="payment-card">
+            <div className="payment-title">Payment</div>
 
-          <div className="payment-row compact">
-            <label>Amount</label>
-            <input
-              type="number"
-              value={amountPaid}
-              onChange={(e) => setAmountPaid(Number(e.target.value))}
-            />
-          </div>
+            <div className="payment-row compact">
+              <label>Amount</label>
+              <input type="number" value={amountPaid} onChange={(e) => setAmountPaid(Number(e.target.value))} />
+            </div>
 
-          <div className="payment-row compact">
-            <label>Method</label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => {
+            <div className="payment-row compact">
+              <label>Method</label>
+              <select value={paymentMethod} onChange={(e) => {
                 const method = e.target.value;
                 setPaymentMethod(method);
                 setShowBankDropdown(method !== "cash");
                 if (method === "cash") setBankId("");
-              }}
-            >
-              <option value="cash">Cash</option>
-              <option value="transfer">Transfer</option>
-              <option value="pos">POS</option>
-            </select>
-          </div>
-
-          {showBankDropdown && (
-            <div className="payment-row compact">
-              <label>Bank</label>
-              <select
-                value={bankId}
-                onChange={(e) => setBankId(e.target.value)}
-              >
-                <option value="">-- Bank --</option>
-                {banks.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
+              }}>
+                <option value="cash">Cash</option>
+                <option value="transfer">Transfer</option>
+                <option value="pos">POS</option>
               </select>
             </div>
-          )}
-        </div>
-      )}
+
+            {showBankDropdown && (
+              <div className="payment-row compact">
+                <label>Bank</label>
+                <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
+                  <option value="">-- Bank --</option>
+                  {banks.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="payment-row compact balance-row">
+        <label>Balance</label>
+        <strong>{formatCurrency(totalAmount - amountPaid)}</strong>
+      </div>
+
     </div>
-  </div>
 
-
-  <div className="payment-row compact">
-  <label>Balance</label>
-  <strong>
-    {formatCurrency(totalAmount - amountPaid)}
-  </strong>
+    {/* Complete Sale Button inside scrollable form */}
+    <div className="complete-sale-container">
+      <button className="submit-btn" onClick={handleSubmit}>Complete Sale</button>
+    </div>
+  </div> {/* End pos-scrollable-content */}
 </div>
 
-
-
-    {/* ===============================
-        COMPLETE SALE BUTTON CENTERED
-    ================================ */}
-    <div className="complete-sale-container">
-      <button
-        className="submit-btn"
-        onClick={handleSubmit}
-        disabled={!showPayment || amountPaid <= 0}
-
-      >
-        Complete Sale
-      </button>
-
-    </div>  
-
-  </div>
     
   );
 };

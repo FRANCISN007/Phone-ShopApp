@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from pydantic import Field
 import pytz
 
 # -------------------------
@@ -23,13 +24,18 @@ class PaymentCreate(PaymentBase):
 # -------------------------
 # Output / Response Schema
 # -------------------------
+
+
 class PaymentOut(PaymentBase):
     id: int
-    sale_id: int
+    invoice_no: int = Field(alias="sale_invoice_no")
     balance_due: float
-    status: str                          # pending / part_paid / completed / voided
+    status: str
     created_by: Optional[int]
     created_at: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
+
+

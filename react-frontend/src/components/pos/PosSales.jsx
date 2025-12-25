@@ -27,6 +27,14 @@ const PosSales = ({ onClose }) => {
 
   const receiptRef = useRef(null);
 
+
+  const [showPayment, setShowPayment] = useState(false);
+  const [amountPaid, setAmountPaid] = useState(0);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [createdSaleId, setCreatedSaleId] = useState(null);
+
+
+
   /* ===============================
      Currency Formatter
   ================================ */
@@ -45,10 +53,22 @@ const PosSales = ({ onClose }) => {
     }).then(res => setProducts(res.data))
       .catch(console.error);
 
-    axios.get(`${API_BASE_URL}/banks/simple`, {
+    axios
+    .get(`${API_BASE_URL}/bank/simple`, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setBanks(res.data))
-      .catch(console.error);
+    })
+    .then((res) => {
+      if (Array.isArray(res.data)) {
+        setBanks(res.data);
+      } else {
+        console.error("Banks API did not return an array:", res.data);
+        setBanks([]);
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to load banks:", err);
+      setBanks([]);
+    });
 
     const today = new Date().toISOString().split("T")[0];
     setInvoiceDate(today);
@@ -351,47 +371,97 @@ const validateSale = () => {
   =============================== */
   // Updated handleSubmit
 const handleSubmit = async () => {
-  if (!validateSale()) return; // ⛔ STOP HERE IF INVALID
+  if (!validateSale()) return;
 
   const token = localStorage.getItem("token");
 
   try {
-    let backendInvoice = "";
+    /* ===============================
+       1. CREATE SALE (ONCE)
+    ================================ */
+    const saleRes = await axios.post(
+      `${API_BASE_URL}/sales/`,
+      {
+        invoice_date: invoiceDate,
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim(),
+        ref_no: refNo.trim(),
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
+    const saleId = saleRes.data.id;
+    const invoice = saleRes.data.invoice_no;
+
+    setCreatedSaleId(saleId);
+    setInvoiceNo(invoice);
+
+    /* ===============================
+       2. CREATE SALE ITEMS
+    ================================ */
     for (let item of saleItems) {
-      const res = await axios.post(
-        `${API_BASE_URL}/sales/`,
+      await axios.post(
+        `${API_BASE_URL}/sales/items`,
         {
-          invoice_date: invoiceDate,
-          //payment_method: paymentMethod,
-          //bank_id: paymentMethod !== "cash" ? bankId : null,
-          customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          ref_no: refNo.trim(),
+          sale_id: saleId,
           product_id: item.productId,
           quantity: item.quantity,
           selling_price: item.sellingPrice,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (!backendInvoice) {
-        backendInvoice = res.data.invoice_no;
-      }
     }
 
-    setInvoiceNo(backendInvoice);
+    /* ===============================
+       3. CREATE PAYMENT
+    ================================ */
+    const paymentPayload = {
+      sale_id: saleId,
+      amount: amountPaid,
+      payment_method: paymentMethod,
+    };
 
-    handlePrintReceipt(backendInvoice);
+    if (paymentMethod !== "cash") {
+      if (!bankId) {
+        alert("Please select a bank for this payment method.");
+        return;
+      }
+      paymentPayload.bank_id = bankId;
+    }
 
-    alert("Sale completed successfully!");
+    await axios.post(`${API_BASE_URL}/payments`, paymentPayload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+
+    setPaymentStatus("paid");
+
+    /* ===============================
+       4. PRINT & RESET
+    ================================ */
+    handlePrintReceipt(invoice);
+    alert("Sale completed successfully");
 
     resetForm();
+    setShowPayment(false);
+    setPaymentStatus(null);
+    setCreatedSaleId(null);
+
   } catch (err) {
     console.error(err);
-    alert(err.response?.data?.detail || "Error creating sale");
-  }
-};
+    const detail = err.response?.data?.detail;
+
+    if (Array.isArray(detail)) {
+      alert(detail.map(d => d.msg).join("\n"));
+    } else if (typeof detail === "string") {
+      alert(detail);
+    } else {
+      alert("Transaction failed");
+    }
+
+      }
+    };
+
 
 
 
@@ -462,7 +532,7 @@ const handleSubmit = async () => {
               <select
                 value={item.productId}
                 onChange={(e) =>
-                  updateItem(index, "productId", e.target.value)
+                  updateItem(index, "productId", Number(e.target.value))
                 }
               >
                 <option value="">--Select--</option>
@@ -526,27 +596,97 @@ const handleSubmit = async () => {
         GRAND TOTAL (ALIGNED UNDER TOTAL)
     ================================ */}
     <div className="grand-total-container">
-      <span className="gt-label">Grand Total</span>
-      <span className="gt-amount">
-        {formatCurrency(
-          saleItems.reduce(
-            (sum, item) => sum + item.quantity * item.sellingPrice,
-            0
-          )
-        )}
-      </span>
+    <span className="gt-label">Grand Total</span>
+    <span className="gt-amount">{formatCurrency(totalAmount)}</span>
+
+    <div className="pay-area">
+      <button
+        className="pay-now-btn"
+        onClick={() => {
+          setShowPayment(true);
+          setAmountPaid(totalAmount);
+        }}
+      >
+        Pay Now
+      </button>
+
+      {showPayment && (
+        <div className="payment-card">
+          <div className="payment-title">Payment</div>
+
+          <div className="payment-row compact">
+            <label>Amount</label>
+            <input
+              type="number"
+              value={amountPaid}
+              onChange={(e) => setAmountPaid(Number(e.target.value))}
+            />
+          </div>
+
+          <div className="payment-row compact">
+            <label>Method</label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => {
+                const method = e.target.value;
+                setPaymentMethod(method);
+                setShowBankDropdown(method !== "cash");
+                if (method === "cash") setBankId("");
+              }}
+            >
+              <option value="cash">Cash</option>
+              <option value="transfer">Transfer</option>
+              <option value="pos">POS</option>
+            </select>
+          </div>
+
+          {showBankDropdown && (
+            <div className="payment-row compact">
+              <label>Bank</label>
+              <select
+                value={bankId}
+                onChange={(e) => setBankId(e.target.value)}
+              >
+                <option value="">-- Bank --</option>
+                {banks.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  </div>
+
+
+  <div className="payment-row compact">
+  <label>Balance</label>
+  <strong>
+    {formatCurrency(totalAmount - amountPaid)}
+  </strong>
+</div>
+
+
 
     {/* ===============================
         COMPLETE SALE BUTTON CENTERED
     ================================ */}
     <div className="complete-sale-container">
-      <button className="submit-btn" onClick={handleSubmit}>
+      <button
+        className="submit-btn"
+        onClick={handleSubmit}
+        disabled={!showPayment || amountPaid <= 0}
+
+      >
         Complete Sale
       </button>
+
     </div>  
 
-      </div>
+  </div>
     
   );
 };

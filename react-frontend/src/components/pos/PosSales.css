@@ -287,3 +287,86 @@
   justify-content: center;
   margin-top: 12px;
 }
+
+
+
+
+.pay-now-btn {
+  margin-left: 6px;          /* reduced */
+  padding: 4px 8px;          /* tighter */
+  font-weight: 600;
+  font-size: 12px;           /* smaller text */
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;        /* slightly tighter */
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.pay-now-btn:hover {
+  background: #15803d;
+}
+
+
+/* ===============================
+   COMPACT PAYMENT CARD
+================================ */
+
+.payment-card {
+  margin-top: 4px;
+  padding: 6px 8px;
+  width: 240px;                 /* 🔥 fixed compact width */
+  border: 1px solid #2559c2;
+  border-radius: 6px;
+  background: #c5cfda;
+  font-size: 13px;
+}
+
+.payment-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  color: #0d0e0f;
+  text-align: center;
+}
+
+.payment-row.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.payment-row.compact label {
+  font-size: 12px;
+  white-space: nowrap;
+  color: #101113;
+}
+
+.payment-row.compact input,
+.payment-row.compact select {
+  width: 120px;                 /* 🔥 short inputs */
+  height: 24px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+}
+
+
+/* Pay Now + Payment Card wrapper */
+.pay-area {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;   /* 🔥 RIGHT SIDE */
+  margin-left: 12px;
+}
+
+/* Payment card sits directly under Pay Now */
+.payment-card {
+  margin-top: 4px;
+}

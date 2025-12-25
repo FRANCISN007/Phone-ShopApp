@@ -8,9 +8,10 @@ class Payment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    sale_id = Column(
+    # Reference sales.invoice_no instead of sales.id
+    sale_invoice_no = Column(
         Integer,
-        ForeignKey("sales.id", ondelete="CASCADE"),
+        ForeignKey("sales.invoice_no", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -33,6 +34,11 @@ class Payment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    sale = relationship("Sale", backref="payments")
+    sale = relationship(
+    "Sale",
+    primaryjoin="Payment.sale_invoice_no == foreign(Sale.invoice_no)",
+    viewonly=True
+)
+
     bank = relationship("Bank")
     user = relationship("User")

@@ -8,12 +8,12 @@ from app.sales import models as sales_models
 # -------------------------
 def create_payment(
     db: Session,
-    sale_id: int,
+    invoice_no: int,
     payment: schemas.PaymentCreate,
     user_id: int
 ):
     # Fetch sale
-    sale = db.query(sales_models.Sale).filter(sales_models.Sale.id == sale_id).first()
+    sale = db.query(sales_models.Sale).filter(sales_models.Sale.invoice_no == invoice_no).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
 
@@ -40,7 +40,7 @@ def create_payment(
 
     # Create payment
     new_payment = models.Payment(
-        sale_id=sale_id,
+        sale_invoice_no=invoice_no,
         amount_paid=payment.amount_paid,
         discount_allowed=payment.discount_allowed or 0,
         payment_method=payment.payment_method,
@@ -67,8 +67,8 @@ def list_payments(db: Session):
 # -------------------------
 # List payments by sale
 # -------------------------
-def list_payments_by_sale(db: Session, sale_id: int):
-    return db.query(models.Payment).filter(models.Payment.sale_id == sale_id).order_by(models.Payment.created_at.desc()).all()
+def list_payments_by_sale(db: Session, invoice_no: int):
+    return db.query(models.Payment).filter(models.Payment.sale_invoice_no == invoice_no).order_by(models.Payment.created_at.desc()).all()
 
 # -------------------------
 # Get single payment

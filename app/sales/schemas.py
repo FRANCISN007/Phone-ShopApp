@@ -1,42 +1,74 @@
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
+from pydantic import BaseModel, validator
+from typing import List, Optional
+from datetime import datetime, date
 
-
-class SaleBase(BaseModel):
-    invoice_no: Optional[str] = None
+# ---------- Sale Item ----------
+class SaleItemData(BaseModel):
     product_id: int
     quantity: int
     selling_price: float
-    ref_no: Optional[str] = None       # IMEI / Serial / Any reference
-    customer_name: Optional[str] = None
-    customer_phone: Optional[str] = None
 
+class SaleItemCreate(BaseModel):
+    sale_invoice_no: int
+    product_id: int
+    quantity: int
+    selling_price: float
 
-class SaleCreate(SaleBase):
-    pass
-
-
-class SaleUpdate(BaseModel):
-    quantity: Optional[int] = None
-    selling_price: Optional[float] = None
-    ref_no: Optional[str] = None
-    customer_name: Optional[str] = None
-    customer_phone: Optional[str] = None
-
-class SaleOut(SaleBase):
+class SaleItemOut(BaseModel):
     id: int
-    invoice_no: str
+    sale_invoice_no: int
+    product_id: int
+    quantity: int
+    selling_price: float
     total_amount: float
-    total_paid: float = 0.0       # computed from payments
-    balance_due: float = 0.0      # computed: total_amount - total_paid
-    sold_by: Optional[int]
-    sold_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
+# ---------- Sale ----------
+class SaleCreate(BaseModel):
+    invoice_date: date
+    customer_name: str
+    customer_phone: Optional[str] = None
+    ref_no: Optional[str] = None
 
+    @validator("invoice_date", pre=True)
+    def parse_invoice_date(cls, v):
+        if isinstance(v, str):
+            return date.fromisoformat(v)
+        return v
+
+class SaleFullCreate(BaseModel):
+    invoice_date: date
+    customer_name: str
+    customer_phone: Optional[str] = None
+    ref_no: Optional[str] = None
+    items: List[SaleItemData]
+
+class SaleOut(BaseModel):
+    id: int
+    invoice_no: int      # 🔥 WAS str — MUST BE int
+    invoice_date: datetime
+    customer_name: str
+    customer_phone: Optional[str]
+    ref_no: Optional[str]
+    total_amount: float
+    sold_by: Optional[int]
+    sold_at: datetime
+    items: List[SaleItemOut] = []
+
+    class Config:
+        orm_mode = True
+
+# ==============================
+# ---------- Full Sale (Header + Items) ----------
+# ==============================
+class SaleFullCreate(SaleCreate):
+    items: List[SaleItemData]
+
+# ==============================
+# ---------- Sale Analysis ----------
+# ==============================
 class SaleAnalysisItem(BaseModel):
     product_id: int
     product_name: str
@@ -46,8 +78,25 @@ class SaleAnalysisItem(BaseModel):
     total_sales: float
     margin: float
 
-
 class SaleAnalysisOut(BaseModel):
-    items: list[SaleAnalysisItem]
+    items: List[SaleAnalysisItem]
     total_sales: float
     total_margin: float
+
+
+class SaleUpdate(BaseModel):
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    ref_no: Optional[str] = None
+
+    class Config:
+        extra = "forbid"  # 🔥 prevents silent bugs
+
+
+
+class SaleItemUpdate(BaseModel):
+    quantity: Optional[int] = None
+    selling_price: Optional[float] = None
+
+    class Config:
+        extra = "forbid"

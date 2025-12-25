@@ -12,16 +12,16 @@ router = APIRouter()
 # -------------------------
 # Create Payment for Sale
 # -------------------------
-@router.post("/sale/{sale_id}", response_model=schemas.PaymentOut)
+@router.post("/sale/{invoice_no}", response_model=schemas.PaymentOut)
 def create_payment_for_sale(
-    sale_id: int,
+    invoice_no: int,
     payment: schemas.PaymentCreate,
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(get_current_user),
 ):
     return service.create_payment(
         db=db,
-        sale_id=sale_id,
+        invoice_no=invoice_no,
         payment=payment,
         user_id=current_user.id
     )
@@ -36,12 +36,12 @@ def list_payments(db: Session = Depends(get_db)):
 # -------------------------
 # List payments by sale
 # -------------------------
-@router.get("/sale/{sale_id}", response_model=List[schemas.PaymentOut])
+@router.get("/sale/{invoice_no}", response_model=List[schemas.PaymentOut])
 def list_payments_by_sale(
-    sale_id: int,
+    invoice_no: int,
     db: Session = Depends(get_db),
 ):
-    return service.list_payments_by_sale(db, sale_id)
+    return service.list_payments_by_sale(db, invoice_no)
 
 # -------------------------
 # Delete a payment

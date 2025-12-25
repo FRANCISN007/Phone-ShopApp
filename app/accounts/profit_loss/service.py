@@ -39,11 +39,19 @@ def get_profit_and_loss(
         db.query(
             product_models.Product.category,
             func.sum(
-                sales_models.Sale.selling_price * sales_models.Sale.quantity
+                sales_models.SaleItem.quantity *
+                sales_models.SaleItem.selling_price
             ).label("revenue")
         )
-        .select_from(sales_models.Sale)
-        .join(product_models.Product)
+        .select_from(sales_models.SaleItem)
+        .join(
+            sales_models.Sale,
+            sales_models.Sale.invoice_no == sales_models.SaleItem.sale_invoice_no
+        )
+        .join(
+            product_models.Product,
+            product_models.Product.id == sales_models.SaleItem.product_id
+        )
         .filter(
             sales_models.Sale.sold_at >= start_date,
             sales_models.Sale.sold_at <= end_date
@@ -52,13 +60,14 @@ def get_profit_and_loss(
         .all()
     )
 
+
     revenue = {row.category: row.revenue for row in revenue_query}
     total_revenue = sum(revenue.values()) if revenue else 0
 
     # -------------------------
     # 2. Cost of Sales (from Purchase)
     # -------------------------
-    latest_purchase_subquery = (
+    latest_purchase = (
         db.query(
             purchase_models.Purchase.product_id,
             func.max(purchase_models.Purchase.purchase_date).label("latest_date")
@@ -70,18 +79,23 @@ def get_profit_and_loss(
     cos_query = (
         db.query(
             func.sum(
-                purchase_models.Purchase.cost_price * sales_models.Sale.quantity
+                purchase_models.Purchase.cost_price *
+                sales_models.SaleItem.quantity
             ).label("cos")
         )
-        .select_from(sales_models.Sale)
+        .select_from(sales_models.SaleItem)
         .join(
-            purchase_models.Purchase,
-            purchase_models.Purchase.product_id == sales_models.Sale.product_id
+            sales_models.Sale,
+            sales_models.Sale.invoice_no == sales_models.SaleItem.sale_invoice_no
         )
         .join(
-            latest_purchase_subquery,
-            (latest_purchase_subquery.c.product_id == purchase_models.Purchase.product_id)
-            & (latest_purchase_subquery.c.latest_date == purchase_models.Purchase.purchase_date)
+            purchase_models.Purchase,
+            purchase_models.Purchase.product_id == sales_models.SaleItem.product_id
+        )
+        .join(
+            latest_purchase,
+            (latest_purchase.c.product_id == purchase_models.Purchase.product_id)
+            & (latest_purchase.c.latest_date == purchase_models.Purchase.purchase_date)
         )
         .filter(
             sales_models.Sale.sold_at >= start_date,
@@ -89,6 +103,7 @@ def get_profit_and_loss(
         )
         .first()
     )
+
 
     cost_of_sales = cos_query.cos or 0
     gross_profit = total_revenue - cost_of_sales

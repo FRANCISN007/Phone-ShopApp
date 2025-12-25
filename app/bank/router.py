@@ -37,7 +37,7 @@ def list_banks(
 @router.get("/simple", response_model=List[BankSimpleSchema])
 def list_banks_simple(
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["user","manager", "admin"]))
+    #current_user: UserDisplaySchema = Depends(role_required(["user","manager", "admin"]))
 ):
     banks = service.list_banks(db)
     # Return only id and name

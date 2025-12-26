@@ -8,7 +8,7 @@ import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-import HotelPhoto3 from "../assets/images/HotelPhoto3.png";
+
 import "./DashboardPage.css";
 
 const DashboardPage = () => {

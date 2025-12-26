@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./PosSales.css";
 
@@ -18,20 +18,20 @@ const PosSales = ({ onClose }) => {
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [bankId, setBankId] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [refNo, setRefNo] = useState("");
   const [showBankDropdown, setShowBankDropdown] = useState(false);
 
-  const receiptRef = useRef(null);
+  
 
 
   const [showPayment, setShowPayment] = useState(false);
   const [amountPaid, setAmountPaid] = useState(0);
-  const [paymentStatus, setPaymentStatus] = useState(null);
-  const [createdSaleId, setCreatedSaleId] = useState(null);
+  
+
 
 
 
@@ -131,7 +131,7 @@ const PosSales = ({ onClose }) => {
     setSaleItems([{ productId: "", quantity: 1, sellingPrice: 0 }]);
     setCustomerName("");
     setCustomerPhone("");
-    setPaymentMethod("cash");
+    setPaymentMethod(""); // ✅ reset to blank
     setBankId("");
     setRefNo("");
     setInvoiceDate(new Date().toISOString().split("T")[0]);
@@ -276,7 +276,15 @@ const PosSales = ({ onClose }) => {
         <div>Customer: ${customerName || "-"}</div>
         <div>Phone: ${customerPhone || "-"}</div>
         <div>Ref No: ${refNo || "-"}</div>
-        <div>Payment: ${paymentMethod.toUpperCase()}</div>
+        <div>
+          Payment: ${
+            amountPaid > 0 && paymentMethod
+              ? paymentMethod.toUpperCase()
+              : "NOT PAID"
+          }
+        </div>
+
+
 
         <hr />
 
@@ -329,15 +337,8 @@ const PosSales = ({ onClose }) => {
 
 
 const validateSale = () => {
-  
-  if (!paymentMethod) {
-    alert("Payment method is required");
-    return false;
-  }
 
-  
-
-  if (!saleItems.length) {
+    if (!saleItems.length) {
     alert("Add at least one product");
     return false;
   }
@@ -409,6 +410,7 @@ const handleSubmit = async () => {
     /* ===============================
        CREATE PAYMENT (uses invoice_no)
     ================================ */
+    if (amountPaid > 0) {
     const paymentPayload = {
       amount_paid: amountPaid,
       payment_method: paymentMethod,
@@ -422,13 +424,12 @@ const handleSubmit = async () => {
       paymentPayload.bank_id = bankId;
     }
 
-    if (amountPaid > 0) {
-      await axios.post(
-        `${API_BASE_URL}/payments/sale/${invoice}`,
-        paymentPayload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    }
+    await axios.post(
+      `${API_BASE_URL}/payments/sale/${invoice}`,
+      paymentPayload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
 
 
     handlePrintReceipt(invoice);
@@ -436,7 +437,7 @@ const handleSubmit = async () => {
 
     resetForm();
     setShowPayment(false);
-    setPaymentStatus(null);
+    
 
     setAmountPaid(0);
     setBankId("");
@@ -581,6 +582,7 @@ const handleSubmit = async () => {
                 setShowBankDropdown(method !== "cash");
                 if (method === "cash") setBankId("");
               }}>
+                <option value="">-- Select Method --</option>
                 <option value="cash">Cash</option>
                 <option value="transfer">Transfer</option>
                 <option value="pos">POS</option>

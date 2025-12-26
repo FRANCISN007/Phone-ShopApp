@@ -375,6 +375,9 @@ const validateSale = () => {
     Submit Sale
   =============================== */
   // Updated handleSubmit
+
+
+  
 const handleSubmit = async () => {
   if (!validateSale()) return;
 
@@ -462,7 +465,8 @@ const handleSubmit = async () => {
     <button
       type="button"
       className="pos-close-btn"
-      onClick={() => (onClose ? onClose() : window.history.back())}
+      onClick={() => window.close()}
+
     >
       ✕
     </button>

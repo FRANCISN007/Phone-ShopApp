@@ -20,6 +20,9 @@ const DashboardPage = () => {
   ================================ */
   const [activeIndex, setActiveIndex] = useState(0);
 
+
+  
+
   /* ===============================
      MAIN POS MENU (MEMOIZED)
   ================================ */
@@ -35,7 +38,7 @@ const DashboardPage = () => {
       { label: "Export", icon: "📤", action: "export" },
       { label: "Print", icon: "🖨️", action: "print" },
       {
-        label: "Exit",icon: "⎋",path: "/logout",danger: true,
+        label: "Exit",icon: "⎋",path: "/exit",danger: true,
       },
     ],
     []
@@ -99,10 +102,22 @@ const DashboardPage = () => {
     (item) => {
       if (item.action === "export") return exportToExcel();
       if (item.action === "print") return printContent();
+
+      // ✅ MULTI-POS: open ONLY in new tab
+      if (item.label === "POS") {
+        window.open(
+          `${window.location.origin}/dashboard/pos`,
+          "_blank",
+          "noopener,noreferrer"
+        );
+        return; // 🔥 THIS LINE WAS MISSING
+      }
+
       if (item.path) navigate(item.path);
     },
     [navigate, exportToExcel, printContent]
   );
+
 
   /* ===============================
      KEYBOARD NAVIGATION

@@ -1,51 +1,48 @@
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
+import RequireLicense from "./components/guards/RequireLicense";
+
+// Pages
 import HomePage from "./pages/HomePage";
-import LicensePage from "./modules/license/LicensePage";
-import LoginPage from "./modules/auth/LoginPage";
-import RegisterPage from "./modules/auth/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 
+// Auth / License
+import LicensePage from "./modules/license/LicensePage";
+import LoginPage from "./modules/auth/LoginPage";
+import RegisterPage from "./modules/auth/RegisterPage";
+
+// POS
 import PosSales from "./components/pos/PosSales";
-
-
-
 
 console.log("✅ API BASE:", process.env.REACT_APP_API_BASE_URL);
 
 const App = () => {
-  const [isLicenseVerified, setIsLicenseVerified] = useState(false);
-
-  useEffect(() => {
-    const licenseVerified = localStorage.getItem("license_verified") === "true";
-    setIsLicenseVerified(licenseVerified);
-  }, []);
-
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
+        {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/license" element={<LicensePage setIsLicenseVerified={setIsLicenseVerified} />} />
-        <Route
-          path="/login"
-          element={isLicenseVerified ? <LoginPage /> : <Navigate to="/license" replace />}
-        />
-        <Route
-          path="/register"
-          element={isLicenseVerified ? <RegisterPage /> : <Navigate to="/license" replace />}
-        />
+        <Route path="/license" element={<LicensePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected Dashboard routes */}
-        <Route path="/dashboard/*" element={isLicenseVerified ? <DashboardPage /> : <Navigate to="/license" replace />} >
-          <Route path="users" element={<UsersPage />} />
-          <Route path="pos" element={<PosSales />} />
+        {/* ================= LICENSE-PROTECTED ROUTES ================= */}
+        <Route element={<RequireLicense />}>
+          <Route path="/dashboard" element={<DashboardPage />}>
+            <Route path="users" element={<UsersPage />} />
+            <Route path="pos" element={<PosSales />} />
+            {/* add more dashboard routes here */}
+          </Route>
         </Route>
 
-
-        {/* Fallback */}
+        {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

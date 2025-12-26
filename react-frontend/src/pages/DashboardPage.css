@@ -63,7 +63,7 @@
    EXIT ICON OVERRIDE
 ================================ */
 .exit-icon {
-  font-size: 45px;      /* Bigger than normal icons */
+  font-size: 30px;      /* Bigger than normal icons */
   font-weight: 700;     /* Makes ⎋ visually bold */
   line-height: 1;
 }

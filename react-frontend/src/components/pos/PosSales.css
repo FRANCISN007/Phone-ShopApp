@@ -20,7 +20,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 0px;
 }
 
 .pos-heading {
@@ -47,11 +47,12 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  padding: 10px;
+  padding: 2px;
   background: #ffffff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #0964ee;
   border-radius: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 2px;
+   
 }
 
 .input-group {
@@ -67,11 +68,11 @@
 }
 
 .input-group input {
-  padding: 7px 8px;
+  padding: 3px 5px;
   border: 1px solid #9ca3af;
   border-radius: 4px;
   background: #f9fafb;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .input-group input:focus {
@@ -89,12 +90,12 @@
 }
 
 /* ===============================
-   SALES TABLE (EXCEL STYLE)
+   SALES TABLE (COMPACT)
 ================================ */
 .pos-sales-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px; /* slightly smaller */
   background: #ffffff;
 }
 
@@ -102,13 +103,33 @@
   border: 1px solid #9ca3af;
   background: #f1f5f9;
   font-weight: 700;
-  padding: 6px;
+  padding: 4px 6px; /* reduced */
 }
 
 .pos-sales-table td {
-  border: 1px solid #d1d5db;
-  padding: 4px;
+  border: 1px solid #3966af;
+  padding: 0% 2%; /* 🔥 tighter rows */
+  line-height: 1.2;
 }
+
+/* ===============================
+   ZEBRA STRIPING
+================================ */
+.pos-sales-table tbody tr:nth-child(odd) {
+  background-color: #f9fafb;
+}
+
+.pos-sales-table tbody tr:nth-child(even) {
+  background-color: #e3f0e2;
+}
+
+/* Optional hover highlight */
+.pos-sales-table tbody tr:hover {
+  background-color: #e0ecff;
+}
+
+
+
 
 /* ALIGNMENTS */
 .pos-sales-table th:nth-child(2),
@@ -149,7 +170,7 @@
   align-items: center;
   gap: 20px;
   padding: 10px;
-  margin-top: 6px;
+  margin-top: 2px;
   border-top: 2px solid #111827;
   background: #ffffff;
   

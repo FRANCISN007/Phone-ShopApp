@@ -35,10 +35,7 @@ const DashboardPage = () => {
       { label: "Export", icon: "📤", action: "export" },
       { label: "Print", icon: "🖨️", action: "print" },
       {
-        label: "Exit",
-        icon: "⎋",
-        path: "/logout",
-        danger: true,
+        label: "Exit",icon: "⎋",path: "/logout",danger: true,
       },
     ],
     []

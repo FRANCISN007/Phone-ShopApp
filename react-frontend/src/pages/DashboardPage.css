@@ -5,7 +5,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 10px;
-  padding: 10px 14px;
+  padding: 6px 8px;
   background: #b8bdca;
   border-bottom: 2px solid #8a94a6;
 }
@@ -15,9 +15,9 @@
 ================================ */
 .menu-card {
   min-width: 100px;   /* ⬅ reduced */
-  height: 75px;       /* ⬅ reduced */
+  height: 65px;       /* ⬅ reduced */
   border: 2px solid #687e9c;
-  border-radius: 8px; /* slightly tighter */
+  border-radius: 10px; /* slightly tighter */
   background: #f7f4f4;
   display: flex;
   flex-direction: column;
@@ -54,7 +54,7 @@
    ICON (SYMBOL)
 ================================ */
 .menu-icon {
-  font-size: 35px;   /* ⬅ reduced from 34px */
+  font-size: 30px;   /* ⬅ reduced from 34px */
   margin-bottom: 4px;
   line-height: 1;
 }

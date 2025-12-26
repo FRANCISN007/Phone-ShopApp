@@ -329,11 +329,7 @@ const PosSales = ({ onClose }) => {
 
 
 const validateSale = () => {
-  if (!customerName.trim()) {
-    alert("Customer name is required");
-    return false;
-  }
-
+  
   if (!paymentMethod) {
     alert("Payment method is required");
     return false;

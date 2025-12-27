@@ -37,7 +37,14 @@ class ProductOut(ProductBase):
     id: int
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
+    selling_price_formatted: str  # add this field
     created_at: datetime
+
+    @property
+    def selling_price_formatted(self) -> str:
+        if self.selling_price is None:
+            return "N0"
+        return f"N{int(self.selling_price):,}"  # formats as 23,000
 
     class Config:
         from_attributes = True
@@ -51,10 +58,14 @@ class ProductSimpleSchema(BaseModel):
     name: str
     selling_price: Optional[float] = None
 
+    @property
+    def selling_price_formatted(self) -> str:
+        if self.selling_price is None:
+            return "N0"
+        return f"N{int(self.selling_price):,}"  # formats as 23,000
+
     class Config:
         from_attributes = True
-
-
 # ---------------------------------
 # Update Selling Price (Dedicated)
 # ---------------------------------

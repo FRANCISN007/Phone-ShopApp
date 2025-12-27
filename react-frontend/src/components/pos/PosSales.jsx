@@ -34,8 +34,13 @@ const PosSales = ({ onClose }) => {
   const [productSearch, setProductSearch] = useState({});
   const [activeSearchRow, setActiveSearchRow] = useState(null);
 
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   
+  
+
+  const parseNumber = (value) =>
+  Number(value.replace(/,/g, "")) || 0;
 
 
 
@@ -115,18 +120,22 @@ const PosSales = ({ onClose }) => {
   };
 
   const updateItem = (index, key, value) => {
-    const newItems = [...saleItems];
-    newItems[index][key] = value;
+  const newItems = [...saleItems];
+  newItems[index][key] = value;
 
-    if (key === "productId") {
-      const product = products.find((p) => p.id === Number(value));
-      newItems[index].sellingPrice = product
-        ? product.selling_price || 0
-        : 0;
-    }
+  if (key === "productId") {
+    const product = products.find((p) => p.id === Number(value));
+    newItems[index].sellingPrice = product
+      ? product.selling_price || 0
+      : 0;
+    newItems[index].sellingPriceFormatted = product
+      ? product.selling_price_formatted || formatCurrency(product.selling_price)
+      : "0";
+  }
 
-    setSaleItems(newItems);
-  };
+  setSaleItems(newItems);
+};
+
 
   const removeItem = (index) => {
     const newItems = [...saleItems];
@@ -481,7 +490,13 @@ const handleSubmit = async () => {
 
 
   return (
-    <div className="pos-sales-container">
+    <div
+      className="pos-sales-container"
+      onKeyDown={(e) => {
+        e.stopPropagation(); // 🔴 POS owns keyboard
+      }}
+    >
+
   {/* Header */}
   <div className="pos-header">
     <h2 className="pos-heading">POS Sales Entry</h2>
@@ -558,12 +573,46 @@ const handleSubmit = async () => {
                     setActiveSearchRow(index);
                     setProductSearch({ ...productSearch, [index]: "" });
                   }}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setProductSearch({
                       ...productSearch,
                       [index]: e.target.value,
-                    })
-                  }
+                    });
+                    setHighlightedIndex(-1);
+                  }}
+
+                  onKeyDown={(e) => {
+                    e.stopPropagation(); // ✅ block dashboard/global shortcuts
+
+                    const filtered = getFilteredProducts(index);
+                    if (!filtered.length) return;
+
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault(); // ⛔ prevent cursor move
+                      setHighlightedIndex((prev) =>
+                        prev < filtered.length - 1 ? prev + 1 : 0
+                      );
+                    }
+
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault(); // ⛔ prevent cursor move
+                      setHighlightedIndex((prev) =>
+                        prev > 0 ? prev - 1 : filtered.length - 1
+                      );
+                    }
+
+                    if (e.key === "Enter" && highlightedIndex >= 0) {
+                      e.preventDefault(); // ⛔ prevent form submit
+                      const selected = filtered[highlightedIndex];
+                      updateItem(index, "productId", selected.id);
+                      setActiveSearchRow(null);
+                      setHighlightedIndex(-1);
+                    }
+                  }}
+
+
+
+
                   className="product-search-input"
                 />
 
@@ -578,27 +627,22 @@ const handleSubmit = async () => {
                   </div>
 
                   {/* 📦 PRODUCT LIST */}
-                  {getFilteredProducts(index).map((p) => (
+                  {getFilteredProducts(index).map((p, i) => (
                     <div
                       key={p.id}
-                      className="product-search-item"
+                      className={`product-search-item ${
+                        i === highlightedIndex ? "active" : ""
+                      }`}
                       onClick={() => {
-                      updateItem(index, "productId", p.id);
-
-                      // 🔴 CLOSE SEARCH MODE IMMEDIATELY
-                      setActiveSearchRow(null);
-
-                      // clear search text for this row
-                      setProductSearch(prev => ({
-                        ...prev,
-                        [index]: "",
-                      }));
-                    }}
-
+                        updateItem(index, "productId", p.id);
+                        setActiveSearchRow(null);
+                        setHighlightedIndex(-1);
+                      }}
                     >
                       {p.name}
                     </div>
                   ))}
+
 
                   {/* ❌ EMPTY STATE */}
                   {getFilteredProducts(index).length === 0 && (
@@ -621,12 +665,21 @@ const handleSubmit = async () => {
             </td>
             <td>
               <input
-                type="number"
-                min="0"
-                value={item.sellingPrice}
-                onChange={(e) => updateItem(index, "sellingPrice", Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                value={item.sellingPrice.toLocaleString("en-NG")} // display formatted
+                onChange={(e) => {
+                  const raw = parseNumber(e.target.value); // remove commas
+                  updateItem(index, "sellingPrice", raw);  // update state with raw number
+                }}
+                onFocus={(e) => {
+                  e.target.select(); // optional: select all text on focus
+                }}
               />
+
             </td>
+
+
             <td>{formatCurrency(item.quantity * item.sellingPrice)}</td>
             <td>
               <button className="remove-btn" onClick={() => removeItem(index)}>Remove</button>

@@ -122,10 +122,27 @@ const DashboardPage = () => {
   /* ===============================
      KEYBOARD NAVIGATION
   ================================ */
+
+  
   useEffect(() => {
     const cols = 6;
 
     const handleKeyDown = (e) => {
+      // ❌ Ignore when typing
+      const tag = e.target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        e.target.isContentEditable
+      ) {
+        return;
+      }
+
+      // ❌ Ignore inside POS
+      if (location.pathname.startsWith("/dashboard/pos")) {
+        return;
+      }
+
       if (e.key === "ArrowRight") {
         setActiveIndex((i) => (i + 1) % mainMenu.length);
       } else if (e.key === "ArrowLeft") {
@@ -145,7 +162,13 @@ const DashboardPage = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeIndex, mainMenu, handleMenuAction]);
+  }, [
+    activeIndex,
+    mainMenu,
+    handleMenuAction,
+    location.pathname, // ✅ FIX
+  ]);
+
 
   /* ===============================
      RENDER

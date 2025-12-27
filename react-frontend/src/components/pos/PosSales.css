@@ -176,9 +176,18 @@
   
 }
 
+
 .pos-total-row span {
   font-size: 15px;
+  font-weight: 800;
+}
+
+
+/* Bold total in each row */
+.pos-sales-table tbody td:nth-child(4) {
   font-weight: 700;
+  font-size: 15px;
+  color: #111827; /* optional, darker for emphasis */
 }
 
 /* ===============================
@@ -479,4 +488,9 @@
   padding: 4px 8px;
   color: #666;
   border-bottom: 1px solid #eee;
+}
+
+
+.product-search-item.active {
+  background-color: #d5d7d8;
 }

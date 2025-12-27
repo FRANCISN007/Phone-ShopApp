@@ -5,10 +5,10 @@ import pandas as pd
 
 from app.database import get_db
 from app.stock.products import schemas, service, models
-from app.stock.products.schemas import ProductSimpleSchema
+
 
 from app.stock.products.models import Product
-from app.stock.products.schemas import ProductPriceUpdate, ProductOut
+from app.stock.products.schemas import ProductPriceUpdate, ProductOut, ProductSimpleSchema
 
 
 router = APIRouter()
@@ -97,7 +97,16 @@ def update_product_price(
     product.selling_price = price_update.selling_price
     db.commit()
     db.refresh(product)
-    return product
+
+    # Convert to schema
+    product_out = ProductOut.from_orm(product)
+    
+    # Add formatted selling price
+    product_out.selling_price_formatted = f"{int(product.selling_price):,}" if product.selling_price else "0"
+
+    return product_out
+
+
 
 
 @router.delete("/{product_id}")

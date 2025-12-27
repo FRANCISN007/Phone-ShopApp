@@ -32,6 +32,7 @@ def get_products(
 ):
     return (
         db.query(models.Product)
+        .order_by(models.Product.id.asc())  # <-- ascending order
         .offset(skip)
         .limit(limit)
         .all()

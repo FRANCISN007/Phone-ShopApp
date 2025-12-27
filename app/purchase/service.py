@@ -3,11 +3,13 @@ from app.purchase import models as purchase_models, schemas as purchase_schemas
 from app.stock.inventory import service as inventory_service
 from datetime import datetime
 
+from app.stock.products import models as product_models
 
-# service.py
+
 def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
     total_cost = purchase.quantity * purchase.cost_price
 
+    # 1️⃣ Create purchase record
     db_purchase = purchase_models.Purchase(
         product_id=purchase.product_id,
         vendor_id=purchase.vendor_id,
@@ -16,14 +18,32 @@ def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
         total_cost=total_cost
     )
     db.add(db_purchase)
-    # Update inventory
-    inventory_service.add_stock(db, product_id=purchase.product_id, quantity=purchase.quantity, commit=False)
 
+    # 2️⃣ Update inventory
+    inventory_service.add_stock(
+        db,
+        product_id=purchase.product_id,
+        quantity=purchase.quantity,
+        commit=False
+    )
+
+    # 3️⃣ Update product cost price (KEY FIX)
+    product = (
+        db.query(product_models.Product)
+        .filter(product_models.Product.id == purchase.product_id)
+        .first()
+    )
+
+    if not product:
+        raise Exception("Product not found")
+
+    product.cost_price = purchase.cost_price  # 👈 FIX HERE
+
+    # 4️⃣ Commit once
     db.commit()
     db.refresh(db_purchase)
 
-    return db_purchase  # <-- return SQLAlchemy object
-
+    return db_purchase
 
 
 def list_purchases(db: Session, skip: int = 0, limit: int = 100):

@@ -30,6 +30,11 @@ const PosSales = ({ onClose }) => {
 
   const [showPayment, setShowPayment] = useState(false);
   const [amountPaid, setAmountPaid] = useState(0);
+
+  const [productSearch, setProductSearch] = useState({});
+  const [activeSearchRow, setActiveSearchRow] = useState(null);
+
+
   
 
 
@@ -78,7 +83,24 @@ const PosSales = ({ onClose }) => {
   }, []);
 
 
-    
+  useEffect(() => {
+  const closeDropdown = () => setActiveSearchRow(null);
+  document.addEventListener("click", closeDropdown);
+  return () => document.removeEventListener("click", closeDropdown);
+}, []);
+
+
+
+  const getFilteredProducts = (rowIndex) => {
+    const search = productSearch[rowIndex] || "";
+    if (!search.trim()) return products;
+
+    return products.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  
 
   
 
@@ -473,6 +495,8 @@ const handleSubmit = async () => {
     </button>
   </div>
 
+
+
   {/* Scrollable Form Area */}
   <div className="pos-scrollable-content">
     {/* Top Info */}
@@ -512,19 +536,81 @@ const handleSubmit = async () => {
         </tr>
       </thead>
       <tbody>
+
+        
         {saleItems.map((item, index) => (
           <tr key={index}>
             <td>
-              <select
-                value={item.productId}
-                onChange={(e) => updateItem(index, "productId", Number(e.target.value))}
+              <div
+                className="product-search-wrapper"
+                onClick={(e) => e.stopPropagation()}
               >
-                <option value="">--Select--</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+
+                <input
+                  type="text"
+                  placeholder="Search product..."
+                  value={
+                    activeSearchRow === index
+                      ? productSearch[index] || ""
+                      : products.find(p => p.id === Number(item.productId))?.name || ""
+                  }
+                  onFocus={() => {
+                    setActiveSearchRow(index);
+                    setProductSearch({ ...productSearch, [index]: "" });
+                  }}
+                  onChange={(e) =>
+                    setProductSearch({
+                      ...productSearch,
+                      [index]: e.target.value,
+                    })
+                  }
+                  className="product-search-input"
+                />
+
+
+
+                {activeSearchRow === index && (
+                  <div className="product-search-dropdown">
+
+                  {/* 🔢 MATCH COUNT — PLACE IT HERE */}
+                  <div className="product-search-count">
+                    {getFilteredProducts(index).length} items found
+                  </div>
+
+                  {/* 📦 PRODUCT LIST */}
+                  {getFilteredProducts(index).map((p) => (
+                    <div
+                      key={p.id}
+                      className="product-search-item"
+                      onClick={() => {
+                      updateItem(index, "productId", p.id);
+
+                      // 🔴 CLOSE SEARCH MODE IMMEDIATELY
+                      setActiveSearchRow(null);
+
+                      // clear search text for this row
+                      setProductSearch(prev => ({
+                        ...prev,
+                        [index]: "",
+                      }));
+                    }}
+
+                    >
+                      {p.name}
+                    </div>
+                  ))}
+
+                  {/* ❌ EMPTY STATE */}
+                  {getFilteredProducts(index).length === 0 && (
+                    <div className="product-search-empty">No product found</div>
+                  )}
+
+                </div>
+
+                )}
+              </div>
             </td>
+
             <td>
               <input
                 type="number"

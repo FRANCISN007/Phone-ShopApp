@@ -7,6 +7,9 @@ from app.database import get_db
 from app.stock.products import schemas, service, models
 from app.stock.products.schemas import ProductSimpleSchema
 
+from app.stock.products.models import Product
+from app.stock.products.schemas import ProductPriceUpdate, ProductOut
+
 
 router = APIRouter()
 
@@ -37,9 +40,8 @@ def list_products(
 
 @router.get("/simple", response_model=List[ProductSimpleSchema])
 def list_products_simple(db: Session = Depends(get_db)):
-    products = service.get_products(db, skip=0, limit=1000)  # or remove limit as needed
-    # Return only id and name
-    return [{"id": p.id, "name": p.name} for p in products]
+    products = service.get_products(db, skip=0, limit=1000)
+    return products
 
 
 @router.get(
@@ -77,6 +79,25 @@ def update_product(
             detail="Product not found"
         )
     return updated_product
+
+
+# -------------------------------
+# Update Product Selling Price
+# -------------------------------
+@router.put("/{product_id}/price", response_model=ProductOut)
+def update_product_price(
+    product_id: int,
+    price_update: ProductPriceUpdate,
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    product.selling_price = price_update.selling_price
+    db.commit()
+    db.refresh(product)
+    return product
 
 
 @router.delete("/{product_id}")

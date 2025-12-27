@@ -436,3 +436,47 @@
   font-size: 14px;
 }
 
+
+
+
+.product-search-wrapper {
+  position: relative;
+}
+
+.product-search-input {
+  width: 100%;
+  padding: 6px;
+  font-size: 14px;
+}
+
+.product-search-dropdown {
+  position: absolute;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  max-height: 240px;        /* ~10–12 items visible */
+  overflow-y: auto;         /* ENABLE SCROLL */
+  z-index: 1000;
+}
+
+.product-search-item {
+  padding: 6px;
+  cursor: pointer;
+}
+
+.product-search-item:hover {
+  background: #f2f2f2;
+}
+
+.product-search-empty {
+  padding: 6px;
+  color: #999;
+}
+
+
+.product-search-count {
+  font-size: 11px;
+  padding: 4px 8px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}

@@ -49,6 +49,17 @@ class ProductOut(ProductBase):
 class ProductSimpleSchema(BaseModel):
     id: int
     name: str
+    selling_price: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ---------------------------------
+# Update Selling Price (Dedicated)
+# ---------------------------------
+class ProductPriceUpdate(BaseModel):
+    selling_price: float
 
     class Config:
         from_attributes = True

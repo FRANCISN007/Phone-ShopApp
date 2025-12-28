@@ -3,6 +3,8 @@ from fastapi import HTTPException
 from . import models
 from app.stock.inventory.adjustments.models import StockAdjustment
 
+from app.stock.inventory.models import Inventory
+
 # --------------------------
 # Read-only: list inventory
 # --------------------------
@@ -40,16 +42,40 @@ def add_stock(db: Session, product_id: int, quantity: float, commit: bool = Fals
 # --------------------------
 # Internal: remove stock (Sale)
 # --------------------------
-def remove_stock(db: Session, product_id: int, quantity: float, commit: bool = False):
+def remove_stock(
+    db: Session,
+    product_id: int,
+    quantity: float,
+    commit: bool = False
+):
     """
     Deduct stock from inventory for a product.
+    Allows negative stock (POS-friendly).
     """
-    inventory = get_inventory_by_product(db, product_id)
-    if not inventory or inventory.current_stock < quantity:
-        raise HTTPException(status_code=400, detail="Insufficient stock")
 
+    inventory = get_inventory_by_product(db, product_id)
+
+    # 🔹 If inventory does not exist, create it
+    if not inventory:
+        inventory = Inventory(
+            product_id=product_id,
+            quantity_in=0,
+            quantity_out=0,
+            adjustment_total=0,
+            current_stock=0
+        )
+        db.add(inventory)
+        db.flush()
+
+    # 🔥 NO BLOCKING — allow negative stock
     inventory.quantity_out += quantity
-    inventory.current_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
+
+    # 🔹 Recalculate current stock (CAN GO NEGATIVE)
+    inventory.current_stock = (
+        inventory.quantity_in
+        - inventory.quantity_out
+        + inventory.adjustment_total
+    )
 
     if commit:
         db.commit()

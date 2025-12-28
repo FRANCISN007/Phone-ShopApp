@@ -130,8 +130,20 @@ def clean_price(value):
 
 
 
-def import_products_from_excel(db: Session, file):
+from fastapi import HTTPException, UploadFile
+from sqlalchemy.orm import Session
+import pandas as pd
+
+def import_products_from_excel(db: Session, file: UploadFile):
     try:
+        # 🔒 Validate file type
+        if not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type. Please upload an Excel file (.xlsx or .xls)"
+            )
+
+        # 📄 Read Excel
         df = pd.read_excel(file.file)
 
         required_columns = {
@@ -140,7 +152,6 @@ def import_products_from_excel(db: Session, file):
             "brand",
             "cost_price",
             "selling_price"
-        
         }
 
         if not required_columns.issubset(df.columns):
@@ -152,46 +163,66 @@ def import_products_from_excel(db: Session, file):
         products = []
         skipped = 0
 
+        # 🔥 Load existing product names once
+        existing_names = {
+            name.lower().strip()
+            for (name,) in db.query(Product.name).all()
+            if name
+        }
+
         for _, row in df.iterrows():
+            # ❌ Skip invalid rows
             if pd.isna(row["name"]) or pd.isna(row["category"]):
                 skipped += 1
                 continue
 
-            # Prevent duplicates
-            #exists = db.query(Product).filter(
-                #Product.name == row["name"]
-            #).first()
+            product_name = str(row["name"]).strip()
+            normalized_name = product_name.lower()
 
-            #if exists:
-                #skipped += 1
-                #continue
+            # 🚫 Duplicate check (DB + same file)
+            if normalized_name in existing_names:
+                skipped += 1
+                continue
 
             product = Product(
-                name=str(row["name"]).strip(),
+                name=product_name,
                 category=str(row["category"]).strip(),
                 brand=None if pd.isna(row["brand"]) else str(row["brand"]).strip(),
                 cost_price=clean_price(row["cost_price"]),
                 selling_price=clean_price(row["selling_price"]),
             )
 
-
             products.append(product)
+            existing_names.add(normalized_name)
 
-        if products:
-            db.add_all(products)
-            db.flush()   # 🔥 forces SQL execution
-            db.commit()
+        # 🚨 Nothing imported
+        if not products:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "Import unsuccessful",
+                    "reason": "All products already exist or were invalid",
+                    "imported": 0,
+                    "skipped": skipped
+                }
+            )
 
-
+        # ✅ Save to DB
+        db.add_all(products)
+        db.commit()
 
         return {
-            "message": "Import completed",
+            "message": "Import completed successfully",
             "imported": len(products),
             "skipped": skipped
         }
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         db.rollback()
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Import failed: {str(e)}"
+        )

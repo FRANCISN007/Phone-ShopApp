@@ -4,6 +4,10 @@ import "./PosSales.css";
 
 import { SHOP_NAME } from "../../config/constants";
 
+// At the top of PosSales.jsx
+import { printReceipt } from "../../components/pos/printReceipt";
+
+
 
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||

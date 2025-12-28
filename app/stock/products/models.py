@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstraint
 from datetime import datetime
 from app.database import Base
 
@@ -16,3 +16,8 @@ class Product(Base):
     selling_price = Column(Float, nullable=True)  # 👈 optional
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+    __table_args__ = (
+        UniqueConstraint("name", name="uq_product_name"),
+    )

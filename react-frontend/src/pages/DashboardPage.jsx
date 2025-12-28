@@ -11,7 +11,7 @@ const DashboardPage = () => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeSubMenu, setActiveSubMenu] = useState(null); 
-  const [clearContent, setClearContent] = useState(false); 
+  
 
   /* ===============================
      MAIN MENU
@@ -109,10 +109,10 @@ const DashboardPage = () => {
       }
 
       if (item.submenu) {
-        setClearContent(true);
         setActiveSubMenu(activeSubMenu === item.label ? null : item.label);
         return;
       }
+
 
       if (item.path) {
         setActiveSubMenu(null);
@@ -126,7 +126,7 @@ const DashboardPage = () => {
      SALES SUBMENU ACTIONS
   ================================ */
   const handleSalesAction = (action) => {
-    setClearContent(true);
+    
     switch (action) {
       case "listSales":
         navigate("/dashboard/sales/list");
@@ -203,39 +203,38 @@ const DashboardPage = () => {
       {/* 🔹 MAIN CONTENT */}
       <main className="main-content">
         <section className="content-area">
-          {clearContent && <div className="clear-content" />}
-
-          {/* Sales Menu Frame */}
-          {activeSubMenu === "Sales" && (
-              <div className="submenu-frame center-frame">
-                {/* Header with Close button */}
-                <div className="submenu-header">
-                  <h2 className="submenu-heading">Sales Menu</h2>
-                  <button className="close-btn" onClick={() => setActiveSubMenu(null)}>
-                    ✖
-                  </button>
-                </div>
-
-                {/* Sales Cards Grid */}
-                <div className="sales-submenu grid-3x2">
-                  {salesSubMenu.map((sub, idx) => (
-                    <div
-                      key={sub.label}
-                      className={`submenu-card card-${idx + 1}`}
-                      onClick={() => handleSalesAction(sub.action)}
-                    >
-                      <div className="submenu-icon">{sub.icon}</div>
-                      <div className="submenu-label">{sub.label}</div>
-                    </div>
-                  ))}
-                </div>
+          {activeSubMenu === "Sales" ? (
+            <div className="submenu-frame center-frame">
+              {/* Header */}
+              <div className="submenu-header">
+                <h2 className="submenu-heading">Sales Menu</h2>
+                <button
+                  className="close-btn"
+                  onClick={() => setActiveSubMenu(null)}
+                >
+                  ✖
+                </button>
               </div>
-            )}
 
-
-
-          <Outlet />
+              {/* Cards */}
+              <div className="sales-submenu grid-3x2">
+                {salesSubMenu.map((sub, idx) => (
+                  <div
+                    key={sub.label}
+                    className={`submenu-card card-${idx + 1}`}
+                    onClick={() => handleSalesAction(sub.action)}
+                  >
+                    <div className="submenu-icon">{sub.icon}</div>
+                    <div className="submenu-label">{sub.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </section>
+
       </main>
     </div>
   );

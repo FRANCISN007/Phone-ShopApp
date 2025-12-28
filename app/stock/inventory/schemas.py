@@ -9,7 +9,7 @@ class InventoryBase(BaseModel):
     quantity_out: float
     adjustment_total: float
     current_stock: float
-    imei: Optional[str] = None
+    #Ref_no: Optional[str] = None
 
 
 

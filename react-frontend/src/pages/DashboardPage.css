@@ -236,12 +236,12 @@
 }
 
 /* Distinct colors for each card */
-.card-1 { background-color: #4caf50; } /* green */
-.card-2 { background-color: #2196f3; } /* blue */
-.card-3 { background-color: #ff9800; } /* orange */
-.card-4 { background-color: #9c27b0; } /* purple */
-.card-5 { background-color: #f44336; } /* red */
-.card-6 { background-color: #00bcd4; } /* cyan */
+.card-1 { background-color: #66af69; } /* green */
+.card-2 { background-color: #7cb7e7; } /* blue */
+.card-3 { background-color: #d49c48; } /* orange */
+.card-4 { background-color: #a36aad; } /* purple */
+.card-5 { background-color: #e2857e; } /* red */
+.card-6 { background-color: #80b7be; } /* cyan */
 
 /* Hover effect */
 .submenu-card:hover {

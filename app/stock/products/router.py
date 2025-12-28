@@ -26,22 +26,17 @@ def create_product(
     return service.create_product(db, product)
 
 
-@router.get(
-    "/",
-    response_model=List[schemas.ProductOut]
-)
-def list_products(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
-    return service.get_products(db, skip=skip, limit=limit)
+@router.get("/", response_model=List[schemas.ProductOut])
+def list_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    products = service.get_products(db, skip=skip, limit=limit)
+    return [schemas.ProductOut.from_orm(p) for p in products]
 
 
 @router.get("/simple", response_model=List[ProductSimpleSchema])
 def list_products_simple(db: Session = Depends(get_db)):
     products = service.get_products(db, skip=0, limit=1000)
-    return products
+    return [ProductSimpleSchema.from_orm(p) for p in products]
+
 
 
 @router.get(
@@ -81,9 +76,6 @@ def update_product(
     return updated_product
 
 
-# -------------------------------
-# Update Product Selling Price
-# -------------------------------
 @router.put("/{product_id}/price", response_model=ProductOut)
 def update_product_price(
     product_id: int,
@@ -94,17 +86,13 @@ def update_product_price(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # Update selling price
     product.selling_price = price_update.selling_price
     db.commit()
     db.refresh(product)
 
-    # Convert to schema
-    product_out = ProductOut.from_orm(product)
-    
-    # Add formatted selling price
-    product_out.selling_price_formatted = f"{int(product.selling_price):,}" if product.selling_price else "0"
-
-    return product_out
+    # Convert to schema — no need to set formatted manually
+    return ProductOut.from_orm(product)
 
 
 

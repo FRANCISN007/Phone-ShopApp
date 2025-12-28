@@ -4,6 +4,8 @@ from app.stock.products import models, schemas
 from app.stock.inventory import models as inventory_models
 from app.purchase import models as purchase_models
 
+from app.stock.products.schemas import ProductOut
+
 import pandas as pd
 
 from .models import Product
@@ -14,9 +16,22 @@ def create_product(
     db: Session,
     product: schemas.ProductCreate
 ):
+    # Check if a product with the same name already exists
+    existing_product = (
+        db.query(models.Product)
+        .filter(models.Product.name == product.name)
+        .filter(models.Product.category == product.category)
+        .first()
+    )
+
+    if existing_product:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A product with name '{product.name}' already exists in category '{product.category}'."
+        )
+
     db_product = models.Product(
         name=product.name,
-        category=product.category,
         brand=product.brand
     )
     db.add(db_product)
@@ -25,18 +40,18 @@ def create_product(
     return db_product
 
 
-def get_products(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100
-):
-    return (
+def get_products(db: Session, skip: int = 0, limit: int = 100):
+    products = (
         db.query(models.Product)
-        .order_by(models.Product.id.asc())  # <-- ascending order
+        .order_by(models.Product.id.asc())
         .offset(skip)
         .limit(limit)
         .all()
     )
+    return products
+
+
+    
 
 
 def get_product_by_id(
@@ -98,6 +113,22 @@ def delete_product(db: Session, product_id: int):
     db.commit()
     return {"detail": "Product deleted successfully"}
 
+def clean_price(value):
+    if pd.isna(value):
+        return None
+    if isinstance(value, str):
+        value = (
+            value.replace("₦", "")
+                 .replace("N", "")
+                 .replace(",", "")
+                 .strip()
+        )
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 
 def import_products_from_excel(db: Session, file):
     try:
@@ -109,6 +140,7 @@ def import_products_from_excel(db: Session, file):
             "brand",
             "cost_price",
             "selling_price"
+        
         }
 
         if not required_columns.issubset(df.columns):
@@ -137,16 +169,20 @@ def import_products_from_excel(db: Session, file):
             product = Product(
                 name=str(row["name"]).strip(),
                 category=str(row["category"]).strip(),
-                brand=str(row["brand"]).strip(),
-                cost_price=None if pd.isna(row["cost_price"]) else float(row["cost_price"]),
-                selling_price=None if pd.isna(row["selling_price"]) else float(row["selling_price"])
+                brand=None if pd.isna(row["brand"]) else str(row["brand"]).strip(),
+                cost_price=clean_price(row["cost_price"]),
+                selling_price=clean_price(row["selling_price"]),
             )
+
 
             products.append(product)
 
         if products:
-            db.bulk_save_objects(products)
+            db.add_all(products)
+            db.flush()   # 🔥 forces SQL execution
             db.commit()
+
+
 
         return {
             "message": "Import completed",
@@ -156,4 +192,6 @@ def import_products_from_excel(db: Session, file):
 
     except Exception as e:
         db.rollback()
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

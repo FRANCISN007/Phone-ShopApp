@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
+
 from typing import Optional
 from datetime import datetime
 
@@ -33,18 +34,31 @@ class ProductUpdate(BaseModel):
 # ---------------------------------
 # Output Schema (API Response)
 # ---------------------------------
-class ProductOut(ProductBase):
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+
+class ProductOut(BaseModel):
     id: int
+    name: str
+    category: Optional[str] = None
+    brand: Optional[str] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
-    selling_price_formatted: str  # add this field
     created_at: datetime
+
+    @field_serializer("selling_price")
+    def format_selling_price(self, value):
+        if value is None:
+            return None
+        return value
 
     @property
     def selling_price_formatted(self) -> str:
         if self.selling_price is None:
-            return "N0"
-        return f"N{int(self.selling_price):,}"  # formats as 23,000
+            return "UNPRICED"
+        return f"₦{int(self.selling_price):,}"
 
     class Config:
         from_attributes = True

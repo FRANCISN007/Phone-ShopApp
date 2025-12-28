@@ -135,12 +135,25 @@ def delete_sale(
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(role_required(["admin"]))
 ):
+    # 1️⃣ Check if there are payments tied to this sale
+    from app.payments import service as payment_service
+
+    payments = payment_service.list_payments_by_sale(db, invoice_no)
+    if payments:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete sale: payments exist. Please delete the payment(s) first."
+        )
+
+    # 2️⃣ Delete the sale
     deleted = service.delete_sale(db, invoice_no)
     if not deleted:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found"
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Sale not found"
         )
-    return deleted
+
+    return {"message": "Sale deleted successfully"}
 
 
 

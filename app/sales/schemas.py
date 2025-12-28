@@ -23,7 +23,7 @@ class SaleItemOut(BaseModel):
     total_amount: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # ---------- Sale ----------
 class SaleCreate(BaseModel):
@@ -59,6 +59,21 @@ class SaleOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class SaleOut2(BaseModel):
+    id: int
+    invoice_no: int
+    invoice_date: datetime
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    total_amount: float
+    total_paid: float
+    balance_due: float
+    payment_status: str
+    sold_at: datetime
+    items: List[SaleItemOut] = []
+
+
 
 # ==============================
 # ---------- Full Sale (Header + Items) ----------
@@ -100,3 +115,58 @@ class SaleItemUpdate(BaseModel):
 
     class Config:
         extra = "forbid"
+
+class SaleSummary(BaseModel):
+    total_sales: float
+    total_paid: float
+    total_balance: float
+
+class SalesListResponse(BaseModel):
+    sales: List[SaleOut2]
+    summary: SaleSummary
+
+
+
+
+
+class OutstandingSaleItem(BaseModel):
+    id: int
+    sale_invoice_no: int
+    product_id: int
+    quantity: int
+    selling_price: float
+    total_amount: float
+
+    class Config:
+        from_attributes = True
+
+
+class OutstandingSale(BaseModel):
+    id: int
+    invoice_no: int
+    invoice_date: datetime
+    customer_name: str | None
+    customer_phone: str | None
+    ref_no: str | None
+
+    total_amount: float
+    total_paid: float
+    balance_due: float
+
+    items: List[OutstandingSaleItem]
+
+    class Config:
+        from_attributes = True
+
+
+class OutstandingSummary(BaseModel):
+    sales_sum: float
+    paid_sum: float
+    balance_sum: float
+
+
+class OutstandingSalesResponse(BaseModel):
+    sales: List[OutstandingSale]
+    summary: OutstandingSummary
+
+

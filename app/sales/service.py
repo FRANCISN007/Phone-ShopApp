@@ -1,10 +1,17 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime
+from typing import Optional
+from datetime import datetime, time
+from datetime import date
+
 
 from . import models, schemas
 from app.stock.inventory import service as inventory_service
 from app.stock.products import models as product_models
+
+from app.sales.schemas import SaleOut, SaleOut2, SaleSummary, SalesListResponse
+
 
 
 from app.stock.products import models as product_models
@@ -42,6 +49,7 @@ def create_sale_full(
         ref_no=sale_data.ref_no,
         sold_by=user_id,
         total_amount=0
+
     )
 
     db.add(sale)
@@ -208,43 +216,75 @@ def get_sale(db: Session, invoice_no: int):
 
     return sale
 
-from datetime import datetime, time
+
+
 
 def list_sales(
     db: Session,
     skip: int = 0,
     limit: int = 100,
-    start_date=None,
-    end_date=None
+    start_date: Optional[datetime.date] = None,
+    end_date: Optional[datetime.date] = None
 ):
     query = db.query(models.Sale)
 
-    # Date filtering
-    if start_date:
-        query = query.filter(
-            models.Sale.sold_at >= datetime.combine(start_date, time.min)
+    # ✅ Safe date filters
+    try:
+        if start_date:
+            query = query.filter(models.Sale.sold_at >= datetime.combine(start_date, time.min))
+        if end_date:
+            query = query.filter(models.Sale.sold_at <= datetime.combine(end_date, time.max))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date filter: {e}")
+
+    # Fetch sales
+    sales = query.order_by(models.Sale.sold_at.desc()).offset(skip).limit(limit).all()
+
+    sales_list = []
+    total_sales_amount = 0.0
+    total_paid_sum = 0.0
+    total_balance_sum = 0.0
+
+    for sale in sales:
+        total_amount = float(sale.total_amount or 0)
+        payments = getattr(sale, "payments", []) or []
+        total_paid = sum(float(p.amount_paid or 0) for p in payments)
+        balance_due = total_amount - total_paid
+
+        if total_paid == 0:
+            status = "pending"
+        elif balance_due > 0:
+            status = "part_paid"
+        else:
+            status = "completed"
+
+        sales_list.append(
+            SaleOut2(
+                id=sale.id,
+                invoice_no=sale.invoice_no,
+                invoice_date=sale.invoice_date,
+                customer_name=sale.customer_name or "Walk-in",
+                customer_phone=getattr(sale, "customer_phone", None),
+                total_amount=total_amount,
+                total_paid=total_paid,
+                balance_due=balance_due,
+                payment_status=status,
+                sold_at=sale.sold_at,
+                items=getattr(sale, "items", [])
+            )
         )
 
-    if end_date:
-        query = query.filter(
-            models.Sale.sold_at <= datetime.combine(end_date, time.max)
-        )
+        total_sales_amount += total_amount
+        total_paid_sum += total_paid
+        total_balance_sum += balance_due
 
-    sales = (
-        query
-        .order_by(models.Sale.sold_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
+    summary = SaleSummary(
+        total_sales=total_sales_amount,
+        total_paid=total_paid_sum,
+        total_balance=total_balance_sum
     )
 
-    # Computed fields
-    for sale in sales:
-        total_paid = sum(p.amount_paid for p in sale.payments)
-        sale.total_paid = total_paid
-        sale.balance_due = sale.total_amount - total_paid
-
-    return sales
+    return SalesListResponse(sales=sales_list, summary=summary)
 
 
 from fastapi import HTTPException
@@ -354,6 +394,100 @@ def update_sale_item(
     db.refresh(item)
 
     return item
+
+
+def _attach_payment_totals(sale):
+    total_paid = sum(p.amount_paid for p in sale.payments)
+    sale.total_paid = total_paid
+    sale.balance_due = sale.total_amount - total_paid
+
+
+
+def staff_sales_report(
+    db: Session,
+    staff_id: Optional[int] = None,
+    start_date=None,
+    end_date=None
+):
+    query = db.query(models.Sale)
+
+    # Filter by staff
+    if staff_id:
+        query = query.filter(models.Sale.sold_by == staff_id)
+
+    # Date filters
+    if start_date:
+        query = query.filter(
+            models.Sale.sold_at >= datetime.combine(start_date, time.min)
+        )
+
+    if end_date:
+        query = query.filter(
+            models.Sale.sold_at <= datetime.combine(end_date, time.max)
+        )
+
+    sales = (
+        query
+        .order_by(models.Sale.sold_at.desc())
+        .all()
+    )
+
+    for sale in sales:
+        _attach_payment_totals(sale)
+
+    return sales
+
+
+
+
+def outstanding_sales_service(db: Session, start_date=None, end_date=None):
+    query = db.query(models.Sale)
+
+    if start_date:
+        query = query.filter(models.Sale.sold_at >= start_date)
+
+    if end_date:
+        query = query.filter(models.Sale.sold_at <= end_date)
+
+    sales = query.all()
+
+    sales_list = []
+
+    sales_sum = 0.0
+    paid_sum = 0.0
+    balance_sum = 0.0
+
+    for sale in sales:
+        total_paid = sum(p.amount_paid for p in sale.payments)
+        balance = sale.total_amount - total_paid
+
+        if balance > 0:
+            sales_list.append({
+                "id": sale.id,
+                "invoice_no": sale.invoice_no,
+                "invoice_date": sale.invoice_date,
+                "customer_name": sale.customer_name,
+                "customer_phone": sale.customer_phone,
+                "ref_no": sale.ref_no,
+                "total_amount": sale.total_amount,
+                "total_paid": total_paid,
+                "balance_due": balance,
+                "items": sale.items
+            })
+
+            sales_sum += sale.total_amount
+            paid_sum += total_paid
+            balance_sum += balance
+
+    return {
+        "sales": sales_list,
+        "summary": {
+            "sales_sum": sales_sum,
+            "paid_sum": paid_sum,
+            "balance_sum": balance_sum
+        }
+    }
+
 
 
 
@@ -497,3 +631,25 @@ def delete_all_sales(db: Session):
         "message": "All sales deleted successfully and stock restored",
         "deleted_count": deleted_count
     }
+
+
+
+
+def get_sales_by_customer(
+    db: Session,
+    customer_name: str | None = None,
+    customer_phone: str | None = None
+):
+    query = db.query(models.Sale)
+
+    if customer_name:
+        query = query.filter(
+            models.Sale.customer_name.ilike(f"%{customer_name}%")
+        )
+
+    if customer_phone:
+        query = query.filter(
+            models.Sale.customer_phone.ilike(f"%{customer_phone}%")
+        )
+
+    return query.order_by(models.Sale.sold_at.desc()).all()

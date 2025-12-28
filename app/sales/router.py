@@ -1,16 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status,  Query
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import date
 from typing import Optional
 from sqlalchemy import text
 
-from app.sales.schemas import SaleOut, SaleFullCreate
+from app.sales.schemas import SaleOut, SaleOut2,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse
 from app.database import get_db
 from . import schemas, service
 from app.users.schemas import UserDisplaySchema
 from app.users.permissions import role_required
 import uuid
+
+from app.sales.service import get_sales_by_customer
+
+
+
+
+
 
 
 router = APIRouter()
@@ -41,7 +48,8 @@ def create_sale_item(
 
 
 
-@router.get("/", response_model=List[schemas.SaleOut])
+
+@router.get("/", response_model=schemas.SalesListResponse)
 def list_sales(
     skip: int = 0,
     limit: int = 100,
@@ -59,6 +67,63 @@ def list_sales(
         start_date=start_date,
         end_date=end_date
     )
+
+
+@router.get(
+    "/report/staff",
+    response_model=List[schemas.SaleOut]
+)
+def staff_sales_report(
+    staff_id: Optional[int] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin"])
+    )
+):
+    """
+    Sales made by staff (sold_by).
+    Optional filters:
+    - staff_id
+    - start_date / end_date
+    """
+    return service.staff_sales_report(
+        db=db,
+        staff_id=staff_id,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
+@router.get(
+    "/sales/outstanding",
+    response_model=OutstandingSalesResponse
+)
+def outstanding_sales(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    db: Session = Depends(get_db)
+):
+    return service.outstanding_sales_service(db, start_date, end_date)
+
+
+
+@router.get(
+    "/by-customer",
+    response_model=List[SaleOut]
+)
+def sales_by_customer(
+    customer_name: str | None = Query(None, description="Customer name"),
+    customer_phone: str | None = Query(None, description="Customer phone"),
+    db: Session = Depends(get_db)
+):
+    return get_sales_by_customer(
+        db=db,
+        customer_name=customer_name,
+        customer_phone=customer_phone
+    )
+
 
 
 @router.get("/{invoice_no}", response_model=schemas.SaleOut)

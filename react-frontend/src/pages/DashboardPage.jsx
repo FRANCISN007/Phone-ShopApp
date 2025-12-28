@@ -35,14 +35,21 @@ const DashboardPage = () => {
   /* ===============================
      SALES SUBMENU
   ================================ */
-  const salesSubMenu = [
-    { label: "List Sales", action: "listSales", icon: "📄" },
-    { label: "Get Sales by Invoice ID", action: "getSalesByInvoice", icon: "🔍" },
-    { label: "Update Sales", action: "updateSales", icon: "✏️" },
-    { label: "Delete Sales", action: "deleteSales", icon: "❌" },
-    { label: "Sales Analysis", action: "salesAnalysis", icon: "📊" },
-    { label: "Sales by Customer", action: "salesByCustomer", icon: "👤" }, // New
-  ];
+const salesSubMenu = [
+  { label: "List Sales", action: "listSales", icon: "📄" },
+  { label: "Get Sales by Invoice ID", action: "getSalesByInvoice", icon: "🔍" },
+  { label: "Update Sales", action: "updateSales", icon: "✏️" },
+  { label: "Update Sales Quantity", action: "updateSalesQty", icon: "✏️" },
+  { label: "Delete Sales", action: "deleteSales", icon: "❌" },
+
+  // 📊 Reports
+  { label: "Sales Analysis", action: "salesAnalysis", icon: "📊" },
+  { label: "Staff Sales Report", action: "staffSalesReport", icon: "👨‍💼" },
+  { label: "Outstanding Sales", action: "outstandingSales", icon: "⚠️" },
+
+  // 👤 Customer
+  { label: "Sales by Customer", action: "salesByCustomer", icon: "👤" },
+];
 
   /* ===============================
      EXPORT TO EXCEL

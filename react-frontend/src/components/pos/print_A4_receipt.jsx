@@ -18,10 +18,10 @@ export const printA4Receipt = ({
 
   const itemsHtml = items.map(item => `
     <tr>
-      <td>${item.name}</td>
-      <td style="text-align:center;">${item.quantity}</td>
-      <td style="text-align:right;">${formatCurrency(item.selling_price)}</td>
-      <td style="text-align:right;">${formatCurrency(item.total_amount)}</td>
+      <td style="width:50%">${item.name}</td>
+      <td style="width:10%; text-align:center;">${item.quantity}</td>
+      <td style="width:20%; text-align:right;">${formatCurrency(item.selling_price)}</td>
+      <td style="width:20%; text-align:right;">${formatCurrency(item.total_amount)}</td>
     </tr>
   `).join("");
 
@@ -41,7 +41,7 @@ export const printA4Receipt = ({
           table { width: 100%; border-collapse: collapse; }
           th { border-bottom: 1px solid #000; padding-bottom: 4px; text-align: left; }
           td { padding: 4px 0; }
-          .total { font-weight: bold; text-align: right; margin-top: 8px; }
+          .total-line { font-weight: bold; text-align: right; margin-top: 4px; }
           .footer { margin-top: 10px; text-align: center; }
         </style>
       </head>
@@ -74,13 +74,9 @@ export const printA4Receipt = ({
 
         <hr />
 
-        <table style="width:100%; font-size:12px;">
-          <tr>
-            <td><strong>Total:</strong> ${formatCurrency(totalAmount)}</td>
-            <td style="text-align:center;"><strong>Paid:</strong> ${formatCurrency(amountPaid)}</td>
-            <td style="text-align:right;"><strong>Balance:</strong> ${formatCurrency(balance)}</td>
-          </tr>
-        </table>
+        <div class="total-line">Total: ${formatCurrency(totalAmount)}</div>
+        <div class="total-line">Paid: ${formatCurrency(amountPaid)}</div>
+        <div class="total-line">Balance: ${formatCurrency(balance)}</div>
 
         <div style="margin-top:6px; font-size:11px;">
           <strong>Amount in Words:</strong><br/>

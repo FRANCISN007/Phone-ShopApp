@@ -173,10 +173,10 @@
   border: 3px solid #4e0ee6; /* distinct border */
   border-radius: 15px;
   padding: 20px;
-  width: 650px;          /* moderate rectangle width */
-  height: 380px;         /* fixed height */
+  width: 700px;          /* moderate rectangle width */
+  height: 450px;         /* fixed height */
   background-color: #fdfdfd;
-  margin: 50px auto;     /* center horizontally */
+  margin: 15px auto;     /* center horizontally */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -200,23 +200,36 @@
 }
 
 .close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
+  background: transparent;
+  border: 2px solid red;     /* 🔴 red border */
+  color: red;                /* X in red */
+  font-size: 16px;
+
+  width: 32px;               /* control size */
+  height: 32px;
+  border-radius: 50%;        /* circle around X */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   cursor: pointer;
-  color: #555;
-  transition: color 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .close-btn:hover {
-  color: #ff4d4f;
+  background: rgba(255, 0, 0, 0.1);
+  transform: scale(1.05);
 }
+
+
+
 
 /* Grid layout 3x2 */
 .sales-submenu.grid-3x2 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 100px);
+  grid-template-rows: repeat(3, 100px);
   gap: 15px;
   width: 100%;
 }
@@ -230,18 +243,30 @@
   border-radius: 12px;
   color: #fff;
   font-weight: 600;
+  width: 200px;          /* Set the desired width */
+  height: 100px;         /* Set the desired height */
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* Distinct colors for each card */
+/* ===============================
+   Distinct colors for each card
+   =============================== */
+
+/* Existing cards */
 .card-1 { background-color: #66af69; } /* green */
 .card-2 { background-color: #7cb7e7; } /* blue */
 .card-3 { background-color: #d49c48; } /* orange */
 .card-4 { background-color: #a36aad; } /* purple */
 .card-5 { background-color: #e2857e; } /* red */
 .card-6 { background-color: #80b7be; } /* cyan */
+
+/* New Sales Reports cards */
+.card-7 { background-color: #5fa37a; } /* staff sales – dark green */
+.card-8 { background-color: #e0b24c; } /* outstanding sales – amber */
+.card-9 { background-color: #aca392; } /* outstanding sales – amber */
+
 
 /* Hover effect */
 .submenu-card:hover {

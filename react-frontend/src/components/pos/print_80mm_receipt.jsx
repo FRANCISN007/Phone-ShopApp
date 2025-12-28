@@ -16,10 +16,15 @@ export const print80mmReceipt = ({
 }) => {
   const printWindow = window.open("", "_blank", "width=320,height=600");
 
+  // Table-style items for better alignment on thermal paper
   const itemsHtml = items.map(item => `
-    ${item.name} x ${item.quantity} @ ${formatCurrency(item.selling_price)}
-    TOTAL: ${formatCurrency(item.total_amount)}
-  `).join("<br/>");
+    <tr>
+      <td style="width:60%">${item.name}</td>
+      <td style="width:10%; text-align:center;">${item.quantity}</td>
+      <td style="width:15%; text-align:right;">${formatCurrency(item.selling_price)}</td>
+      <td style="width:15%; text-align:right;">${formatCurrency(item.total_amount)}</td>
+    </tr>
+  `).join("");
 
   printWindow.document.write(`
     <html>
@@ -34,7 +39,10 @@ export const print80mmReceipt = ({
           .center { text-align: center; }
           .bold { font-weight: bold; }
           hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
-          .total-line { font-weight: bold; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
+          th { text-align: left; padding-bottom: 2px; font-weight: bold; }
+          td { padding: 1px 0; }
+          .total-line { font-weight: bold; text-align: right; margin-top: 2px; }
           .footer { margin-top: 5px; text-align: center; font-size: 9px; }
         </style>
       </head>
@@ -51,7 +59,24 @@ export const print80mmReceipt = ({
         <div>Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}</div>
         <hr />
 
-        ${itemsHtml}
+        <!-- Table Header -->
+        <table>
+          <thead>
+            <tr>
+              <th style="width:60%">Item</th>
+              <th style="width:10%; text-align:center;">Qty</th>
+              <th style="width:15%; text-align:right;">Price</th>
+              <th style="width:15%; text-align:right;">Total</th>
+            </tr>
+          </thead>
+        </table>
+
+        <!-- Table Items -->
+        <table>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
         <hr />
 
         <div class="total-line">Total: ${formatCurrency(totalAmount)}</div>

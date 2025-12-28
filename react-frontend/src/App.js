@@ -18,6 +18,9 @@ import LicensePage from "./modules/license/LicensePage";
 import LoginPage from "./modules/auth/LoginPage";
 import RegisterPage from "./modules/auth/RegisterPage";
 
+// Sales
+import ListSales from "./components/sales/ListSales";
+
 // POS
 import PosSales from "./components/pos/PosSales";
 
@@ -36,9 +39,16 @@ const App = () => {
         {/* ================= LICENSE-PROTECTED ROUTES ================= */}
         <Route element={<RequireLicense />}>
           <Route path="/dashboard" element={<DashboardPage />}>
+            
+            {/* Dashboard Pages */}
             <Route path="users" element={<UsersPage />} />
             <Route path="pos" element={<PosSales />} />
-            {/* add more dashboard routes here */}
+
+            {/* ✅ SALES ROUTES */}
+            <Route path="sales">
+              <Route path="list" element={<ListSales />} />
+            </Route>
+
           </Route>
         </Route>
 

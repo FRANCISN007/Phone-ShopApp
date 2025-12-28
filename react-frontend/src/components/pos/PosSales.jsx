@@ -29,6 +29,10 @@ const PosSales = ({ onClose }) => {
   const [refNo, setRefNo] = useState("");
   const [showBankDropdown, setShowBankDropdown] = useState(false);
 
+
+  const [receiptFormat, setReceiptFormat] = useState("80mm"); // default
+
+
   
 
 
@@ -55,6 +59,14 @@ const PosSales = ({ onClose }) => {
   const formatCurrency = (amount) => {
     return `N${Number(amount || 0).toLocaleString("en-NG")}`;
   };
+
+
+  const handlePrintPreview = () => {
+    // Build a temporary invoice object
+    const tempInvoice = "PREVIEW"; // just a placeholder
+    handlePrintReceipt(tempInvoice);
+  };
+
 
   /* ===============================
      Fetch data on mount
@@ -236,139 +248,34 @@ const PosSales = ({ onClose }) => {
      Print Receipt
   ================================ */
   const handlePrintReceipt = (invoice) => {
+    const receiptData = {
+      SHOP_NAME,
+      invoice,
+      invoiceDate,
+      customerName,
+      customerPhone,
+      refNo,
+      paymentMethod,
+      amountPaid,
+      totalAmount,
+      balance: totalAmount - amountPaid,
+      items: saleItems.map(item => {
+        const product = products.find(p => p.id === Number(item.productId));
+        return {
+          name: product?.name || "",
+          quantity: item.quantity,
+          selling_price: item.sellingPrice,
+          total_amount: item.quantity * item.sellingPrice
+        };
+      }),
+      amountInWords: numberToWords(totalAmount),
+      formatCurrency
+    };
 
-  const printWindow = window.open("", "", "width=380,height=600");
+    // ✅ Use the selected format dynamically
+    printReceipt(receiptFormat, receiptData);
+  };
 
-  const itemsHtml = saleItems
-    .map((item) => {
-      const product = products.find(
-        (p) => p.id === Number(item.productId)
-      );
-      if (!product) return "";
-      return `
-        <tr>
-          <td>${product.name}</td>
-          <td style="text-align:center;">${item.quantity}</td>
-          <td style="text-align:right;">${formatCurrency(item.sellingPrice)}</td>
-          <td style="text-align:right;">${formatCurrency(
-            item.quantity * item.sellingPrice
-          )}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  const amountInWords = numberToWords(totalAmount);
-
-  const balance = totalAmount - amountPaid;
-
-
-
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Receipt</title>
-        <style>
-          body {
-            font-family: monospace;
-            font-size: 12px;
-            padding: 10px;
-          }
-          .center { text-align: center; }
-          .bold { font-weight: bold; }
-          hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          th {
-            border-bottom: 1px solid #000;
-            padding-bottom: 4px;
-            text-align: left;
-          }
-          td {
-            padding: 4px 0;
-          }
-          .total {
-            font-weight: bold;
-            text-align: right;
-            margin-top: 8px;
-          }
-          .footer {
-            margin-top: 10px;
-            text-align: center;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="center bold">${SHOP_NAME}</div>
-        <div class="center">SALES RECEIPT</div>
-
-        <hr />
-
-        <div>Invoice: ${invoice}</div>
-        <div>Date: ${invoiceDate}</div>
-        <div>Customer: ${customerName || "-"}</div>
-        <div>Phone: ${customerPhone || "-"}</div>
-        <div>Ref No: ${refNo || "-"}</div>
-        <div>
-          Payment: ${
-            amountPaid > 0 && paymentMethod
-              ? paymentMethod.toUpperCase()
-              : "NOT PAID"
-          }
-        </div>
-
-
-
-        <hr />
-
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th style="text-align:center;">Qty</th>
-              <th style="text-align:right;">Price</th>
-              <th style="text-align:right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        
-          </table>
-
-          <hr />
-
-          <table style="width:100%; font-size:12px;">
-            <tr>
-              <td><strong>Total:</strong> ${formatCurrency(totalAmount)}</td>
-              <td style="text-align:center;"><strong>Paid:</strong> ${formatCurrency(amountPaid)}</td>
-              <td style="text-align:right;"><strong>Balance:</strong> ${formatCurrency(balance)}</td>
-            </tr>
-          </table>
-
-
-        
-
-        <div style="margin-top:6px; font-size:11px;">
-          <strong>Amount in Words:</strong><br/>
-          ${amountInWords}
-        </div>
-
-
-        <div class="footer">
-          Thank you for your patronage
-        </div>
-      </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
-};
 
 
 const validateSale = () => {
@@ -698,6 +605,15 @@ const handleSubmit = async () => {
       </tbody>
     </table>
 
+    <div className="input-group">
+      <label>Receipt Format</label>
+      <select value={receiptFormat} onChange={(e) => setReceiptFormat(e.target.value)}>
+        <option value="80mm">80mm Thermal</option>
+        <option value="A4">A4 Paper</option>
+      </select>
+    </div>
+
+
     {/* Grand Total & Payment Section */}
     <div className="grand-total-container">
       <span className="gt-label">Grand Total</span>
@@ -754,8 +670,15 @@ const handleSubmit = async () => {
 
     {/* Complete Sale Button inside scrollable form */}
     <div className="complete-sale-container">
-      <button className="submit-btn" onClick={handleSubmit}>Complete Sale</button>
+      <button className="preview-btn" onClick={handlePrintPreview}>
+        Print Preview
+      </button>
+
+      <button className="submit-btn" onClick={handleSubmit}>
+        Complete Sale
+      </button>
     </div>
+
   </div> {/* End pos-scrollable-content */}
 </div>
 

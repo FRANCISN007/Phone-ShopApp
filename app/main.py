@@ -116,17 +116,16 @@ else:
 # Routers
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(license_router, prefix="/license", tags=["License"])
+app.include_router(bank_router, prefix="/bank", tags=["Bank"])
+app.include_router(vendor_router, prefix="/vendor", tags=["Vendor"])
 app.include_router(product_router, prefix="/stock/products", tags=["Stock - Products"])
+app.include_router(purchase_router, prefix="/purchase", tags=["Purchase"])
 app.include_router(inventory_router, prefix="/stock/inventory", tags=["Store - Inventory"])
+app.include_router(sales_router, prefix="/sales", tags=["Sales"])
+app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(adjustment_router, prefix="/stock/inventory/adjustments", tags=["StoreInventory - Adjustment"])
 app.include_router(expenses_router, prefix="/accounts/expenses", tags=["Accounts - Expenses"])
 app.include_router(profit_loss_router, prefix="/accounts/profit_loss", tags=["Accounts - Profit-Loss"])
-
-app.include_router(purchase_router, prefix="/purchase", tags=["Purchase"])
-app.include_router(vendor_router, prefix="/vendor", tags=["Vendor"])
-app.include_router(bank_router, prefix="/bank", tags=["Bank"])
-app.include_router(sales_router, prefix="/sales", tags=["Sales"])
-app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 
 
 

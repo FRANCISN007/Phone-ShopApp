@@ -2,6 +2,8 @@ from pydantic import BaseModel, validator
 from typing import List, Optional
 from datetime import datetime, date
 
+from pydantic import BaseModel, computed_field
+
 # ---------- Sale Item ----------
 class SaleItemData(BaseModel):
     product_id: int
@@ -14,7 +16,24 @@ class SaleItemCreate(BaseModel):
     quantity: int
     selling_price: float
 
+
+
 class SaleItemOut(BaseModel):
+    id: int
+    sale_invoice_no: int
+    product_id: int
+    product_name: Optional[str] = None
+    quantity: int
+    selling_price: float
+    total_amount: float
+
+    
+
+    class Config:
+        orm_mode = True
+
+
+class SaleItemOut2(BaseModel):
     id: int
     sale_invoice_no: int
     product_id: int
@@ -22,8 +41,11 @@ class SaleItemOut(BaseModel):
     selling_price: float
     total_amount: float
 
+
     class Config:
         from_attributes = True
+
+
 
 # ---------- Sale ----------
 class SaleCreate(BaseModel):
@@ -71,7 +93,7 @@ class SaleOut2(BaseModel):
     balance_due: float
     payment_status: str
     sold_at: datetime
-    items: List[SaleItemOut] = []
+    items: List[SaleItemOut2] = []
 
 
 
@@ -170,3 +192,26 @@ class OutstandingSalesResponse(BaseModel):
     summary: OutstandingSummary
 
 
+
+
+class ItemSoldOut(BaseModel):
+    invoice_no: int
+    invoice_date: date
+    product_id: int
+    product_name: str | None
+    quantity: int
+    selling_price: float
+    total_amount: float
+
+    class Config:
+        from_attributes = True
+
+
+class ItemSoldSummary(BaseModel):
+    total_quantity: int
+    total_amount: float
+
+
+class ItemSoldResponse(BaseModel):
+    items: list[ItemSoldOut]
+    summary: ItemSoldSummary

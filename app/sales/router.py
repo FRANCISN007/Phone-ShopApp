@@ -126,17 +126,33 @@ def sales_by_customer(
 
 
 
-@router.get("/{invoice_no}", response_model=schemas.SaleOut)
-def get_sale(
-    invoice_no: int,
+@router.get(
+    "/item-sold",
+    response_model=List[schemas.SaleOut]
+)
+def list_item_sold(
+    start_date: date,
+    end_date: date,
+    invoice_no: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
+    current_user: UserDisplaySchema = Depends(
+        role_required(["staff", "manager", "admin"])
+    )
 ):
     """
-    Retrieve a sale by its invoice number.
+    List all sales within a date range.
+    Optionally filter by invoice number.
     """
-    sale = service.get_sale(db, invoice_no)
-    return sale
+    return service.list_item_sold(
+        db=db,
+        start_date=start_date,
+        end_date=end_date,
+        invoice_no=invoice_no,
+        skip=skip,
+        limit=limit
+    )
 
 @router.put("/{invoice_no}", response_model=schemas.SaleOut)
 def update_sale(

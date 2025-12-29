@@ -4,15 +4,14 @@ from datetime import datetime
 from typing import Optional
 from datetime import datetime, time
 from datetime import date
+from sqlalchemy.orm import joinedload
 
 
 from . import models, schemas
 from app.stock.inventory import service as inventory_service
 from app.stock.products import models as product_models
 
-from app.sales.schemas import SaleOut, SaleOut2, SaleSummary, SalesListResponse
-
-
+from app.sales.schemas import SaleOut, SaleOut2, SaleSummary, SalesListResponse, SaleItemOut2
 
 from app.stock.products import models as product_models
 from app.payments.models import Payment
@@ -24,6 +23,7 @@ from sqlalchemy import func, desc
 from sqlalchemy import text
 
 from app.purchase.models import Purchase
+
 
 
 
@@ -199,23 +199,44 @@ def create_sale_item(
 
 
     
-def get_sale(db: Session, invoice_no: int):
-    sale = (
+
+
+def list_item_sold(
+    db: Session,
+    start_date: date,
+    end_date: date,
+    invoice_no: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100
+):
+    # Query sales with items and product relationship loaded
+    query = (
         db.query(models.Sale)
-        .filter(models.Sale.invoice_no == invoice_no)
-        .first()
+        .options(
+            joinedload(models.Sale.items).joinedload(models.SaleItem.product)
+        )
+        .filter(models.Sale.invoice_date >= start_date)
+        .filter(models.Sale.invoice_date <= end_date)
     )
 
-    if not sale:
-        raise HTTPException(status_code=404, detail="Sale not found")
+    if invoice_no:
+        query = query.filter(models.Sale.invoice_no == invoice_no)
 
-    # Compute payments
-    total_paid = sum(p.amount_paid for p in sale.payments)
-    sale.total_paid = total_paid
-    sale.balance_due = sale.total_amount - total_paid
+    sales = (
+        query
+        .order_by(models.Sale.invoice_no.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-    return sale
+    # Add product_name to each item manually
+    for sale in sales:
+        for item in sale.items:
+            # Set product_name from the relationship
+            item.product_name = item.product.name if item.product else None
 
+    return sales
 
 
 
@@ -270,7 +291,11 @@ def list_sales(
                 balance_due=balance_due,
                 payment_status=status,
                 sold_at=sale.sold_at,
-                items=getattr(sale, "items", [])
+                items=[
+                    SaleItemOut2.model_validate(item)
+                    for item in (sale.items or [])
+                ]
+
             )
         )
 
@@ -287,9 +312,7 @@ def list_sales(
     return SalesListResponse(sales=sales_list, summary=summary)
 
 
-from fastapi import HTTPException
-from sqlalchemy.orm import Session
-from . import models, schemas
+
 
 def update_sale(db: Session, invoice_no: int, sale_update: schemas.SaleUpdate):
     sale = (
@@ -403,13 +426,17 @@ def _attach_payment_totals(sale):
 
 
 
+
 def staff_sales_report(
     db: Session,
     staff_id: Optional[int] = None,
     start_date=None,
     end_date=None
 ):
-    query = db.query(models.Sale)
+    # Query sales with items and product relationship loaded
+    query = db.query(models.Sale).options(
+        joinedload(models.Sale.items).joinedload(models.SaleItem.product)
+    )
 
     # Filter by staff
     if staff_id:
@@ -432,8 +459,14 @@ def staff_sales_report(
         .all()
     )
 
+    # Attach payments and product names
     for sale in sales:
+        # Compute total payments, balance, etc.
         _attach_payment_totals(sale)
+
+        # Set product_name for each item
+        for item in sale.items:
+            item.product_name = item.product.name if item.product else None
 
     return sales
 
@@ -635,12 +668,20 @@ def delete_all_sales(db: Session):
 
 
 
+from sqlalchemy.orm import joinedload
+
 def get_sales_by_customer(
     db: Session,
     customer_name: str | None = None,
     customer_phone: str | None = None
 ):
-    query = db.query(models.Sale)
+    query = (
+        db.query(models.Sale)
+        .options(
+            joinedload(models.Sale.items)
+            .joinedload(models.SaleItem.product)
+        )
+    )
 
     if customer_name:
         query = query.filter(
@@ -652,4 +693,11 @@ def get_sales_by_customer(
             models.Sale.customer_phone.ilike(f"%{customer_phone}%")
         )
 
-    return query.order_by(models.Sale.sold_at.desc()).all()
+    sales = query.order_by(models.Sale.sold_at.desc()).all()
+
+    # Attach product_name safely
+    for sale in sales:
+        for item in sale.items:
+            item.product_name = item.product.name if item.product else None
+
+    return sales

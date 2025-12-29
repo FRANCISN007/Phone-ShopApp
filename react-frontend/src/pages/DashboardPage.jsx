@@ -37,7 +37,7 @@ const DashboardPage = () => {
   ================================ */
 const salesSubMenu = [
   { label: "List Sales", action: "listSales", icon: "📄" },
-  { label: "Get Sales by Invoice ID", action: "getSalesByInvoice", icon: "🔍" },
+  { label: "List Item Sold", action: "itemsold", icon: "🧾" },
   { label: "Update Sales", action: "updateSales", icon: "✏️" },
   { label: "Update Sales Quantity", action: "updateSalesQty", icon: "✏️" },
   { label: "Delete Sales", action: "deleteSales", icon: "❌" },
@@ -138,8 +138,8 @@ const salesSubMenu = [
       case "listSales":
         navigate("/dashboard/sales/list");
         break;
-      case "getSalesByInvoice":
-        navigate("/dashboard/sales/invoice");
+      case "itemsold":
+        navigate("/dashboard/sales/itemsold");
         break;
       case "updateSales":
         navigate("/dashboard/sales/update");

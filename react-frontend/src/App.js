@@ -20,6 +20,8 @@ import RegisterPage from "./modules/auth/RegisterPage";
 
 // Sales
 import ListSales from "./components/sales/ListSales";
+import SalesItemSold from "./components/sales/SalesItemSold";
+
 
 // POS
 import PosSales from "./components/pos/PosSales";
@@ -47,6 +49,9 @@ const App = () => {
             {/* ✅ SALES ROUTES */}
             <Route path="sales">
               <Route path="list" element={<ListSales />} />
+              <Route path="itemsold" element={<SalesItemSold />} />
+
+              
             </Route>
 
           </Route>

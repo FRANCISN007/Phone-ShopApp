@@ -21,6 +21,9 @@ import RegisterPage from "./modules/auth/RegisterPage";
 // Sales
 import ListSales from "./components/sales/ListSales";
 import SalesItemSold from "./components/sales/SalesItemSold";
+import CustomerUpdate from "./components/sales/CustomerUpdate";
+
+
 
 
 // POS
@@ -50,6 +53,9 @@ const App = () => {
             <Route path="sales">
               <Route path="list" element={<ListSales />} />
               <Route path="itemsold" element={<SalesItemSold />} />
+              <Route path="customerupdate" element={<CustomerUpdate />} />
+
+              
 
               
             </Route>

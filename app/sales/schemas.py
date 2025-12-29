@@ -88,6 +88,7 @@ class SaleOut2(BaseModel):
     invoice_date: datetime
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
+    ref_no: Optional[str]
     total_amount: float
     total_paid: float
     balance_due: float
@@ -214,4 +215,16 @@ class ItemSoldSummary(BaseModel):
 
 class ItemSoldResponse(BaseModel):
     items: list[ItemSoldOut]
+    summary: ItemSoldSummary
+
+
+# schemas.py
+
+class ItemSoldSummary(BaseModel):
+    total_quantity: int
+    total_amount: float
+
+
+class ItemSoldResponse(BaseModel):
+    sales: List[SaleOut]   # 👈 NOT models.Sale
     summary: ItemSoldSummary

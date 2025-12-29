@@ -11,7 +11,7 @@ from . import models, schemas
 from app.stock.inventory import service as inventory_service
 from app.stock.products import models as product_models
 
-from app.sales.schemas import SaleOut, SaleOut2, SaleSummary, SalesListResponse, SaleItemOut2
+from app.sales.schemas import SaleOut, SaleOut2, SaleSummary, SalesListResponse, SaleItemOut2, SaleItemOut
 
 from app.stock.products import models as product_models
 from app.payments.models import Payment
@@ -209,11 +209,11 @@ def list_item_sold(
     skip: int = 0,
     limit: int = 100
 ):
-    # Query sales with items and product relationship loaded
     query = (
         db.query(models.Sale)
         .options(
-            joinedload(models.Sale.items).joinedload(models.SaleItem.product)
+            joinedload(models.Sale.items)
+            .joinedload(models.SaleItem.product)
         )
         .filter(models.Sale.invoice_date >= start_date)
         .filter(models.Sale.invoice_date <= end_date)
@@ -230,13 +230,54 @@ def list_item_sold(
         .all()
     )
 
-    # Add product_name to each item manually
-    for sale in sales:
-        for item in sale.items:
-            # Set product_name from the relationship
-            item.product_name = item.product.name if item.product else None
+    total_qty = 0
+    total_amount = 0.0
+    sales_out: list[SaleOut] = []
 
-    return sales
+    for sale in sales:
+        items_out = []
+
+        for item in sale.items:
+            qty = item.quantity or 0
+            amt = item.total_amount or 0
+
+            total_qty += qty
+            total_amount += amt
+
+            items_out.append(
+                SaleItemOut(
+                    id=item.id,
+                    sale_invoice_no=item.sale_invoice_no,
+                    product_id=item.product_id,
+                    product_name=item.product.name if item.product else None,
+                    quantity=qty,
+                    selling_price=item.selling_price,
+                    total_amount=amt
+                )
+            )
+
+        sales_out.append(
+            SaleOut(
+                id=sale.id,
+                invoice_no=sale.invoice_no,
+                invoice_date=sale.invoice_date,
+                customer_name=sale.customer_name,
+                customer_phone=sale.customer_phone,
+                ref_no=sale.ref_no,
+                total_amount=sale.total_amount,
+                sold_by=sale.sold_by,
+                sold_at=sale.sold_at,
+                items=items_out
+            )
+        )
+
+    return {
+        "sales": sales_out,
+        "summary": {
+            "total_quantity": total_qty,
+            "total_amount": total_amount
+        }
+    }
 
 
 
@@ -286,6 +327,7 @@ def list_sales(
                 invoice_date=sale.invoice_date,
                 customer_name=sale.customer_name or "Walk-in",
                 customer_phone=getattr(sale, "customer_phone", None),
+                ref_no=sale.ref_no,
                 total_amount=total_amount,
                 total_paid=total_paid,
                 balance_due=balance_due,
@@ -524,33 +566,6 @@ def outstanding_sales_service(db: Session, start_date=None, end_date=None):
 
 
 
-
-
-def delete_sale(db: Session, invoice_no: int):
-    # 1️⃣ Fetch sale by invoice_no
-    sale = db.query(models.Sale).filter(models.Sale.invoice_no == invoice_no).first()
-    if not sale:
-        raise HTTPException(status_code=404, detail="Sale not found")
-
-    # 2️⃣ Restore inventory for each sale item
-    for item in sale.items:
-        inventory = inventory_service.get_inventory_by_product(db, item.product_id)
-        if inventory:
-            inventory.quantity_out -= item.quantity
-            inventory.current_stock = (
-                inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
-            )
-            db.add(inventory)
-
-    # 3️⃣ Delete sale (SaleItems will be deleted automatically if FK is ON DELETE CASCADE)
-    db.delete(sale)
-    db.commit()
-
-    return {"detail": f"Sale {invoice_no} deleted successfully"}
-
-
-
-
 def sales_analysis(db: Session, start_date=None, end_date=None):
     # Subquery: latest purchase per product
     latest_purchase = (
@@ -621,6 +636,69 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
 
 
 
+from sqlalchemy.orm import joinedload
+
+def get_sales_by_customer(
+    db: Session,
+    customer_name: str | None = None,
+    customer_phone: str | None = None
+):
+    query = (
+        db.query(models.Sale)
+        .options(
+            joinedload(models.Sale.items)
+            .joinedload(models.SaleItem.product)
+        )
+    )
+
+    if customer_name:
+        query = query.filter(
+            models.Sale.customer_name.ilike(f"%{customer_name}%")
+        )
+
+    if customer_phone:
+        query = query.filter(
+            models.Sale.customer_phone.ilike(f"%{customer_phone}%")
+        )
+
+    sales = query.order_by(models.Sale.sold_at.desc()).all()
+
+    # Attach product_name safely
+    for sale in sales:
+        for item in sale.items:
+            item.product_name = item.product.name if item.product else None
+
+    return sales
+
+
+
+
+def delete_sale(db: Session, invoice_no: int):
+    # 1️⃣ Fetch sale by invoice_no
+    sale = db.query(models.Sale).filter(models.Sale.invoice_no == invoice_no).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+
+    # 2️⃣ Restore inventory for each sale item
+    for item in sale.items:
+        inventory = inventory_service.get_inventory_by_product(db, item.product_id)
+        if inventory:
+            inventory.quantity_out -= item.quantity
+            inventory.current_stock = (
+                inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
+            )
+            db.add(inventory)
+
+    # 3️⃣ Delete sale (SaleItems will be deleted automatically if FK is ON DELETE CASCADE)
+    db.delete(sale)
+    db.commit()
+
+    return {"detail": f"Sale {invoice_no} deleted successfully"}
+
+
+
+
+
 
 def delete_all_sales(db: Session):
     sales = db.query(models.Sale).all()
@@ -665,39 +743,3 @@ def delete_all_sales(db: Session):
         "deleted_count": deleted_count
     }
 
-
-
-
-from sqlalchemy.orm import joinedload
-
-def get_sales_by_customer(
-    db: Session,
-    customer_name: str | None = None,
-    customer_phone: str | None = None
-):
-    query = (
-        db.query(models.Sale)
-        .options(
-            joinedload(models.Sale.items)
-            .joinedload(models.SaleItem.product)
-        )
-    )
-
-    if customer_name:
-        query = query.filter(
-            models.Sale.customer_name.ilike(f"%{customer_name}%")
-        )
-
-    if customer_phone:
-        query = query.filter(
-            models.Sale.customer_phone.ilike(f"%{customer_phone}%")
-        )
-
-    sales = query.order_by(models.Sale.sold_at.desc()).all()
-
-    # Attach product_name safely
-    for sale in sales:
-        for item in sale.items:
-            item.product_name = item.product.name if item.product else None
-
-    return sales

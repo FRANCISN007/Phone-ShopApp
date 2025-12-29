@@ -22,8 +22,8 @@ const DashboardPage = () => {
       { label: "Sales", icon: "💰", submenu: true },
       { label: "Stock", icon: "📦", path: "/dashboard/stock" },
       { label: "Purchase", icon: "🧾", path: "/dashboard/purchase" },
-      { label: "Accounts", icon: "🧮", path: "/dashboard/accounts" },
-      { label: "Reports", icon: "📊", path: "/dashboard/reports" },
+      { label: "Payments", icon: "💳", path: "/dashboard/payments" },
+      { label: "Accounts", icon: "📈", path: "/dashboard/accounts" },
       { label: "Maintenance", icon: "🛠", path: "/dashboard/maintenance" },
       { label: "Export", icon: "📤", action: "export" },
       { label: "Print", icon: "🖨️", action: "print" },
@@ -38,7 +38,7 @@ const DashboardPage = () => {
 const salesSubMenu = [
   { label: "List Sales", action: "listSales", icon: "📄" },
   { label: "List Item Sold", action: "itemsold", icon: "🧾" },
-  { label: "Update Sales", action: "updateSales", icon: "✏️" },
+  { label: "Update Customer Sales details ", action: "customerupdate", icon: "✏️" },
   { label: "Update Sales Quantity", action: "updateSalesQty", icon: "✏️" },
   { label: "Delete Sales", action: "deleteSales", icon: "❌" },
 
@@ -141,8 +141,8 @@ const salesSubMenu = [
       case "itemsold":
         navigate("/dashboard/sales/itemsold");
         break;
-      case "updateSales":
-        navigate("/dashboard/sales/update");
+      case "customerupdate":
+        navigate("/dashboard/sales/customerupdate");
         break;
       case "deleteSales":
         navigate("/dashboard/sales/delete");

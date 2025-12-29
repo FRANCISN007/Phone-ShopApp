@@ -77,10 +77,13 @@
 
 .sales-item-table th,
 .sales-item-table td {
-  padding: 10px 12px;
+  padding: 4px 8px;          /* 🔥 reduced height */
   text-align: left;
   border: 1px solid #28a745;
+  font-size: 0.85rem;        /* slightly smaller text */
+  line-height: 1.2;          /* tighter rows */
 }
+
 
 .sales-item-table th {
   background-color: #28a745;
@@ -117,4 +120,32 @@
   font-weight: bold;
   margin: 10px 0;
   color: #dc3545;
+}
+
+
+/* ===============================
+   Table Footer (TOTAL ROW)
+=============================== */
+.sales-item-table tfoot tr {
+  background-color: #c3e6cb; /* stronger green highlight */
+  font-weight: bold;
+}
+
+.sales-item-table tfoot td {
+  border-top: 3px solid #155724;
+  padding: 4px 6px;
+  font-size: 1rem;
+}
+
+
+/* Align numeric totals properly */
+.sales-item-table tfoot td:nth-child(5),
+.sales-item-table tfoot td:nth-child(7) {
+  text-align: right;
+}
+
+/* Optional: make TOTAL label stand out */
+.sales-item-table tfoot td:first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

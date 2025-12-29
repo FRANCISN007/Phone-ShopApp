@@ -6,7 +6,11 @@ const ListSales = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const [sales, setSales] = useState([]);
-  const [summary, setSummary] = useState({ total_sales: 0, total_paid: 0, total_balance: 0 });
+  const [summary, setSummary] = useState({
+    total_sales: 0,
+    total_paid: 0,
+    total_balance: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [startDate, setStartDate] = useState(today);
@@ -18,30 +22,26 @@ const ListSales = () => {
 
     try {
       const axiosInstance = axiosWithAuth();
-
-      const params = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
+      const params = { start_date: startDate, end_date: endDate };
 
       const response = await axiosInstance.get("/sales/", { params });
-      console.log("🔥 SALES RESPONSE:", response.data);
 
-      if (response.data && Array.isArray(response.data.sales)) {
+      if (response.data?.sales) {
         setSales(response.data.sales);
-        setSummary(response.data.summary || { total_sales: 0, total_paid: 0, total_balance: 0 });
+        setSummary(
+          response.data.summary || {
+            total_sales: 0,
+            total_paid: 0,
+            total_balance: 0,
+          }
+        );
       } else {
-        console.error("❌ Unexpected sales response:", response.data);
         setSales([]);
         setSummary({ total_sales: 0, total_paid: 0, total_balance: 0 });
         setError("Unexpected response from server.");
       }
-    } catch (err) {
-      console.error("❌ Failed to load sales:", err);
-
-      if (err.response?.status === 401) setError("Session expired. Please log in again.");
-      else if (err.response?.status === 403) setError("You do not have permission to view sales.");
-      else setError("Failed to load sales records.");
-
+    } catch {
+      setError("Failed to load sales records.");
       setSales([]);
       setSummary({ total_sales: 0, total_paid: 0, total_balance: 0 });
     } finally {
@@ -53,21 +53,21 @@ const ListSales = () => {
     fetchSales();
   }, [fetchSales]);
 
-  // Helper to format numbers with commas
-  const formatAmount = (amount) => Number(amount || 0).toLocaleString("en-US");
+  const formatAmount = (amount) =>
+    Number(amount || 0).toLocaleString("en-US");
 
   return (
     <div className="list-sales-container">
-      <h2 className="list-sales-title">📄 Sales Records</h2>
+      <h2 className="list-sales-title">📄 Sales List Records</h2>
 
-      {/* Date Filters */}
+      {/* Filters */}
       <div className="sales-filters">
         <label>
-          Start Date:{" "}
+          Start Date:
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </label>
         <label>
-          End Date:{" "}
+          End Date:
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </label>
         <button onClick={fetchSales}>Filter</button>
@@ -84,17 +84,20 @@ const ListSales = () => {
                 <th>#</th>
                 <th>Invoice No</th>
                 <th>Customer</th>
-                <th>Total Amount</th>
-                <th>Total Paid</th>
-                <th>Balance Due</th>
-                <th>Payment Status</th>
+                <th>Phone No</th>
+                <th>Reference No</th>
+                <th className="text-right">Total Amount</th>
+                <th className="text-right">Total Paid</th>
+                <th className="text-right">Balance Due</th>
+                <th>Status</th>
                 <th>Sold At</th>
               </tr>
             </thead>
+
             <tbody>
               {sales.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="empty-row">
+                  <td colSpan="10" className="empty-row">
                     No sales records found
                   </td>
                 </tr>
@@ -104,25 +107,41 @@ const ListSales = () => {
                     <td>{index + 1}</td>
                     <td>{sale.invoice_no ?? "-"}</td>
                     <td>{sale.customer_name || "Walk-in"}</td>
-                    <td>{formatAmount(sale.total_amount)}</td>
-                    <td>{formatAmount(sale.total_paid)}</td>
-                    <td>{formatAmount(sale.balance_due)}</td>
+                    <td>{sale.customer_phone || "-"}</td>
+                    <td>{sale.ref_no || "-"}</td>
+                    <td className="text-right">{formatAmount(sale.total_amount)}</td>
+                    <td className="text-right">{formatAmount(sale.total_paid)}</td>
+                    <td className="text-right">{formatAmount(sale.balance_due)}</td>
                     <td>{sale.payment_status || "-"}</td>
-                    <td>{sale.sold_at ? new Date(sale.sold_at).toLocaleString() : "-"}</td>
+                    <td>
+                      {sale.sold_at
+                        ? new Date(sale.sold_at).toLocaleString()
+                        : "-"}
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
-          </table>
 
-          {/* Summary */}
-          {sales.length > 0 && (
-            <div className="sales-summary">
-              <p>Total Sales: {formatAmount(summary.total_sales)}</p>
-              <p>Total Paid: {formatAmount(summary.total_paid)}</p>
-              <p>Total Balance: {formatAmount(summary.total_balance)}</p>
-            </div>
-          )}
+            {/* Totals Row */}
+            {sales.length > 0 && (
+              <tfoot>
+                <tr className="sales-total-row">
+                  <td colSpan="5">TOTAL</td>
+                  <td className="text-right">
+                    {formatAmount(summary.total_sales)}
+                  </td>
+                  <td className="text-right">
+                    {formatAmount(summary.total_paid)}
+                  </td>
+                  <td className="text-right">
+                    {formatAmount(summary.total_balance)}
+                  </td>
+                  <td colSpan="2"></td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
         </div>
       )}
     </div>

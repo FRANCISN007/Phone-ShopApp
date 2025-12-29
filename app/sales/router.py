@@ -5,7 +5,7 @@ from datetime import date
 from typing import Optional
 from sqlalchemy import text
 
-from app.sales.schemas import SaleOut, SaleOut2,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse
+from app.sales.schemas import SaleOut, SaleOut2,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse, ItemSoldResponse
 from app.database import get_db
 from . import schemas, service
 from app.users.schemas import UserDisplaySchema
@@ -128,9 +128,9 @@ def sales_by_customer(
 
 @router.get(
     "/item-sold",
-    response_model=List[schemas.SaleOut]
+    response_model=ItemSoldResponse
 )
-def list_item_sold(
+def list_item_sold_api(
     start_date: date,
     end_date: date,
     invoice_no: Optional[int] = None,
@@ -141,10 +141,6 @@ def list_item_sold(
         role_required(["staff", "manager", "admin"])
     )
 ):
-    """
-    List all sales within a date range.
-    Optionally filter by invoice number.
-    """
     return service.list_item_sold(
         db=db,
         start_date=start_date,
@@ -153,6 +149,8 @@ def list_item_sold(
         skip=skip,
         limit=limit
     )
+
+
 
 @router.put("/{invoice_no}", response_model=schemas.SaleOut)
 def update_sale(

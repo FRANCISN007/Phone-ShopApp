@@ -133,9 +133,11 @@ class SaleUpdate(BaseModel):
 
 
 class SaleItemUpdate(BaseModel):
+    old_product_id: Optional[int] = None  # optional, only needed if invoice has multiple items
+    product_id: Optional[int] = None
     quantity: Optional[int] = None
     selling_price: Optional[float] = None
-
+    
     class Config:
         extra = "forbid"
 

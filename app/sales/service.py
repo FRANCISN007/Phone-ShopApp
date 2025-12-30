@@ -261,15 +261,16 @@ def list_item_sold(
                 id=sale.id,
                 invoice_no=sale.invoice_no,
                 invoice_date=sale.invoice_date,
-                customer_name=sale.customer_name,
-                customer_phone=sale.customer_phone,
-                ref_no=sale.ref_no,
+                customer_name=sale.customer_name or "-",
+                customer_phone=sale.customer_phone or "-",
+                ref_no=sale.ref_no or "-",
                 total_amount=sale.total_amount,
                 sold_by=sale.sold_by,
                 sold_at=sale.sold_at,
                 items=items_out
             )
         )
+
 
     return {
         "sales": sales_out,
@@ -392,72 +393,54 @@ def update_sale(db: Session, invoice_no: int, sale_update: schemas.SaleUpdate):
 def update_sale_item(
     db: Session,
     invoice_no: int,
-    product_id: int,
     item_update: schemas.SaleItemUpdate
 ):
-    # 🔍 Fetch item by invoice_no + product_id
-    item = (
-        db.query(models.SaleItem)
-        .filter(
-            models.SaleItem.sale_invoice_no == invoice_no,
-            models.SaleItem.product_id == product_id
-        )
-        .first()
-    )
+    """
+    Update sale item by invoice number. Allows changing product_id, quantity, and selling_price.
+    """
+
+    # 🔍 Fetch the sale item using invoice_no + optional product_id in the payload
+    query = db.query(models.SaleItem).filter(models.SaleItem.sale_invoice_no == invoice_no)
+
+    # If updating a specific product_id, fetch that
+    if item_update.old_product_id is not None:
+        query = query.filter(models.SaleItem.product_id == item_update.old_product_id)
+
+    item = query.first()
 
     if not item:
-        raise HTTPException(
-            status_code=404,
-            detail="Sale item not found for this invoice"
-        )
+        raise HTTPException(status_code=404, detail="Sale item not found for this invoice")
 
-    inventory = inventory_service.get_inventory_by_product(db, product_id)
+    # ✅ Update product if provided
+    if item_update.product_id is not None:
+        # Make sure no duplicate product exists for the same invoice
+        existing_item = db.query(models.SaleItem).filter(
+            models.SaleItem.sale_invoice_no == invoice_no,
+            models.SaleItem.product_id == item_update.product_id
+        ).first()
+        if existing_item and existing_item.id != item.id:
+            raise HTTPException(
+                status_code=400,
+                detail="This product already exists in the invoice"
+            )
+        item.product_id = item_update.product_id
 
-    # 🧮 Stock adjustment
+    # ✅ Update quantity and price
     if item_update.quantity is not None:
-        qty_diff = item_update.quantity - item.quantity
-
-        if qty_diff > 0:
-            # Need extra stock
-            if not inventory or inventory.current_stock < qty_diff:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Insufficient stock for update"
-                )
-
-            inventory_service.remove_stock(
-                db, product_id, qty_diff, commit=False
-            )
-
-        elif qty_diff < 0:
-            # Restore stock
-            inventory.quantity_out += qty_diff  # qty_diff is negative
-            inventory.current_stock = (
-                inventory.quantity_in
-                - inventory.quantity_out
-                + inventory.adjustment_total
-            )
-
         item.quantity = item_update.quantity
 
     if item_update.selling_price is not None:
         item.selling_price = item_update.selling_price
 
-    # 🔁 Recalculate item total
+    # 🔁 Recalculate totals
     item.total_amount = item.quantity * item.selling_price
 
-    # 🔁 Recalculate sale total (invoice-based)
-    sale = (
-        db.query(models.Sale)
-        .filter(models.Sale.invoice_no == invoice_no)
-        .first()
-    )
-
-    sale.total_amount = sum(i.total_amount for i in sale.items)
+    sale = db.query(models.Sale).filter(models.Sale.invoice_no == invoice_no).first()
+    if sale:
+        sale.total_amount = sum(i.total_amount for i in sale.items)
 
     db.commit()
     db.refresh(item)
-
     return item
 
 

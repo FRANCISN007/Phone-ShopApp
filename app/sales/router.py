@@ -153,7 +153,7 @@ def list_item_sold_api(
 
 
 @router.put("/{invoice_no}", response_model=schemas.SaleOut)
-def update_sale(
+def update_sale_header(
     invoice_no: int,
     sale_update: schemas.SaleUpdate,
     db: Session = Depends(get_db),
@@ -187,13 +187,12 @@ def sales_analysis(
 
 
 @router.put(
-    "/{invoice_no}/items/{product_id}",
+    "/{invoice_no}/items",
     response_model=schemas.SaleItemOut
 )
 def update_sale_item(
     invoice_no: int,
-    product_id: int,
-    item_update: schemas.SaleItemUpdate,
+    item_update: schemas.SaleItemUpdate,  # contains product_id, quantity, price, etc.
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
         role_required(["staff", "manager", "admin"])
@@ -202,7 +201,6 @@ def update_sale_item(
     return service.update_sale_item(
         db,
         invoice_no,
-        product_id,
         item_update
     )
 

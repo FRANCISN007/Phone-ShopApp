@@ -5,6 +5,7 @@
   padding: 5px;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
+  border-radius: 4px;
 }
 
 /* ===============================
@@ -132,3 +133,16 @@
   font-size: 1rem;
 }
 
+
+/* ===============================
+   Sales Totals Row
+=============================== */
+.sales-total-row {
+  background-color: #d4edda; /* stronger green */
+  font-weight: bold;
+}
+
+.sales-total-row td {
+  border-top: 3px solid #28a745;
+  font-size: 1rem;
+}

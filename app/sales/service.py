@@ -587,13 +587,14 @@ def outstanding_sales_service(db: Session, start_date=None, end_date=None):
 
 
 def sales_analysis(db: Session, start_date=None, end_date=None):
-    # Subquery: latest purchase per product
+
+    # 🔹 Latest purchase cost per product
     latest_purchase = (
         db.query(
             Purchase.product_id,
             Purchase.cost_price
         )
-        .order_by(Purchase.product_id, desc(Purchase.id))  # fixed
+        .order_by(Purchase.product_id, desc(Purchase.id))
         .distinct(Purchase.product_id)
         .subquery()
     )
@@ -602,19 +603,43 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
         db.query(
             models.SaleItem.product_id,
             Product.name.label("product_name"),
+
+            # ✅ Total quantity sold
             func.sum(models.SaleItem.quantity).label("quantity_sold"),
-            func.avg(models.SaleItem.selling_price).label("avg_selling_price"),
+
+            # ✅ Weighted average selling price
+            (
+                func.sum(models.SaleItem.selling_price * models.SaleItem.quantity)
+                / func.nullif(func.sum(models.SaleItem.quantity), 0)
+            ).label("avg_selling_price"),
+
             latest_purchase.c.cost_price
         )
+
+        # ✅ CORRECT JOIN (invoice-based)
+        .join(
+            models.Sale,
+            models.Sale.invoice_no == models.SaleItem.sale_invoice_no
+        )
+
         .join(Product, Product.id == models.SaleItem.product_id)
-        .outerjoin(latest_purchase, latest_purchase.c.product_id == models.SaleItem.product_id)
+
+        .outerjoin(
+            latest_purchase,
+            latest_purchase.c.product_id == models.SaleItem.product_id
+        )
     )
 
-    # Apply date filters
+    # 🔹 Date filters (now safe & correct)
     if start_date:
-        query = query.filter(models.Sale.sold_at >= datetime.combine(start_date, time.min))
+        query = query.filter(
+            models.Sale.sold_at >= datetime.combine(start_date, time.min)
+        )
+
     if end_date:
-        query = query.filter(models.Sale.sold_at <= datetime.combine(end_date, time.max))
+        query = query.filter(
+            models.Sale.sold_at <= datetime.combine(end_date, time.max)
+        )
 
     query = query.group_by(
         models.SaleItem.product_id,
@@ -631,9 +656,10 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
     for row in results:
         cost_price = row.cost_price or 0.0
         selling_price = row.avg_selling_price or 0.0
+        quantity = int(row.quantity_sold or 0)
 
-        product_total_sales = row.quantity_sold * selling_price
-        product_margin = (selling_price - cost_price) * row.quantity_sold
+        product_total_sales = quantity * selling_price
+        product_margin = (selling_price - cost_price) * quantity
 
         total_sales += product_total_sales
         total_margin += product_margin
@@ -641,7 +667,7 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
         items.append({
             "product_id": row.product_id,
             "product_name": row.product_name,
-            "quantity_sold": row.quantity_sold,
+            "quantity_sold": quantity,
             "cost_price": cost_price,
             "selling_price": selling_price,
             "total_sales": product_total_sales,
@@ -656,7 +682,6 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
 
 
 
-from sqlalchemy.orm import joinedload
 
 
 def get_sales_by_customer(

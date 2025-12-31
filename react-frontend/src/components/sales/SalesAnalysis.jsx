@@ -69,7 +69,7 @@ const SalesAnalysis = () => {
 
   return (
     <div className="sales-analysis-container">
-      <h2>Sales Analysis</h2>
+      <h2>Sales Analysis Report</h2>
 
       <div className="filter-section">
         <label>

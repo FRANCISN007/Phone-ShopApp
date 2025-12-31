@@ -174,7 +174,7 @@
   border-radius: 15px;
   padding: 20px;
   width: 700px;          /* moderate rectangle width */
-  height: 450px;         /* fixed height */
+  height: 390px;         /* fixed height */
   background-color: #fdfdfd;
   margin: 15px auto;     /* center horizontally */
   display: flex;
@@ -229,7 +229,7 @@
 .sales-submenu.grid-3x2 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 100px);
+  grid-template-rows: repeat(2, 100px);
   gap: 15px;
   width: 100%;
 }
@@ -260,12 +260,9 @@
 .card-3 { background-color: #d49c48; } /* orange */
 .card-4 { background-color: #a36aad; } /* purple */
 .card-5 { background-color: #e2857e; } /* red */
-.card-6 { background-color: #80b7be; } /* cyan */
+.card-6 { background-color: #a5c0c4; } /* cyan */
 
 /* New Sales Reports cards */
-.card-7 { background-color: #5fa37a; } /* staff sales – dark green */
-.card-8 { background-color: #e0b24c; } /* outstanding sales – amber */
-.card-9 { background-color: #aca392; } /* outstanding sales – amber */
 
 
 /* Hover effect */

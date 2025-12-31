@@ -9,6 +9,13 @@ import "./SalesItemSold.css";
 
 
 
+import { SHOP_NAME } from "../../config/constants";  // ✅ make sure this import exists
+
+import { printReceipt } from "../pos/printReceipt";
+import { numberToWords } from "../../utils/numberToWords";
+
+
+
 const SalesItemSold = () => {
   // ✅ Default dates = today
   const today = new Date().toISOString().split("T")[0];
@@ -19,6 +26,9 @@ const SalesItemSold = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  
+
 
 
   const [productSearch, setProductSearch] = useState("");
@@ -35,6 +45,42 @@ const SalesItemSold = () => {
   });
 
   const [products, setProducts] = useState([]);
+
+  const handleReprint = async (invoiceNo) => {
+    try {
+      const res = await axiosWithAuth().get(
+        `/sales/receipt/${invoiceNo}`
+      );
+
+      const sale = res.data;
+
+      printReceipt("80mm", {
+        SHOP_NAME: SHOP_NAME, // use the actual constant
+        invoice: sale.invoice_no,
+        invoiceDate: sale.invoice_date,
+        customerName: sale.customer_name,
+        customerPhone: sale.customer_phone,
+        refNo: sale.ref_no,
+        paymentMethod: sale.payment_status,
+        amountPaid: sale.total_paid,
+        totalAmount: sale.total_amount,
+        balance: sale.balance_due,
+        items: sale.items.map(i => ({
+          name: i.product_name, // ✅ use product_name instead of product_id
+          quantity: i.quantity,
+          selling_price: i.selling_price,
+          total_amount: i.total_amount
+        })),
+        amountInWords: numberToWords(sale.total_amount),
+        formatCurrency: (v) => `₦${Number(v).toLocaleString()}`
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reprint receipt");
+    }
+  };
+
 
 
   const filteredProducts = useMemo(() => {
@@ -301,18 +347,30 @@ const SalesItemSold = () => {
                     </td>
                     <td className="action-cell">
                       <button
+                        className="btn-print"
+                        title="Reprint Receipt"
+                        onClick={() => handleReprint(item.invoice_no)}
+                      >
+                        🖨️
+                      </button>
+
+                      <button
                         className="btn-edit"
+                        title="Edit Sale"
                         onClick={() => openEdit(item)}
                       >
                         ✏️
                       </button>
+
                       <button
                         className="btn-delete"
+                        title="Delete Sale"
                         onClick={() => deleteSale(item.invoice_no)}
                       >
                         🗑
                       </button>
                     </td>
+
                   </tr>
                 ))
               )}

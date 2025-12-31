@@ -6,6 +6,9 @@ from typing import Optional
 from sqlalchemy import text
 
 from app.sales.schemas import SaleOut, SaleOut2,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse, ItemSoldResponse
+from app.sales import models as sales_models
+from app.payments.models import Payment
+
 from app.database import get_db
 from . import schemas, service
 from app.users.schemas import UserDisplaySchema
@@ -130,7 +133,7 @@ def sales_by_customer(
     "/item-sold",
     response_model=ItemSoldResponse
 )
-def list_item_sold_api(
+def list_item_sold(
     start_date: date,
     end_date: date,
     invoice_no: Optional[int] = None,
@@ -202,6 +205,72 @@ def update_sale_item(
         db,
         invoice_no,
         item_update
+    )
+
+
+
+from sqlalchemy.orm import joinedload
+
+@router.get("/receipt/{invoice_no}", response_model=schemas.SaleOut2)
+def get_sale_invoice_reprint(
+    invoice_no: int,
+    db: Session = Depends(get_db)
+):
+    # 1️⃣ Fetch sale WITH items + product
+    sale = (
+        db.query(sales_models.Sale)
+        .options(
+            joinedload(sales_models.Sale.items)
+            .joinedload(sales_models.SaleItem.product)
+        )
+        .filter(sales_models.Sale.invoice_no == invoice_no)
+        .first()
+    )
+
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+
+    # 2️⃣ SAME totals logic as list_sales
+    total_amount = float(sale.total_amount or 0)
+
+    payments = getattr(sale, "payments", []) or []
+    total_paid = sum(float(p.amount_paid or 0) for p in payments)
+
+    balance_due = total_amount - total_paid
+
+    # 3️⃣ SAME payment status logic
+    if total_paid == 0:
+        payment_status = "pending"
+    elif balance_due > 0:
+        payment_status = "part_paid"
+    else:
+        payment_status = "completed"
+
+    # 4️⃣ Return with product_name
+    return schemas.SaleOut2(
+        id=sale.id,
+        invoice_no=sale.invoice_no,
+        invoice_date=sale.invoice_date,
+        customer_name=sale.customer_name or "Walk-in",
+        customer_phone=getattr(sale, "customer_phone", None),
+        ref_no=sale.ref_no,
+        total_amount=total_amount,
+        total_paid=total_paid,
+        balance_due=balance_due,
+        payment_status=payment_status,
+        sold_at=sale.sold_at,
+        items=[
+            schemas.SaleItemOut2(
+                id=item.id,
+                sale_invoice_no=item.sale_invoice_no,
+                product_id=item.product_id,
+                product_name=item.product.name if item.product else None,
+                quantity=item.quantity,
+                selling_price=item.selling_price,
+                total_amount=item.total_amount
+            )
+            for item in (sale.items or [])
+        ]
     )
 
 

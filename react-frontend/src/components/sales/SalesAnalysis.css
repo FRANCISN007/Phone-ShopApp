@@ -1,0 +1,134 @@
+/* ===============================
+   SalesAnalysis Container
+=============================== */
+.sales-analysis-container {
+  padding: 5px;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+}
+
+/* ===============================
+   Title
+=============================== */
+.sales-analysis-container h2 {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+/* ===============================
+   Filters
+=============================== */
+.filter-section {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.filter-section label {
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.filter-section input[type="date"] {
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.filter-section button {
+  padding: 6px 12px;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.filter-section button:hover {
+  background-color: #218838;
+}
+
+/* ===============================
+   Table Wrapper
+=============================== */
+.table-wrapper {
+  overflow-x: auto;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  background-color: white;
+  margin-bottom: 10px;
+}
+
+/* ===============================
+   Table
+=============================== */
+.sales-analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.sales-analysis-table th,
+.sales-analysis-table td {
+  padding: 4px 8px;
+  text-align: left;
+  font-size: 0.85rem;
+  border: 1px solid #28a745;
+}
+
+.sales-analysis-table th {
+  background-color: #28a745;
+  color: white;
+  font-weight: bold;
+}
+
+/* Zebra striping */
+.sales-analysis-table tbody tr:nth-child(odd) {
+  background-color: #e6f4ea;
+}
+
+.sales-analysis-table tbody tr:nth-child(even) {
+  background-color: #f0faf5;
+}
+
+/* Empty row */
+.empty-row {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+}
+
+/* Loading / Error Text */
+.status-text,
+.error-text {
+  font-weight: bold;
+  margin: 10px 0;
+  color: #333;
+}
+
+.error-text {
+  color: #dc3545;
+}
+
+/* ===============================
+   Sales Totals
+=============================== */
+.sales-summary {
+  background-color: #d4edda;
+  font-weight: bold;
+  padding: 8px;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  width: fit-content;
+  margin-top: 10px;
+}
+
+.sales-summary p {
+  margin: 4px 0;
+  font-size: 1rem;
+}
+

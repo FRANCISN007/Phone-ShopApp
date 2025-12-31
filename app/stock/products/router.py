@@ -8,7 +8,7 @@ from app.stock.products import schemas, service, models
 
 
 from app.stock.products.models import Product
-from app.stock.products.schemas import ProductPriceUpdate, ProductOut, ProductSimpleSchema
+from app.stock.products.schemas import ProductPriceUpdate, ProductOut, ProductSimpleSchema, ProductSimpleSchema1
 
 
 router = APIRouter()
@@ -32,10 +32,14 @@ def list_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
     return [schemas.ProductOut.from_orm(p) for p in products]
 
 
+
+
+
 @router.get("/simple", response_model=List[ProductSimpleSchema])
 def list_products_simple(db: Session = Depends(get_db)):
     products = service.get_products(db, skip=0, limit=1000)
     return [ProductSimpleSchema.from_orm(p) for p in products]
+
 
 
 

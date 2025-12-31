@@ -36,14 +36,11 @@ const DashboardPage = () => {
      SALES SUBMENU
   ================================ */
 const salesSubMenu = [
-  { label: "List Sales", action: "listSales", icon: "📄" },
+  { label: "Sales Ledger", action: "listSales", icon: "📄" },
   { label: "List Item Sold", action: "itemsold", icon: "🧾" },
-  { label: "Update Customer Sales details ", action: "customerupdate", icon: "✏️" },
-  { label: "Update Sales Quantity", action: "updateSalesQty", icon: "✏️" },
-  { label: "Delete Sales", action: "deleteSales", icon: "❌" },
-
+  
   // 📊 Reports
-  { label: "Sales Analysis", action: "salesAnalysis", icon: "📊" },
+  { label: "Sales Analysis Report", action: "analysis", icon: "📊" },
   { label: "Staff Sales Report", action: "staffSalesReport", icon: "👨‍💼" },
   { label: "Outstanding Sales", action: "outstandingSales", icon: "⚠️" },
 
@@ -141,14 +138,16 @@ const salesSubMenu = [
       case "itemsold":
         navigate("/dashboard/sales/itemsold");
         break;
-      case "customerupdate":
-        navigate("/dashboard/sales/customerupdate");
+      
+      case "analysis":
+        navigate("/dashboard/sales/analysis");
+        break;
+
+      case "outstanding":
+        navigate("/dashboard/sales/outsatanding");
         break;
       case "deleteSales":
         navigate("/dashboard/sales/delete");
-        break;
-      case "salesAnalysis":
-        navigate("/dashboard/sales/analysis");
         break;
       case "salesByCustomer":
         navigate("/dashboard/sales/customer");

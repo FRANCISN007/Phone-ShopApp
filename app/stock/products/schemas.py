@@ -67,6 +67,16 @@ class ProductOut(BaseModel):
 # -------------------------------
 # Simple product list for dropdown
 # -------------------------------
+
+class ProductSimpleSchema1(BaseModel):
+    id: int
+    name: str
+    
+    class Config:
+        from_attributes = True
+
+
+
 class ProductSimpleSchema(BaseModel):
     id: int
     name: str

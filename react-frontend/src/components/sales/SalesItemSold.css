@@ -240,3 +240,16 @@
 /* Optional animations */
 @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
 @keyframes slideDown { from {transform: translateY(-20px); opacity:0;} to {transform: translateY(0); opacity:1;} }
+
+
+.btn-print {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  margin-right: 6px;
+}
+
+.btn-print:hover {
+  transform: scale(1.1);
+}

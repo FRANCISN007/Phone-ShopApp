@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axiosWithAuth from "../../utils/axiosWithAuth";
+import axiosWithAuth from "../../utils/axiosWithAuth"; // function that returns axios instance
 import "./ListSales.css";
 
 const ListSales = () => {
@@ -21,26 +21,30 @@ const ListSales = () => {
     setError("");
 
     try {
-      const axiosInstance = axiosWithAuth();
+      const axiosInstance = axiosWithAuth(); // 🔹 call the function
       const params = { start_date: startDate, end_date: endDate };
 
-      const response = await axiosInstance.get("/sales/", { params });
+      const response = await axiosInstance.get("/sales/", { params }); // ✅ now works
 
-      if (response.data?.sales) {
+      console.log("Sales API response:", response.data);
+
+      if (Array.isArray(response.data?.sales)) {
         setSales(response.data.sales);
         setSummary(
-          response.data.summary || {
+          response.data.summary ?? {
             total_sales: 0,
             total_paid: 0,
             total_balance: 0,
           }
         );
       } else {
+        console.error("Unexpected response shape:", response.data);
         setSales([]);
         setSummary({ total_sales: 0, total_paid: 0, total_balance: 0 });
         setError("Unexpected response from server.");
       }
-    } catch {
+    } catch (err) {
+      console.error("Fetch sales error:", err);
       setError("Failed to load sales records.");
       setSales([]);
       setSummary({ total_sales: 0, total_paid: 0, total_balance: 0 });
@@ -48,6 +52,9 @@ const ListSales = () => {
       setLoading(false);
     }
   }, [startDate, endDate]);
+
+
+
 
   useEffect(() => {
     fetchSales();
@@ -64,11 +71,19 @@ const ListSales = () => {
       <div className="sales-filters">
         <label>
           Start Date:
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
         </label>
         <label>
           End Date:
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
         </label>
         <button onClick={fetchSales}>Filter</button>
       </div>
@@ -86,6 +101,7 @@ const ListSales = () => {
                 <th>Customer</th>
                 <th>Phone No</th>
                 <th>Reference No</th>
+                <th>Product Name</th>
                 <th className="text-right">Total Amount</th>
                 <th className="text-right">Total Paid</th>
                 <th className="text-right">Balance Due</th>
@@ -97,7 +113,7 @@ const ListSales = () => {
             <tbody>
               {sales.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="empty-row">
+                  <td colSpan="11" className="empty-row">
                     No sales records found
                   </td>
                 </tr>
@@ -109,6 +125,11 @@ const ListSales = () => {
                     <td>{sale.customer_name || "Walk-in"}</td>
                     <td>{sale.customer_phone || "-"}</td>
                     <td>{sale.ref_no || "-"}</td>
+                    <td>
+                      {sale.items && sale.items.length > 0
+                        ? sale.items.map((item) => item.product_name).join(", ")
+                        : "-"}
+                    </td>
                     <td className="text-right">{formatAmount(sale.total_amount)}</td>
                     <td className="text-right">{formatAmount(sale.total_paid)}</td>
                     <td className="text-right">{formatAmount(sale.balance_due)}</td>
@@ -127,16 +148,10 @@ const ListSales = () => {
             {sales.length > 0 && (
               <tfoot>
                 <tr className="sales-total-row">
-                  <td colSpan="5">TOTAL</td>
-                  <td className="text-right">
-                    {formatAmount(summary.total_sales)}
-                  </td>
-                  <td className="text-right">
-                    {formatAmount(summary.total_paid)}
-                  </td>
-                  <td className="text-right">
-                    {formatAmount(summary.total_balance)}
-                  </td>
+                  <td colSpan="6">TOTAL</td>
+                  <td className="text-right">{formatAmount(summary.total_sales)}</td>
+                  <td className="text-right">{formatAmount(summary.total_paid)}</td>
+                  <td className="text-right">{formatAmount(summary.total_balance)}</td>
                   <td colSpan="2"></td>
                 </tr>
               </tfoot>

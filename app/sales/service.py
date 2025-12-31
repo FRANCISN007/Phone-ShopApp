@@ -286,34 +286,57 @@ def list_sales(
     db: Session,
     skip: int = 0,
     limit: int = 100,
-    start_date: Optional[datetime.date] = None,
-    end_date: Optional[datetime.date] = None
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ):
-    query = db.query(models.Sale)
+    # 🔹 Base query with eager loading (prevents N+1)
+    query = (
+        db.query(models.Sale)
+        .options(
+            joinedload(models.Sale.items)
+                .joinedload(models.SaleItem.product),
+            joinedload(models.Sale.payments),  # ✅ IMPORTANT
+        )
+    )
 
-    # ✅ Safe date filters
+    # 🔹 Safe date filters
     try:
         if start_date:
-            query = query.filter(models.Sale.sold_at >= datetime.combine(start_date, time.min))
+            query = query.filter(
+                models.Sale.sold_at >= datetime.combine(start_date, time.min)
+            )
         if end_date:
-            query = query.filter(models.Sale.sold_at <= datetime.combine(end_date, time.max))
+            query = query.filter(
+                models.Sale.sold_at <= datetime.combine(end_date, time.max)
+            )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date filter: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid date filter: {e}",
+        )
 
-    # Fetch sales
-    sales = query.order_by(models.Sale.sold_at.desc()).offset(skip).limit(limit).all()
+    # 🔹 Fetch sales
+    sales = (
+        query
+        .order_by(models.Sale.sold_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-    sales_list = []
+    sales_list: list[SaleOut2] = []
     total_sales_amount = 0.0
     total_paid_sum = 0.0
     total_balance_sum = 0.0
 
     for sale in sales:
         total_amount = float(sale.total_amount or 0)
-        payments = getattr(sale, "payments", []) or []
+
+        payments = sale.payments or []
         total_paid = sum(float(p.amount_paid or 0) for p in payments)
         balance_due = total_amount - total_paid
 
+        # 🔹 Payment status
         if total_paid == 0:
             status = "pending"
         elif balance_due > 0:
@@ -321,24 +344,34 @@ def list_sales(
         else:
             status = "completed"
 
+        # 🔹 Sale items
+        items = [
+            SaleItemOut2(
+                id=item.id,
+                sale_invoice_no=item.sale_invoice_no,
+                product_id=item.product_id,
+                product_name=item.product.name if item.product else None,
+                quantity=item.quantity,
+                selling_price=item.selling_price,
+                total_amount=item.total_amount,
+            )
+            for item in (sale.items or [])
+        ]
+
         sales_list.append(
             SaleOut2(
                 id=sale.id,
                 invoice_no=sale.invoice_no,
                 invoice_date=sale.invoice_date,
                 customer_name=sale.customer_name or "Walk-in",
-                customer_phone=getattr(sale, "customer_phone", None),
+                customer_phone=sale.customer_phone,
                 ref_no=sale.ref_no,
                 total_amount=total_amount,
                 total_paid=total_paid,
                 balance_due=balance_due,
                 payment_status=status,
                 sold_at=sale.sold_at,
-                items=[
-                    SaleItemOut2.model_validate(item)
-                    for item in (sale.items or [])
-                ]
-
+                items=items,
             )
         )
 
@@ -346,15 +379,18 @@ def list_sales(
         total_paid_sum += total_paid
         total_balance_sum += balance_due
 
+    # 🔹 Summary (ALWAYS returned)
     summary = SaleSummary(
         total_sales=total_sales_amount,
         total_paid=total_paid_sum,
-        total_balance=total_balance_sum
+        total_balance=total_balance_sum,
     )
 
-    return SalesListResponse(sales=sales_list, summary=summary)
-
-
+    # ✅ ALWAYS return predictable structure
+    return {
+        "sales": sales_list,
+        "summary": summary,
+    }
 
 
 def update_sale(db: Session, invoice_no: int, sale_update: schemas.SaleUpdate):
@@ -478,20 +514,21 @@ def staff_sales_report(
             models.Sale.sold_at <= datetime.combine(end_date, time.max)
         )
 
-    sales = (
-        query
-        .order_by(models.Sale.sold_at.desc())
-        .all()
-    )
+    sales = query.order_by(models.Sale.sold_at.desc()).all()
 
     # Attach payments and product names
     for sale in sales:
         # Compute total payments, balance, etc.
         _attach_payment_totals(sale)
 
+        # Normalize optional fields to prevent validation errors
+        sale.customer_name = sale.customer_name or "Walk-in"
+        sale.customer_phone = sale.customer_phone or "-"
+        sale.ref_no = sale.ref_no or "-"
+
         # Set product_name for each item
         for item in sale.items:
-            item.product_name = item.product.name if item.product else None
+            item.product_name = item.product.name if item.product else "-"
 
     return sales
 
@@ -621,6 +658,7 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
 
 from sqlalchemy.orm import joinedload
 
+
 def get_sales_by_customer(
     db: Session,
     customer_name: str | None = None,
@@ -646,13 +684,16 @@ def get_sales_by_customer(
 
     sales = query.order_by(models.Sale.sold_at.desc()).all()
 
-    # Attach product_name safely
+    # Normalize fields to prevent ResponseValidationError
     for sale in sales:
+        sale.customer_name = sale.customer_name or "Walk-in"
+        sale.customer_phone = sale.customer_phone or "-"
+        sale.ref_no = sale.ref_no or "-"
+
         for item in sale.items:
-            item.product_name = item.product.name if item.product else None
+            item.product_name = item.product.name if item.product else "-"
 
     return sales
-
 
 
 

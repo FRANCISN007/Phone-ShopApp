@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime, time
 from datetime import date
 from sqlalchemy.orm import joinedload
-
+from app.users.models import User  # adjust import if needed
 
 from . import models, schemas
 from app.stock.inventory import service as inventory_service
@@ -488,18 +488,23 @@ def _attach_payment_totals(sale):
 
 
 
+
 def staff_sales_report(
     db: Session,
     staff_id: Optional[int] = None,
     start_date=None,
     end_date=None
 ):
-    # Query sales with items and product relationship loaded
-    query = db.query(models.Sale).options(
-        joinedload(models.Sale.items).joinedload(models.SaleItem.product)
+    query = (
+        db.query(models.Sale)
+        .join(User, models.Sale.sold_by == User.id)
+        .options(
+            joinedload(models.Sale.items)
+            .joinedload(models.SaleItem.product)
+        )
     )
 
-    # Filter by staff
+    # Filter by staff (user)
     if staff_id:
         query = query.filter(models.Sale.sold_by == staff_id)
 
@@ -516,17 +521,20 @@ def staff_sales_report(
 
     sales = query.order_by(models.Sale.sold_at.desc()).all()
 
-    # Attach payments and product names
     for sale in sales:
-        # Compute total payments, balance, etc.
         _attach_payment_totals(sale)
 
-        # Normalize optional fields to prevent validation errors
         sale.customer_name = sale.customer_name or "Walk-in"
         sale.customer_phone = sale.customer_phone or "-"
         sale.ref_no = sale.ref_no or "-"
 
-        # Set product_name for each item
+        # 🔥 Attach staff name from User
+        sale.staff_name = (
+            sale.user.username
+            if sale.user else "-"
+        )
+
+
         for item in sale.items:
             item.product_name = item.product.name if item.product else "-"
 

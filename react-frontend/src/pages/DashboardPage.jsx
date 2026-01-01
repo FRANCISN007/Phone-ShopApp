@@ -41,7 +41,8 @@ const salesSubMenu = [
   
   // 📊 Reports
   { label: "Sales Analysis Report", action: "analysis", icon: "📊" },
-  { label: "Staff Sales Report", action: "staffSalesReport", icon: "👨‍💼" },
+  { label: "Staff Sales Report", action: "staff", icon: "👨‍💼" },
+  
   { label: "Outstanding Sales", action: "outstandingSales", icon: "⚠️" },
 
   // 👤 Customer
@@ -143,12 +144,14 @@ const salesSubMenu = [
         navigate("/dashboard/sales/analysis");
         break;
 
+      case "staff":
+        navigate("/dashboard/sales/staff");
+        break;
+
       case "outstanding":
         navigate("/dashboard/sales/outsatanding");
         break;
-      case "deleteSales":
-        navigate("/dashboard/sales/delete");
-        break;
+      
       case "salesByCustomer":
         navigate("/dashboard/sales/customer");
         break;

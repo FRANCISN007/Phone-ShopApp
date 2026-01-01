@@ -5,7 +5,7 @@ from datetime import date
 from typing import Optional
 from sqlalchemy import text
 
-from app.sales.schemas import SaleOut, SaleOut2,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse, ItemSoldResponse
+from app.sales.schemas import SaleOut, SaleOutStaff,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse, ItemSoldResponse
 from app.sales import models as sales_models
 from app.payments.models import Payment
 
@@ -74,7 +74,7 @@ def list_sales(
 
 @router.get(
     "/report/staff",
-    response_model=List[schemas.SaleOut]
+    response_model=List[schemas.SaleOutStaff]
 )
 def staff_sales_report(
     staff_id: Optional[int] = None,

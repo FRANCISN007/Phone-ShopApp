@@ -98,6 +98,26 @@ class SaleOut2(BaseModel):
     items: List[SaleItemOut2] = []
 
 
+class SaleOutStaff(BaseModel):
+    id: int
+    invoice_no: int
+    invoice_date: datetime
+    customer_name: str
+    customer_phone: Optional[str]
+    ref_no: Optional[str]
+    total_amount: float
+
+    sold_by: Optional[int]          # staff_id
+    staff_name: Optional[str] = None  # 👈 ADD THIS
+
+    sold_at: datetime
+    items: List[SaleItemOut] = []
+
+    class Config:
+        orm_mode = True
+
+
+
 
 # ==============================
 # ---------- Full Sale (Header + Items) ----------

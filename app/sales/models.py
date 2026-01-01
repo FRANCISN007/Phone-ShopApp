@@ -54,6 +54,8 @@ class Sale(Base):
         viewonly=True
     )
 
+    user = relationship("User", backref="sales")  # 👈 REQUIRED
+
 
 class SaleItem(Base):
     __tablename__ = "sale_items"
@@ -72,3 +74,7 @@ class SaleItem(Base):
 
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product")
+
+    
+
+    

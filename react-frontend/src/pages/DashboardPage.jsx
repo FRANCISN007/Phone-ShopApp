@@ -11,6 +11,10 @@ const DashboardPage = () => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeSubMenu, setActiveSubMenu] = useState(null); 
+
+  
+
+
   
 
   /* ===============================
@@ -20,7 +24,8 @@ const DashboardPage = () => {
     () => [
       { label: "POS", icon: "🛒", path: "/dashboard/pos" },
       { label: "Sales", icon: "💰", submenu: true },
-      { label: "Stock", icon: "📦", path: "/dashboard/stock" },
+      { label: "Stock", icon: "📦", submenu: true },
+
       { label: "Purchase", icon: "🧾", path: "/dashboard/purchase" },
       { label: "Payments", icon: "💳", path: "/dashboard/payments" },
       { label: "Accounts", icon: "📈", path: "/dashboard/accounts" },
@@ -48,6 +53,20 @@ const salesSubMenu = [
   // 👤 Customer
   { label: "Sales by Customer", action: "customer", icon: "👤" },
 ];
+
+/* ===============================
+   STOCK SUBMENU
+================================ */
+const stockSubMenu = [
+  { label: "Create Product", action: "createProduct", icon: "➕" },
+  { label: "List Product", action: "listProduct", icon: "📋" },
+  { label: "Import Product", action: "importProduct", icon: "📥" },
+
+  { label: "List Inventory", action: "listInventory", icon: "📦" },
+  { label: " Inventory Adjustment", action: "adjustInventory", icon: "⚖️" },
+  { label: "List Adjustment", action: "listAdjustment", icon: "🧾" },
+];
+
 
   /* ===============================
      EXPORT TO EXCEL
@@ -162,6 +181,43 @@ const salesSubMenu = [
   };
 
   /* ===============================
+   STOCK SUBMENU ACTIONS
+================================ */
+const handleStockAction = (action) => {
+  switch (action) {
+    case "createProduct":
+      navigate("/dashboard/stock/create");
+      break;
+
+    case "listProduct":
+      navigate("/dashboard/stock/list");
+      break;
+
+    case "importProduct":
+      navigate("/dashboard/stock/import");
+      break;
+
+    case "listInventory":
+      navigate("/dashboard/stock/inventory");
+      break;
+
+    case "adjustInventory":
+      navigate("/dashboard/stock/adjustment");
+      break;
+
+    case "listAdjustment":
+      navigate("/dashboard/stock/adjustment/list");
+      break;
+
+    default:
+      break;
+  }
+
+  setActiveSubMenu(null); // ✅ close submenu after click
+};
+
+
+  /* ===============================
      KEYBOARD NAVIGATION
   ================================ */
   useEffect(() => {
@@ -186,6 +242,7 @@ const salesSubMenu = [
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeIndex, mainMenu, handleMenuAction, location.pathname]);
 
+  
   /* ===============================
      RENDER
   ================================ */
@@ -209,23 +266,22 @@ const salesSubMenu = [
         ))}
       </div>
 
+
+  
+
       {/* 🔹 MAIN CONTENT */}
       <main className="main-content">
         <section className="content-area">
+          {/* Render either submenu OR outlet */}
           {activeSubMenu === "Sales" ? (
             <div className="submenu-frame center-frame">
-              {/* Header */}
               <div className="submenu-header">
                 <h2 className="submenu-heading">Sales Menu</h2>
-                <button
-                  className="close-btn"
-                  onClick={() => setActiveSubMenu(null)}
-                >
+                <button className="close-btn" onClick={() => setActiveSubMenu(null)}>
                   ✖
                 </button>
               </div>
 
-              {/* Cards */}
               <div className="sales-submenu grid-3x2">
                 {salesSubMenu.map((sub, idx) => (
                   <div
@@ -239,12 +295,36 @@ const salesSubMenu = [
                 ))}
               </div>
             </div>
+          ) : activeSubMenu === "Stock" ? (
+            <div className="submenu-frame center-frame">
+              <div className="submenu-header">
+                <h2 className="submenu-heading">Stock Menu</h2>
+                <button className="close-btn" onClick={() => setActiveSubMenu(null)}>
+                  ✖
+                </button>
+              </div>
+
+              <div className="sales-submenu grid-3x2">
+                {stockSubMenu.map((sub, idx) => (
+                  <div
+                    key={sub.label}
+                    className={`submenu-card card-${idx + 1}`}
+                    onClick={() => handleStockAction(sub.action)}
+                  >
+                    <div className="submenu-icon">{sub.icon}</div>
+                    <div className="submenu-label">{sub.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <Outlet />
           )}
-        </section>
 
+        </section>
       </main>
+
+
     </div>
   );
 };

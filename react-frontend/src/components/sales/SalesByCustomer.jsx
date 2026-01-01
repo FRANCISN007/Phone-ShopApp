@@ -16,6 +16,8 @@ const SalesByCustomer = () => {
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
 
+  const [show, setShow] = useState(true); // NEW: controls visibility
+
   const fetchSales = useCallback(async () => {
     // 🔴 HARD restriction (same as backend)
     if (!customerName.trim()) {
@@ -69,8 +71,19 @@ const SalesByCustomer = () => {
     return dt.substring(0, 10);
   };
 
+  if (!show) return null; // hide the component when closed
+
+
   return (
     <div className="sales-by-customer-container">
+
+      {/* Close button */}
+    <button
+        className="close-btn"
+        onClick={() => setShow(false)} // hides the page
+        >
+        ✖
+     </button>  
       <h2 className="sales-title">Sales By Customer</h2>
 
       {/* Filters */}

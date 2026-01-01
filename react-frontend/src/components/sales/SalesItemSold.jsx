@@ -15,6 +15,8 @@ const SalesItemSold = () => {
   // ================= DATE DEFAULT =================
   const today = new Date().toISOString().split("T")[0];
 
+  const [show, setShow] = useState(true); // NEW: controls visibility
+
   // ================= FILTER STATE =================
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
@@ -217,9 +219,20 @@ const SalesItemSold = () => {
     }
   };
 
+
+  if (!show) return null; // hide the component when closed
+
   // ================= RENDER =================
   return (
     <div className="sales-item-sold-container">
+
+      {/* Close button */}
+      <button
+        className="close-btn"
+        onClick={() => setShow(false)} // hides the page
+      >
+        ✖
+      </button>
       <h2 className="sales-item-title">📦 Items Sold</h2>
 
       {/* FILTERS */}
@@ -300,6 +313,7 @@ const SalesItemSold = () => {
       {/* TABLE */}
       {!loading && !error && (
         <div className="sales-item-table-wrapper">
+          
           <table className="sales-item-table">
             <thead>
               <tr>

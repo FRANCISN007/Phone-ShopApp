@@ -14,6 +14,9 @@ const SalesAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [show, setShow] = useState(true); // NEW: controls visibility
+
+
   // Format numbers with comma separator
   const formatAmount = (value) => {
     if (value === "-" || value === null || value === undefined) return "-";
@@ -67,8 +70,20 @@ const SalesAnalysis = () => {
     fetchSalesAnalysis();
   }, [fetchSalesAnalysis]);
 
+
+  if (!show) return null; // hide the component when closed
+
+
   return (
     <div className="sales-analysis-container">
+      {/* Close button */}
+      <button
+        className="close-btn"
+        onClick={() => setShow(false)} // hides the page
+      >
+        ✖
+      </button>
+
       <h2>Sales Analysis Report</h2>
 
       <div className="filter-section">

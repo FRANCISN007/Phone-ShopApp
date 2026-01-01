@@ -160,3 +160,40 @@
   color: #dc3545;
   font-weight: bold;
 }
+
+
+
+/* Container should be relative for absolute positioning */
+.outstanding-sales-container {
+  position: relative;
+  padding: 20px;
+  background: #fff; /* optional, for contrast */
+  border-radius: 8px;
+}
+
+/* Close button style */
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background: #dc3545; /* red background */
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: 0.2s;
+}
+
+/* Hover effect */
+.close-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}

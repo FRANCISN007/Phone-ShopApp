@@ -11,6 +11,8 @@ const OutstandingSales = () => {
   const [endDate, setEndDate] = useState(localToday);
   const [customerName, setCustomerName] = useState("");
 
+  const [show, setShow] = useState(true); // NEW: controls visibility
+
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState({
     sales_sum: 0,
@@ -69,8 +71,18 @@ const OutstandingSales = () => {
     return dtString.substring(0, 10); // "YYYY-MM-DD"
   };
 
+  if (!show) return null; // hide the component when closed
+
   return (
     <div className="outstanding-sales-container">
+      {/* Close button */}
+      <button
+        className="close-btn"
+        onClick={() => setShow(false)} // hides the page
+      >
+        ✖
+      </button>
+      
       <h2 className="outstanding-sales-title">Outstanding Sales Report</h2>
 
       {/* Filters */}

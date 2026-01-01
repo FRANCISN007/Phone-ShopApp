@@ -13,6 +13,8 @@ const StaffSalesReport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [show, setShow] = useState(true); // NEW: controls visibility
+
   // Fetch sales report
   const fetchReport = async () => {
     try {
@@ -67,8 +69,18 @@ const StaffSalesReport = () => {
     0
   );
 
+  if (!show) return null; // hide the component when closed
+
+
   return (
     <div className="list-sales-container">
+      {/* Close button */}
+      <button
+        className="close-btn"
+        onClick={() => setShow(false)} // hides the page
+      >
+        ✖
+      </button>
       <h2 className="list-sales-title">Staff Sales Report</h2>
 
       {/* ================= Filters ================= */}

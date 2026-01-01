@@ -16,6 +16,8 @@ const ListSales = () => {
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
 
+  const [show, setShow] = useState(true); // NEW: controls visibility
+
   const fetchSales = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -63,8 +65,19 @@ const ListSales = () => {
   const formatAmount = (amount) =>
     Number(amount || 0).toLocaleString("en-US");
 
+  if (!show) return null; // hide the component when closed
+
   return (
     <div className="list-sales-container">
+
+      {/* Close button */}
+      <button
+        className="close-btn"
+        onClick={() => setShow(false)} // hides the page
+      >
+        ✖
+      </button>
+
       <h2 className="list-sales-title">📄 Sales List Records</h2>
 
       {/* Filters */}

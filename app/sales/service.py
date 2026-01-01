@@ -5,6 +5,7 @@ from typing import Optional
 from datetime import datetime, time
 from datetime import date
 from sqlalchemy.orm import joinedload
+from sqlalchemy import and_
 from app.users.models import User  # adjust import if needed
 
 from . import models, schemas
@@ -201,11 +202,15 @@ def create_sale_item(
     
 
 
+
+
 def list_item_sold(
     db: Session,
     start_date: date,
     end_date: date,
     invoice_no: Optional[int] = None,
+    product_id: Optional[int] = None,
+    product_name: Optional[str] = None,
     skip: int = 0,
     limit: int = 100
 ):
@@ -238,8 +243,19 @@ def list_item_sold(
         items_out = []
 
         for item in sale.items:
+
+            # 🔎 PRODUCT FILTERS
+            if product_id and item.product_id != product_id:
+                continue
+
+            if product_name and (
+                not item.product
+                or product_name.lower() not in item.product.name.lower()
+            ):
+                continue
+
             qty = item.quantity or 0
-            amt = item.total_amount or 0
+            amt = item.total_amount or 0.0
 
             total_qty += qty
             total_amount += amt
@@ -256,6 +272,10 @@ def list_item_sold(
                 )
             )
 
+        # ⛔ Skip sales with no matching items
+        if not items_out:
+            continue
+
         sales_out.append(
             SaleOut(
                 id=sale.id,
@@ -264,13 +284,12 @@ def list_item_sold(
                 customer_name=sale.customer_name or "-",
                 customer_phone=sale.customer_phone or "-",
                 ref_no=sale.ref_no or "-",
-                total_amount=sale.total_amount,
+                total_amount=sum(i.total_amount for i in items_out),
                 sold_by=sale.sold_by,
                 sold_at=sale.sold_at,
                 items=items_out
             )
         )
-
 
     return {
         "sales": sales_out,

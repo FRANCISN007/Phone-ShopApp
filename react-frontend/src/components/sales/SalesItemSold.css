@@ -254,3 +254,71 @@
 .btn-print:hover {
   transform: scale(1.1);
 }
+
+
+/* ===============================
+   Product Search Dropdown (Filter / Edit)
+=============================== */
+.product-search-wrapper {
+  position: relative;
+  width: 190px; /* adjust as needed */
+}
+
+.product-search-wrapper input {
+  width: 100;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid #c4aaaa;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.product-search-wrapper input:focus {
+  border-color: #67ac77;
+  box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+  outline: none;
+}
+
+.product-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #28a745;
+  border-top: none;
+  background: #e7dede;
+  z-index: 1000;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+}
+
+.product-search-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: 0.2s;
+}
+
+.product-search-item:hover,
+.product-search-item.active {
+  background-color: #28a745;
+  color: white;
+}
+
+.product-search-item:not(:last-child) {
+  border-bottom: 1px solid #e2d3d3;
+}
+
+/* Optional: smooth dropdown appearance */
+.product-search-dropdown {
+  animation: slideDown 0.15s ease-in-out;
+}
+
+/* Small responsive adjustment */
+@media (max-width: 600px) {
+  .product-search-wrapper {
+    width: 100%;
+  }
+}

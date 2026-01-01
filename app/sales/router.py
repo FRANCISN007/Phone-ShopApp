@@ -142,6 +142,9 @@ def sales_by_customer(
 
 
 
+from typing import Optional
+from datetime import date
+
 @router.get(
     "/item-sold",
     response_model=ItemSoldResponse
@@ -150,6 +153,8 @@ def list_item_sold(
     start_date: date,
     end_date: date,
     invoice_no: Optional[int] = None,
+    product_id: Optional[int] = None,
+    product_name: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -162,6 +167,8 @@ def list_item_sold(
         start_date=start_date,
         end_date=end_date,
         invoice_no=invoice_no,
+        product_id=product_id,
+        product_name=product_name,
         skip=skip,
         limit=limit
     )

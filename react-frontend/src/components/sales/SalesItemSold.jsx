@@ -7,36 +7,34 @@ import React, {
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./SalesItemSold.css";
 
-
-
 import { SHOP_NAME } from "../../config/constants";  // ✅ make sure this import exists
-
 import { printReceipt } from "../pos/printReceipt";
 import { numberToWords } from "../../utils/numberToWords";
 
-
-
 const SalesItemSold = () => {
-  // ✅ Default dates = today
+  // ================= DATE DEFAULT =================
   const today = new Date().toISOString().split("T")[0];
 
+  // ================= FILTER STATE =================
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // ================= DATA STATE =================
   const [items, setItems] = useState([]);
+  const [products, setProducts] = useState([]);
+
+  // ================= UI STATE =================
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  
-
-
-
-  const [productSearch, setProductSearch] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // 🔹 Edit modal
+  // ================= EDIT STATE =================
   const [editItem, setEditItem] = useState(null);
   const [editData, setEditData] = useState({
+    product_id: "",
     customer_name: "",
     customer_phone: "",
     ref_no: "",
@@ -44,78 +42,25 @@ const SalesItemSold = () => {
     selling_price: ""
   });
 
-  const [products, setProducts] = useState([]);
-
-  const handleReprint = async (invoiceNo) => {
-    try {
-      const res = await axiosWithAuth().get(
-        `/sales/receipt/${invoiceNo}`
-      );
-
-      const sale = res.data;
-
-      printReceipt("80mm", {
-        SHOP_NAME: SHOP_NAME, // use the actual constant
-        invoice: sale.invoice_no,
-        invoiceDate: sale.invoice_date,
-        customerName: sale.customer_name,
-        customerPhone: sale.customer_phone,
-        refNo: sale.ref_no,
-        paymentMethod: sale.payment_status,
-        amountPaid: sale.total_paid,
-        totalAmount: sale.total_amount,
-        balance: sale.balance_due,
-        items: sale.items.map(i => ({
-          name: i.product_name, // ✅ use product_name instead of product_id
-          quantity: i.quantity,
-          selling_price: i.selling_price,
-          total_amount: i.total_amount
-        })),
-        amountInWords: numberToWords(sale.total_amount),
-        formatCurrency: (v) => `₦${Number(v).toLocaleString()}`
-      });
-
-    } catch (err) {
-      console.error(err);
-      alert("Failed to reprint receipt");
-    }
-  };
-
-
-
-  const filteredProducts = useMemo(() => {
-  if (!productSearch.trim()) return products;
-  return products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase())
-  );
-}, [productSearch, products]);
-
-
-  
-  useEffect(() => {
-  const token = localStorage.getItem("token"); // adjust if using another auth method
-  axiosWithAuth()
-    .get("/stock/products/simple", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => setProducts(res.data))
-    .catch(console.error);
-}, []);
-
-  
-
-
-  // ✅ stable axios instance (fixes hook warning)
   const axiosInstance = useMemo(() => axiosWithAuth(), []);
 
-  // ================= FORMAT =================
-  const formatAmount = (value) =>
-    Number(value || 0).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
+  // ================= LOAD PRODUCTS =================
+  useEffect(() => {
+    axiosInstance
+      .get("/stock/products/simple")
+      .then(res => setProducts(res.data || []))
+      .catch(console.error);
+  }, [axiosInstance]);
 
-  // ================= FETCH =================
+  // ================= PRODUCT FILTER =================
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return [];
+    return products.filter(p =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase())
+    );
+  }, [productSearch, products]);
+
+  // ================= FETCH ITEMS SOLD =================
   const fetchItemsSold = useCallback(async () => {
     if (!startDate || !endDate) {
       setError("Start date and end date are required");
@@ -126,20 +71,18 @@ const SalesItemSold = () => {
     setError("");
 
     try {
-      // use new instance inside function (like previous working code)
-      const axiosInstance = axiosWithAuth();
+      const params = {
+        start_date: startDate,
+        end_date: endDate,
+        invoice_no: invoiceNo || undefined,
+        product_id: selectedProduct?.id || undefined,
+      };
 
-      const response = await axiosInstance.get("/sales/item-sold", {
-        params: {
-          start_date: startDate, // use raw value from input
-          end_date: endDate,
-          invoice_no: invoiceNo || undefined,
-        },
-      });
+      const response = await axiosInstance.get("/sales/item-sold", { params });
 
       const flattenedItems =
-        response.data?.sales?.flatMap((sale) =>
-          sale.items.map((item) => ({
+        response.data?.sales?.flatMap(sale =>
+          sale.items.map(item => ({
             invoice_no: sale.invoice_no,
             invoice_date: sale.invoice_date,
             customer_name: sale.customer_name || "-",
@@ -161,7 +104,7 @@ const SalesItemSold = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, invoiceNo]);
+  }, [startDate, endDate, invoiceNo, selectedProduct, axiosInstance]);
 
   // ✅ Auto-load today
   useEffect(() => {
@@ -180,7 +123,44 @@ const SalesItemSold = () => {
     );
   }, [items]);
 
-  // ================= EDIT =================
+  // ================= HELPERS =================
+  const formatAmount = value =>
+    Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+
+  const handleReprint = async (invoiceNo) => {
+    try {
+      const res = await axiosInstance.get(`/sales/receipt/${invoiceNo}`);
+      const sale = res.data;
+
+      printReceipt("80mm", {
+        SHOP_NAME,
+        invoice: sale.invoice_no,
+        invoiceDate: sale.invoice_date,
+        customerName: sale.customer_name,
+        customerPhone: sale.customer_phone,
+        refNo: sale.ref_no,
+        paymentMethod: sale.payment_status,
+        amountPaid: sale.total_paid,
+        totalAmount: sale.total_amount,
+        balance: sale.balance_due,
+        items: sale.items.map(i => ({
+          name: i.product_name,
+          quantity: i.quantity,
+          selling_price: i.selling_price,
+          total_amount: i.total_amount
+        })),
+        amountInWords: numberToWords(sale.total_amount),
+        formatCurrency: v => `₦${Number(v).toLocaleString()}`
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reprint receipt");
+    }
+  };
+
   const openEdit = (item) => {
     setEditItem(item);
     setEditData({
@@ -193,22 +173,15 @@ const SalesItemSold = () => {
     });
   };
 
-
   const saveEdit = async () => {
     if (!editItem) return;
 
     try {
       // ================= HEADER UPDATE =================
       const salePayload = {};
-      if (editData.customer_name.trim() !== "") {
-        salePayload.customer_name = editData.customer_name.trim();
-      }
-      if (editData.customer_phone.trim() !== "") {
-        salePayload.customer_phone = editData.customer_phone.trim();
-      }
-      if (editData.ref_no.trim() !== "") {
-        salePayload.ref_no = editData.ref_no.trim();
-      }
+      if (editData.customer_name.trim()) salePayload.customer_name = editData.customer_name.trim();
+      if (editData.customer_phone.trim()) salePayload.customer_phone = editData.customer_phone.trim();
+      if (editData.ref_no.trim()) salePayload.ref_no = editData.ref_no.trim();
 
       if (Object.keys(salePayload).length > 0) {
         await axiosInstance.put(`/sales/${editItem.invoice_no}`, salePayload);
@@ -221,12 +194,8 @@ const SalesItemSold = () => {
         selling_price: parseFloat(editData.selling_price)
       };
 
-      await axiosInstance.put(
-        `/sales/${editItem.invoice_no}/items`,
-        itemPayload
-      );
+      await axiosInstance.put(`/sales/${editItem.invoice_no}/items`, itemPayload);
 
-      // Close modal and refresh table
       setEditItem(null);
       fetchItemsSold();
     } catch (err) {
@@ -235,75 +204,100 @@ const SalesItemSold = () => {
     }
   };
 
-  
-  // ================= DELETE =================
   const deleteSale = async (invoiceNo) => {
     if (!invoiceNo) return;
-
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete sale Invoice No: ${invoiceNo}?`
-    );
-
-    if (!confirmDelete) return;
+    if (!window.confirm(`Are you sure you want to delete sale Invoice No: ${invoiceNo}?`)) return;
 
     try {
       await axiosInstance.delete(`/sales/${invoiceNo}`);
       fetchItemsSold();
     } catch (err) {
       console.error("❌ Delete failed:", err);
-      alert(
-        err.response?.data?.detail ||
-          "Unable to delete sale. It may be linked to a payment."
-      );
+      alert(err.response?.data?.detail || "Unable to delete sale. It may be linked to a payment.");
     }
   };
 
-
-
+  // ================= RENDER =================
   return (
     <div className="sales-item-sold-container">
       <h2 className="sales-item-title">📦 Items Sold</h2>
 
-      {/* ================= FILTERS ================= */}
+      {/* FILTERS */}
       <div className="sales-item-filters">
         <label>
           Start Date
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
         </label>
 
         <label>
           End Date
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
         </label>
 
         <label>
           Invoice No (optional)
-          <input
-            type="number"
-            placeholder="Invoice No"
-            value={invoiceNo}
-            onChange={(e) => setInvoiceNo(e.target.value)}
-          />
+          <input type="number" placeholder="Invoice No" value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} />
         </label>
 
-        
+        {/* PRODUCT DROPDOWN FILTER */}
+        <div className="product-search-wrapper">
+          <input
+            type="text"
+            placeholder="Search product..."
+            value={productSearch}
+            onChange={e => {
+              setProductSearch(e.target.value);
+              setSelectedProduct(null);
+              setHighlightedIndex(-1);
+            }}
+            onKeyDown={e => {
+              if (!filteredProducts.length) return;
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setHighlightedIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : 0));
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setHighlightedIndex(prev => (prev > 0 ? prev - 1 : filteredProducts.length - 1));
+              }
+              if (e.key === "Enter" && highlightedIndex >= 0) {
+                e.preventDefault();
+                const selected = filteredProducts[highlightedIndex];
+                setSelectedProduct(selected);
+                
+                setHighlightedIndex(-1);
+              }
+            }}
+          />
+          {productSearch !== "" && filteredProducts.length > 0 && (
+            <div className="product-search-dropdown">
+              {filteredProducts.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={`product-search-item ${i === highlightedIndex ? "active" : ""}`}
+                  onMouseEnter={() => setHighlightedIndex(i)}
+                  onClick={() => {
+                    setSelectedProduct(p);
+                
+                    setProductSearch(p.name);
+                    setHighlightedIndex(-1);
+                  }}
+                >
+                  {p.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <button onClick={fetchItemsSold}>Search</button>
       </div>
 
-      {/* ================= STATUS ================= */}
+      {/* STATUS */}
       {loading && <p className="status-text">Loading items sold...</p>}
       {error && !loading && <p className="error-text">{error}</p>}
 
-      {/* ================= TABLE ================= */}
+      {/* TABLE */}
       {!loading && !error && (
         <div className="sales-item-table-wrapper">
           <table className="sales-item-table">
@@ -324,11 +318,7 @@ const SalesItemSold = () => {
 
             <tbody>
               {items.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="empty-row">
-                    No items found
-                  </td>
-                </tr>
+                <tr><td colSpan="10" className="empty-row">No items found</td></tr>
               ) : (
                 items.map((item, index) => (
                   <tr key={index}>
@@ -339,38 +329,13 @@ const SalesItemSold = () => {
                     <td>{item.ref_no}</td>
                     <td>{item.product_name}</td>
                     <td className="text-right">{item.quantity}</td>
-                    <td className="text-right">
-                      {formatAmount(item.selling_price)}
-                    </td>
-                    <td className="text-right">
-                      {formatAmount(item.total_amount)}
-                    </td>
+                    <td className="text-right">{formatAmount(item.selling_price)}</td>
+                    <td className="text-right">{formatAmount(item.total_amount)}</td>
                     <td className="action-cell">
-                      <button
-                        className="btn-print"
-                        title="Reprint Receipt"
-                        onClick={() => handleReprint(item.invoice_no)}
-                      >
-                        🖨️
-                      </button>
-
-                      <button
-                        className="btn-edit"
-                        title="Edit Sale"
-                        onClick={() => openEdit(item)}
-                      >
-                        ✏️
-                      </button>
-
-                      <button
-                        className="btn-delete"
-                        title="Delete Sale"
-                        onClick={() => deleteSale(item.invoice_no)}
-                      >
-                        🗑
-                      </button>
+                      <button className="btn-print" onClick={() => handleReprint(item.invoice_no)}>🖨️</button>
+                      <button className="btn-edit" onClick={() => openEdit(item)}>✏️</button>
+                      <button className="btn-delete" onClick={() => deleteSale(item.invoice_no)}>🗑</button>
                     </td>
-
                   </tr>
                 ))
               )}
@@ -382,9 +347,7 @@ const SalesItemSold = () => {
                   <td colSpan="6">TOTAL</td>
                   <td className="text-right">{totals.totalQty}</td>
                   <td></td>
-                  <td className="text-right">
-                    {formatAmount(totals.totalAmount)}
-                  </td>
+                  <td className="text-right">{formatAmount(totals.totalAmount)}</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -399,72 +362,38 @@ const SalesItemSold = () => {
           <div className="modal-card">
             <h3>Edit Sale</h3>
 
-            {/* Display only, no labels */}
-            <input
-              value={editItem.invoice_no}
-              disabled
-              placeholder="Invoice No"
-            />
+            {/* Display only fields */}
+            <input value={editItem.invoice_no} disabled />
+            <input value={editItem.invoice_date?.slice(0,10)} disabled />
 
-            <input
-              value={editItem.invoice_date?.slice(0, 10)}
-              disabled
-              placeholder="Invoice Date"
-            />
-
-            {/* Searchable product dropdown */}
+            {/* Product dropdown for editing */}
             <div className="product-search-wrapper">
               <input
                 type="text"
                 placeholder="Search product..."
-                value={
-                  // Show typed search text if any, otherwise show selected product name
-                  productSearch !== "" 
-                    ? productSearch 
-                    : products.find(p => p.id === editData.product_id)?.name || ""
-                }
-                onChange={(e) => {
-                  setProductSearch(e.target.value);
-                  setHighlightedIndex(-1);
-                }}
-                onKeyDown={(e) => {
+                value={productSearch !== "" ? productSearch : products.find(p => p.id === editData.product_id)?.name || ""}
+                onChange={e => { setProductSearch(e.target.value); setHighlightedIndex(-1); }}
+                onKeyDown={e => {
                   if (!filteredProducts.length) return;
-
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    setHighlightedIndex(prev =>
-                      prev < filteredProducts.length - 1 ? prev + 1 : 0
-                    );
-                  }
-                  if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    setHighlightedIndex(prev =>
-                      prev > 0 ? prev - 1 : filteredProducts.length - 1
-                    );
-                  }
-                  if (e.key === "Enter" && highlightedIndex >= 0) {
+                  if (e.key === "ArrowDown") { e.preventDefault(); setHighlightedIndex(prev => prev < filteredProducts.length-1 ? prev+1 : 0); }
+                  if (e.key === "ArrowUp") { e.preventDefault(); setHighlightedIndex(prev => prev>0?prev-1:filteredProducts.length-1); }
+                  if (e.key==="Enter" && highlightedIndex>=0) {
                     e.preventDefault();
                     const selected = filteredProducts[highlightedIndex];
-                    setEditData({ ...editData, product_id: selected.id });
-                    setProductSearch(""); // clear search after selection
+                    setEditData({...editData, product_id: selected.id});
+                    setProductSearch("");
                     setHighlightedIndex(-1);
                   }
                 }}
               />
-
-              {/* Dropdown */}
-              {productSearch !== "" && filteredProducts.length > 0 && (
+              {productSearch!=="" && filteredProducts.length>0 && (
                 <div className="product-search-dropdown">
-                  {filteredProducts.map((p, i) => (
+                  {filteredProducts.map((p,i)=>(
                     <div
                       key={p.id}
-                      className={`product-search-item ${i === highlightedIndex ? "active" : ""}`}
-                      onMouseEnter={() => setHighlightedIndex(i)}
-                      onClick={() => {
-                        setEditData({ ...editData, product_id: p.id });
-                        setProductSearch(""); // clear search after selection
-                        setHighlightedIndex(-1);
-                      }}
+                      className={`product-search-item ${i===highlightedIndex?"active":""}`}
+                      onMouseEnter={()=>setHighlightedIndex(i)}
+                      onClick={()=>{ setEditData({...editData, product_id: p.id}); setProductSearch(""); setHighlightedIndex(-1); }}
                     >
                       {p.name}
                     </div>
@@ -473,56 +402,15 @@ const SalesItemSold = () => {
               )}
             </div>
 
-
-
-            <input
-              type="text"
-              value={editData.customer_name}
-              onChange={(e) =>
-                setEditData({ ...editData, customer_name: e.target.value })
-              }
-              placeholder="Customer Name"
-            />
-
-            <input
-              type="text"
-              value={editData.customer_phone}
-              onChange={(e) =>
-                setEditData({ ...editData, customer_phone: e.target.value })
-              }
-              placeholder="Phone Number"
-            />
-
-            <input
-              type="text"
-              value={editData.ref_no}
-              onChange={(e) =>
-                setEditData({ ...editData, ref_no: e.target.value })
-              }
-              placeholder="Reference No"
-            />
-
-            <input
-              type="number"
-              value={editData.quantity}
-              onChange={(e) =>
-                setEditData({ ...editData, quantity: e.target.value })
-              }
-              placeholder="Quantity"
-            />
-
-            <input
-              type="number"
-              value={editData.selling_price}
-              onChange={(e) =>
-                setEditData({ ...editData, selling_price: e.target.value })
-              }
-              placeholder="Selling Price"
-            />
+            <input type="text" value={editData.customer_name} onChange={e=>setEditData({...editData, customer_name:e.target.value})} placeholder="Customer Name" />
+            <input type="text" value={editData.customer_phone} onChange={e=>setEditData({...editData, customer_phone:e.target.value})} placeholder="Phone Number" />
+            <input type="text" value={editData.ref_no} onChange={e=>setEditData({...editData, ref_no:e.target.value})} placeholder="Reference No" />
+            <input type="number" value={editData.quantity} onChange={e=>setEditData({...editData, quantity:e.target.value})} placeholder="Quantity" />
+            <input type="number" value={editData.selling_price} onChange={e=>setEditData({...editData, selling_price:e.target.value})} placeholder="Selling Price" />
 
             <div className="modal-actions">
               <button onClick={saveEdit}>Save</button>
-              <button onClick={() => setEditItem(null)}>Cancel</button>
+              <button onClick={()=>setEditItem(null)}>Cancel</button>
             </div>
           </div>
         </div>

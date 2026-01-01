@@ -205,3 +205,4 @@ now lets work on the frontend staff sales report, StaffSalesReport.jsx and css, 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
 use similar css like the listsales
 i will send you the backend sold to use
+OutstandingSales

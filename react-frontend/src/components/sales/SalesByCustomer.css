@@ -1,7 +1,7 @@
 /* ===============================
-   Outstanding Sales Container
+   Sales By Customer Container
 =============================== */
-.outstanding-sales-container {
+.sales-by-customer-container {
   padding: 5px;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
@@ -11,7 +11,7 @@
 /* ===============================
    Title
 =============================== */
-.outstanding-sales-title {
+.sales-title {
   font-size: 1.8rem;
   margin-bottom: 15px;
   color: #333;
@@ -32,7 +32,7 @@
   font-size: 0.95rem;
 }
 
-.sales-filters input[type="date"] {
+.sales-filters input[type="text"] {
   padding: 5px 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
@@ -102,6 +102,12 @@
   color: #666;
 }
 
+/* Sub text (phone) */
+.sub-text {
+  font-size: 0.75rem;
+  color: #555;
+}
+
 /* Loading / Error Text */
 .status-text,
 .error-text {
@@ -112,17 +118,4 @@
 
 .error-text {
   color: #dc3545;
-}
-
-/* ===============================
-   Totals Row
-=============================== */
-.sales-total-row {
-  background-color: #d4edda;
-  font-weight: bold;
-}
-
-.sales-total-row td {
-  border-top: 3px solid #28a745;
-  font-size: 1rem;
 }

@@ -100,15 +100,25 @@ def staff_sales_report(
 
 
 @router.get(
-    "/sales/outstanding",
+    "/outstanding",
     response_model=OutstandingSalesResponse
 )
 def outstanding_sales(
     start_date: date | None = None,
     end_date: date | None = None,
+    customer_name: str | None = None,
     db: Session = Depends(get_db)
 ):
-    return service.outstanding_sales_service(db, start_date, end_date)
+    """
+    Get outstanding sales between start_date and end_date.
+    If no dates are provided, defaults to today.
+    """
+    return service.outstanding_sales_service(
+        db=db,
+        start_date=start_date,
+        end_date=end_date,
+        customer_name=customer_name
+    )
 
 
 
@@ -118,14 +128,17 @@ def outstanding_sales(
 )
 def sales_by_customer(
     customer_name: str | None = Query(None, description="Customer name"),
-    customer_phone: str | None = Query(None, description="Customer phone"),
+    start_date: date | None = Query(None, description="Start date"),
+    end_date: date | None = Query(None, description="End date"),
     db: Session = Depends(get_db)
 ):
     return get_sales_by_customer(
         db=db,
         customer_name=customer_name,
-        customer_phone=customer_phone
+        start_date=start_date,
+        end_date=end_date
     )
+
 
 
 

@@ -179,6 +179,7 @@ class OutstandingSaleItem(BaseModel):
     id: int
     sale_invoice_no: int
     product_id: int
+    product_name: Optional[str] = None
     quantity: int
     selling_price: float
     total_amount: float

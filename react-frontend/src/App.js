@@ -23,6 +23,9 @@ import ListSales from "./components/sales/ListSales";
 import SalesItemSold from "./components/sales/SalesItemSold";
 import SalesAnalysis from "./components/sales/SalesAnalysis";
 import StaffSalesReport from "./components/sales/StaffSalesReport";
+import OutstandingSales from "./components/sales/OutstandingSales";
+import SalesByCustomer from "./components/sales/SalesByCustomer";
+
 
 
 
@@ -56,6 +59,10 @@ const App = () => {
               <Route path="itemsold" element={<SalesItemSold />} />
               <Route path="analysis" element={<SalesAnalysis />} />
               <Route path="staff" element={<StaffSalesReport />} />
+              <Route path="outstanding" element={<OutstandingSales />} />
+              <Route path="customer" element={<SalesByCustomer />} />
+              
+            
 
               
 

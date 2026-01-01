@@ -543,44 +543,85 @@ def staff_sales_report(
 
 
 
-def outstanding_sales_service(db: Session, start_date=None, end_date=None):
-    query = db.query(models.Sale)
+from datetime import datetime, timedelta
 
-    if start_date:
-        query = query.filter(models.Sale.sold_at >= start_date)
+from sqlalchemy import cast, Date
+from datetime import datetime, date
 
-    if end_date:
-        query = query.filter(models.Sale.sold_at <= end_date)
+def outstanding_sales_service(
+    db: Session,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    customer_name: str | None = None
+):
+    """
+    Returns all outstanding sales (balance > 0) for given date range
+    and optional customer name filter.
+    Dates are date objects.
+    """
+
+    # Default to today if no date provided
+    today = datetime.now().date()
+    start_date = start_date or today
+    end_date = end_date or today
+
+    # Base query
+    query = db.query(models.Sale).filter(models.Sale.sold_at != None)
+
+    # Filter by date only (ignores time)
+    query = query.filter(
+        cast(models.Sale.sold_at, Date) >= start_date,
+        cast(models.Sale.sold_at, Date) <= end_date
+    )
+
+    # Customer filter
+    if customer_name:
+        query = query.filter(models.Sale.customer_name.ilike(f"%{customer_name}%"))
 
     sales = query.all()
 
     sales_list = []
-
     sales_sum = 0.0
     paid_sum = 0.0
     balance_sum = 0.0
 
     for sale in sales:
-        total_paid = sum(p.amount_paid for p in sale.payments)
-        balance = sale.total_amount - total_paid
+        total_amount = sale.total_amount or 0
+        total_paid = sum((p.amount_paid or 0) for p in getattr(sale, "payments", []))
+        balance = total_amount - total_paid
 
-        if balance > 0:
-            sales_list.append({
-                "id": sale.id,
-                "invoice_no": sale.invoice_no,
-                "invoice_date": sale.invoice_date,
-                "customer_name": sale.customer_name,
-                "customer_phone": sale.customer_phone,
-                "ref_no": sale.ref_no,
-                "total_amount": sale.total_amount,
-                "total_paid": total_paid,
-                "balance_due": balance,
-                "items": sale.items
+        if balance <= 0:
+            continue  # Skip fully paid
+
+        # Build items
+        items = []
+        for item in getattr(sale, "items", []):
+            items.append({
+                "id": item.id,
+                "sale_invoice_no": sale.invoice_no,
+                "product_id": item.product_id,
+                "product_name": getattr(item.product, "name", None) if getattr(item, "product", None) else None,
+                "quantity": item.quantity or 0,
+                "selling_price": item.selling_price or 0,
+                "total_amount": item.total_amount or 0,
             })
 
-            sales_sum += sale.total_amount
-            paid_sum += total_paid
-            balance_sum += balance
+        sales_list.append({
+            "id": sale.id,
+            "invoice_no": sale.invoice_no,
+            "invoice_date": sale.invoice_date.strftime("%Y-%m-%d") if sale.invoice_date else None,
+            "customer_name": sale.customer_name or "",
+            "customer_phone": sale.customer_phone or "",
+            "ref_no": sale.ref_no or "",
+            "total_amount": total_amount,
+            "total_paid": total_paid,
+            "balance_due": balance,
+            "items": items
+        })
+
+        sales_sum += total_amount
+        paid_sum += total_paid
+        balance_sum += balance
 
     return {
         "sales": sales_list,
@@ -695,29 +736,34 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
 def get_sales_by_customer(
     db: Session,
     customer_name: str | None = None,
-    customer_phone: str | None = None
+    start_date: date | None = None,
+    end_date: date | None = None
 ):
+    # 🔴 HARD RESTRICTION
+    if not customer_name or not customer_name.strip():
+        return []
+
     query = (
         db.query(models.Sale)
         .options(
             joinedload(models.Sale.items)
             .joinedload(models.SaleItem.product)
         )
+        .filter(
+            models.Sale.customer_name.ilike(f"%{customer_name.strip()}%")
+        )
     )
 
-    if customer_name:
-        query = query.filter(
-            models.Sale.customer_name.ilike(f"%{customer_name}%")
-        )
+    # ✅ Date filters
+    if start_date:
+        query = query.filter(models.Sale.sold_at >= start_date)
 
-    if customer_phone:
-        query = query.filter(
-            models.Sale.customer_phone.ilike(f"%{customer_phone}%")
-        )
+    if end_date:
+        query = query.filter(models.Sale.sold_at <= end_date)
 
     sales = query.order_by(models.Sale.sold_at.desc()).all()
 
-    # Normalize fields to prevent ResponseValidationError
+    # Normalize fields
     for sale in sales:
         sale.customer_name = sale.customer_name or "Walk-in"
         sale.customer_phone = sale.customer_phone or "-"
@@ -727,6 +773,7 @@ def get_sales_by_customer(
             item.product_name = item.product.name if item.product else "-"
 
     return sales
+
 
 
 

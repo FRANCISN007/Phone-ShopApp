@@ -23,23 +23,57 @@ def create_product(
     product: schemas.ProductCreate,
     db: Session = Depends(get_db)
 ):
-    return service.create_product(db, product)
+    db_product = service.create_product(db, product)
+
+    return schemas.ProductOut(
+        id=db_product.id,
+        name=db_product.name,
+        category=db_product.category.name,  # ✅ STRING
+        brand=db_product.brand,
+        cost_price=db_product.cost_price,
+        selling_price=db_product.selling_price,
+        created_at=db_product.created_at
+    )
 
 
-@router.get("/", response_model=List[schemas.ProductOut])
-def list_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    products = service.get_products(db, skip=skip, limit=limit)
-    return [schemas.ProductOut.from_orm(p) for p in products]
+
+@router.get("/", response_model=list[schemas.ProductOut])
+def list_products(db: Session = Depends(get_db)):
+    products = service.get_products(db)
+
+    return [
+        schemas.ProductOut(
+            id=p.id,
+            name=p.name,
+            category=p.category.name,   # safe now (joinedload)
+            brand=p.brand,
+            cost_price=p.cost_price,
+            selling_price=p.selling_price,
+            created_at=p.created_at,
+        )
+        for p in products
+    ]
 
 
+    
 
+@router.get(
+    "/simple",
+    response_model=List[ProductSimpleSchema]
+)
+def list_products_simple(
+    db: Session = Depends(get_db)
+):
+    products = service.get_products_simple(db)
 
-
-@router.get("/simple", response_model=List[ProductSimpleSchema])
-def list_products_simple(db: Session = Depends(get_db)):
-    products = service.get_products(db, skip=0, limit=1000)
-    return [ProductSimpleSchema.from_orm(p) for p in products]
-
+    return [
+        ProductSimpleSchema(
+            id=p.id,
+            name=p.name,
+            selling_price=p.selling_price
+        )
+        for p in products
+    ]
 
 
 
@@ -52,13 +86,22 @@ def get_product(
     db: Session = Depends(get_db)
 ):
     product = service.get_product_by_id(db, product_id)
+
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    return product
 
+    return schemas.ProductOut(
+        id=product.id,
+        name=product.name,
+        category=product.category.name,   # ✅ STRING
+        brand=product.brand,
+        cost_price=product.cost_price,
+        selling_price=product.selling_price,
+        created_at=product.created_at,
+    )
 
 @router.put(
     "/{product_id}",
@@ -72,31 +115,53 @@ def update_product(
     updated_product = service.update_product(
         db, product_id, product
     )
+
     if not updated_product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    return updated_product
+
+    return schemas.ProductOut(
+        id=updated_product.id,
+        name=updated_product.name,
+        category=updated_product.category.name,  # ✅ STRING
+        brand=updated_product.brand,
+        cost_price=updated_product.cost_price,
+        selling_price=updated_product.selling_price,
+        created_at=updated_product.created_at,
+    )
 
 
-@router.put("/{product_id}/price", response_model=ProductOut)
+
+@router.put(
+    "/{product_id}/price",
+    response_model=schemas.ProductOut
+)
 def update_product_price(
     product_id: int,
-    price_update: ProductPriceUpdate,
+    price_update: schemas.ProductPriceUpdate,
     db: Session = Depends(get_db)
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    product = service.update_product_price(
+        db, product_id, price_update
+    )
+
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
 
-    # Update selling price
-    product.selling_price = price_update.selling_price
-    db.commit()
-    db.refresh(product)
-
-    # Convert to schema — no need to set formatted manually
-    return ProductOut.from_orm(product)
+    return schemas.ProductOut(
+        id=product.id,
+        name=product.name,
+        category=product.category.name,  # ✅ STRING
+        brand=product.brand,
+        cost_price=product.cost_price,
+        selling_price=product.selling_price,
+        created_at=product.created_at,
+    )
 
 
 
@@ -106,15 +171,14 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     return service.delete_product(db, product_id)
 
 
-@router.post("/import-excel", status_code=status.HTTP_201_CREATED)
+
+
+@router.post(
+    "/import-excel",
+    status_code=status.HTTP_201_CREATED
+)
 def import_products_from_excel(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    if not file.filename.endswith(".xlsx"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only Excel files are allowed"
-        )
-
     return service.import_products_from_excel(db, file)

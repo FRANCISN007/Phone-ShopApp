@@ -9,6 +9,8 @@ from app.license.router import router as license_router
 from app.stock.products.router import router as product_router
 from app.stock.inventory.router import router as inventory_router
 
+from app.stock.category.router import router as category_router
+
 from app.purchase.router import router as purchase_router
 from app.vendor.router import router as vendor_router
 from app.bank.router import router as bank_router
@@ -119,8 +121,10 @@ app.include_router(license_router, prefix="/license", tags=["License"])
 app.include_router(bank_router, prefix="/bank", tags=["Bank"])
 app.include_router(vendor_router, prefix="/vendor", tags=["Vendor"])
 app.include_router(product_router, prefix="/stock/products", tags=["Stock - Products"])
+app.include_router(category_router, prefix="/stock/category", tags=["Stock - Category"])
+app.include_router(inventory_router, prefix="/stock/inventory", tags=["Stock - Inventory"])
 app.include_router(purchase_router, prefix="/purchase", tags=["Purchase"])
-app.include_router(inventory_router, prefix="/stock/inventory", tags=["Store - Inventory"])
+
 app.include_router(sales_router, prefix="/sales", tags=["Sales"])
 app.include_router(payment_router, prefix="/payments", tags=["Payments"])
 app.include_router(adjustment_router, prefix="/stock/inventory/adjustments", tags=["StoreInventory - Adjustment"])

@@ -1,0 +1,100 @@
+/* CreateProduct.css */
+
+/* Container */
+.stock-page {
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+}
+
+/* Card */
+.stock-card {
+  background: #fff;
+  width: 420px;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+/* Heading */
+.stock-card h2 {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #333;
+}
+
+/* Form groups */
+.stock-card .form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.stock-card .form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #444;
+}
+
+/* Text inputs */
+.stock-card .form-group input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.stock-card .form-group input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+/* Dropdown select */
+.stock-card .form-group select {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.stock-card .form-group select:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+/* Submit button */
+.stock-card button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background: #4a90e2;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stock-card button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+/* Alerts */
+.stock-card .alert {
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.stock-card .alert.error {
+  background: #ffe1e1;
+  color: #a40000;
+}
+
+.stock-card .alert.success {
+  background: #e1ffe8;
+  color: #0a6b2f;
+}

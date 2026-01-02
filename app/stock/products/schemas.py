@@ -1,28 +1,28 @@
-from pydantic import BaseModel, field_serializer
-
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
-
-# ---------------------------------
-# Base Schema (Identity only)
-# ---------------------------------
+# -------------------------------
+# Base
+# -------------------------------
 class ProductBase(BaseModel):
     name: str
-    category: Optional[str] = None
+    category: str          # category NAME from frontend
     brand: Optional[str] = None
+    cost_price: Optional[float] = None
+    selling_price: Optional[float] = None
 
 
-# ---------------------------------
-# Create Product (NO PRICE REQUIRED)
-# ---------------------------------
+# -------------------------------
+# Create
+# -------------------------------
 class ProductCreate(ProductBase):
     pass
 
 
-# ---------------------------------
-# Update Product (Price can be set)
-# ---------------------------------
+# -------------------------------
+# Update
+# -------------------------------
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
@@ -31,47 +31,49 @@ class ProductUpdate(BaseModel):
     selling_price: Optional[float] = None
 
 
-# ---------------------------------
-# Output Schema (API Response)
-# ---------------------------------
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
-
-
+# -------------------------------
+# Output
+# -------------------------------
 class ProductOut(BaseModel):
     id: int
     name: str
-    category: Optional[str] = None
+    category: str          # category NAME
+    brand: Optional[str]
+    cost_price: Optional[float]
+    selling_price: Optional[float]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+
+
+
+
+# ---------------------------------
+# Output Schema
+# ---------------------------------
+class ProductOut(BaseModel):
+    id: int
+    name: str
+    category: Optional[str] = None  # category NAME, not object
     brand: Optional[str] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
     created_at: datetime
 
-    @field_serializer("selling_price")
-    def format_selling_price(self, value):
-        if value is None:
-            return None
-        return value
-
-    @property
-    def selling_price_formatted(self) -> str:
-        if self.selling_price is None:
-            return "UNPRICED"
-        return f"₦{int(self.selling_price):,}"
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)  # ✅ REQUIRED
 
 
-# -------------------------------
-# Simple product list for dropdown
-# -------------------------------
 
-class ProductSimpleSchema1(BaseModel):
-    id: int
-    name: str
-    
+
+# ---------------------------------
+# Update Selling Price (Dedicated)
+# ---------------------------------
+class ProductPriceUpdate(BaseModel):
+    selling_price: float
+
     class Config:
         from_attributes = True
 
@@ -90,11 +92,16 @@ class ProductSimpleSchema(BaseModel):
 
     class Config:
         from_attributes = True
-# ---------------------------------
-# Update Selling Price (Dedicated)
-# ---------------------------------
-class ProductPriceUpdate(BaseModel):
-    selling_price: float
 
+
+# -------------------------------
+# Simple product list for dropdown
+# -------------------------------
+
+class ProductSimpleSchema1(BaseModel):
+    id: int
+    name: str
+    
     class Config:
         from_attributes = True
+

@@ -203,6 +203,8 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
 now lets work on the frontend staff sales report, StaffSalesReport.jsx and css, under the src-components-sales folder, remember to use the function 
 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
+example
+const res = await axiosWithAuth().get("/sales/outstanding", {
 use similar css like the listsales
 i will send you the backend sold to use
 OutstandingSales

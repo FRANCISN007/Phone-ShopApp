@@ -26,6 +26,8 @@ import StaffSalesReport from "./components/sales/StaffSalesReport";
 import OutstandingSales from "./components/sales/OutstandingSales";
 import SalesByCustomer from "./components/sales/SalesByCustomer";
 
+// Stock
+import CreateProduct from "./components/stock/CreateProduct";
 
 
 
@@ -61,13 +63,16 @@ const App = () => {
               <Route path="staff" element={<StaffSalesReport />} />
               <Route path="outstanding" element={<OutstandingSales />} />
               <Route path="customer" element={<SalesByCustomer />} />
-              
-            
-
-              
-
-              
             </Route>
+
+            {/* ✅ STOCK ROUTES */}
+            <Route path="stock">
+              <Route path="create" element={<CreateProduct />} />
+
+
+            </Route>
+
+            
 
           </Route>
         </Route>

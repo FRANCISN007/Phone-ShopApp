@@ -58,7 +58,7 @@ const salesSubMenu = [
    STOCK SUBMENU
 ================================ */
 const stockSubMenu = [
-  { label: "Create Product", action: "createProduct", icon: "➕" },
+  { label: "Create Product", action: "create", icon: "➕" },
   { label: "List Product", action: "listProduct", icon: "📋" },
   { label: "Import Product", action: "importProduct", icon: "📥" },
 
@@ -185,7 +185,7 @@ const stockSubMenu = [
 ================================ */
 const handleStockAction = (action) => {
   switch (action) {
-    case "createProduct":
+    case "create":
       navigate("/dashboard/stock/create");
       break;
 

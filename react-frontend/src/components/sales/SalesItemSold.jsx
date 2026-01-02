@@ -348,7 +348,7 @@ const SalesItemSold = () => {
                     <td className="action-cell">
                       <button className="btn-print" onClick={() => handleReprint(item.invoice_no)}>🖨️</button>
                       <button className="btn-edit" onClick={() => openEdit(item)}>✏️</button>
-                      <button className="btn-delete" onClick={() => deleteSale(item.invoice_no)}>🗑</button>
+                      <button className="btn-delete" onClick={() => deleteSale(item.invoice_no)}>🗑️</button>
                     </td>
                   </tr>
                 ))

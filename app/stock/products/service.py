@@ -9,6 +9,9 @@ from app.stock.category import models as category_models
 from app.stock.category.models import Category
 import re
 
+
+from sqlalchemy import func
+
 from app.stock.products.schemas import ProductOut, ProductPriceUpdate
 
 from fastapi import HTTPException, UploadFile
@@ -67,14 +70,39 @@ def create_product(db: Session, product: schemas.ProductCreate):
 
     
 
-def get_products(db: Session):
-    return (
+def get_products(
+    db: Session,
+    category: str | None = None,
+    name: str | None = None,
+):
+    query = (
         db.query(models.Product)
         .options(joinedload(models.Product.category))
+    )
+
+    # -----------------------------
+    # Filter by category name
+    # -----------------------------
+    if category:
+        query = query.join(models.Product.category).filter(
+            func.lower(category_models.Category.name)
+            == category.lower().strip()
+        )
+
+    # -----------------------------
+    # Filter by product name (search)
+    # -----------------------------
+    if name:
+        query = query.filter(
+            func.lower(models.Product.name)
+            .contains(name.lower().strip())
+        )
+
+    return (
+        query
         .order_by(models.Product.created_at.desc())
         .all()
     )
-
 
 def get_products_simple(db: Session):
     return (

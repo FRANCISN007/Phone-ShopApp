@@ -1,20 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./CreateProduct.css";
 
-const CreateProduct = () => {
+const CreateProduct = ({ onClose }) => {
   const [form, setForm] = useState({
     name: "",
     category: "",
     brand: "",
+    cost_price: "",
+    selling_price: "",
   });
 
-  const [categories, setCategories] = useState([]); // ✅ store categories
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [visible, setVisible] = useState(true); // <-- internal visibility state
 
-  // ================= FETCH CATEGORIES =================
+  const modalTimerRef = useRef(null);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -27,12 +32,10 @@ const CreateProduct = () => {
     fetchCategories();
   }, []);
 
-  // ================= HANDLE FORM CHANGE =================
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ================= HANDLE FORM SUBMIT =================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -42,7 +45,6 @@ const CreateProduct = () => {
       setError("Product name is required");
       return;
     }
-
     if (!form.category) {
       setError("Please select a category");
       return;
@@ -50,15 +52,23 @@ const CreateProduct = () => {
 
     try {
       setLoading(true);
-
       const res = await axiosWithAuth().post("/stock/products/", {
         name: form.name.trim(),
-        category: form.category, // now selected category
+        category: form.category,
         brand: form.brand || null,
+        cost_price: form.cost_price ? parseFloat(form.cost_price) : null,
+        selling_price: form.selling_price ? parseFloat(form.selling_price) : null,
       });
 
       setSuccess(`Product "${res.data.name}" created successfully`);
-      setForm({ name: "", category: "", brand: "" });
+      setForm({ name: "", category: "", brand: "", cost_price: "", selling_price: "" });
+      setShowSuccessModal(true);
+
+      modalTimerRef.current = setTimeout(() => {
+        setShowSuccessModal(false);
+        setSuccess("");
+      }, 2000);
+
     } catch (err) {
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
@@ -70,13 +80,24 @@ const CreateProduct = () => {
     }
   };
 
+  const handleCloseForm = () => {
+    if (onClose) {
+      onClose(); // notify parent
+    } else {
+      setVisible(false); // fallback: hide the card
+    }
+  };
+
+  if (!visible) return null; // hide the component if closed
+
   return (
     <div className="stock-page">
       <div className="stock-card">
+        <button className="card-close" onClick={handleCloseForm}>✖</button>
+
         <h2>Create Product</h2>
 
         {error && <div className="alert error">{error}</div>}
-        {success && <div className="alert success">{success}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -118,11 +139,44 @@ const CreateProduct = () => {
             />
           </div>
 
+          <div className="form-group">
+            <label>Cost Price (Optional)</label>
+            <input
+              type="number"
+              name="cost_price"
+              value={form.cost_price}
+              onChange={handleChange}
+              placeholder="e.g. 450000"
+              min="0"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Selling Price (Optional)</label>
+            <input
+              type="number"
+              name="selling_price"
+              value={form.selling_price}
+              onChange={handleChange}
+              placeholder="e.g. 520000"
+              min="0"
+            />
+          </div>
+
           <button type="submit" disabled={loading}>
             {loading ? "Saving..." : "Create Product"}
           </button>
         </form>
       </div>
+
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Success!</h3>
+            <p>{success}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

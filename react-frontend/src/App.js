@@ -28,7 +28,7 @@ import SalesByCustomer from "./components/sales/SalesByCustomer";
 
 // Stock
 import CreateProduct from "./components/stock/CreateProduct";
-
+import ListProduct from "./components/stock/ListProduct";
 
 
 
@@ -68,7 +68,7 @@ const App = () => {
             {/* ✅ STOCK ROUTES */}
             <Route path="stock">
               <Route path="create" element={<CreateProduct />} />
-
+              <Route path="list" element={<ListProduct />} />
 
             </Route>
 

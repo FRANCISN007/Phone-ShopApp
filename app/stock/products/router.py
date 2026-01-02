@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 import pandas as pd
+from typing import List, Optional
 
 from app.database import get_db
 from app.stock.products import schemas, service, models
@@ -38,14 +39,22 @@ def create_product(
 
 
 @router.get("/", response_model=list[schemas.ProductOut])
-def list_products(db: Session = Depends(get_db)):
-    products = service.get_products(db)
+def list_products(
+    category: Optional[str] = None,
+    name: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    products = service.get_products(
+        db,
+        category=category,
+        name=name
+    )
 
     return [
         schemas.ProductOut(
             id=p.id,
             name=p.name,
-            category=p.category.name,   # safe now (joinedload)
+            category=p.category.name,
             brand=p.brand,
             cost_price=p.cost_price,
             selling_price=p.selling_price,
@@ -53,7 +62,6 @@ def list_products(db: Session = Depends(get_db)):
         )
         for p in products
     ]
-
 
     
 

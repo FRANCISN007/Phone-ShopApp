@@ -200,7 +200,7 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend list product, ListProduct.jsx and css, under the src-components-sales folder, remember to use the function 
+now lets work on the frontend list product, ImportProduct.jsx and css, under the src-components-sales folder, remember to use the function 
 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
 example

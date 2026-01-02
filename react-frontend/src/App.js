@@ -30,6 +30,7 @@ import SalesByCustomer from "./components/sales/SalesByCustomer";
 import CreateProduct from "./components/stock/CreateProduct";
 import ListProduct from "./components/stock/ListProduct";
 
+import ImportProduct from "./components/stock/ImportProduct";
 
 
 // POS
@@ -69,6 +70,7 @@ const App = () => {
             <Route path="stock">
               <Route path="create" element={<CreateProduct />} />
               <Route path="list" element={<ListProduct />} />
+              <Route path="import" element={<ImportProduct />} />
 
             </Route>
 

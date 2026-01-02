@@ -11,6 +11,7 @@ const DashboardPage = () => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeSubMenu, setActiveSubMenu] = useState(null); 
+  
 
   
 
@@ -60,7 +61,7 @@ const salesSubMenu = [
 const stockSubMenu = [
   { label: "Create Product", action: "create", icon: "➕" },
   { label: "List Product", action: "list", icon: "📋" },
-  { label: "Import Product", action: "importProduct", icon: "📥" },
+  { label: "Import Product", action: "import", icon: "📥" },
 
   { label: "List Inventory", action: "listInventory", icon: "📦" },
   { label: " Inventory Adjustment", action: "adjustInventory", icon: "⚖️" },
@@ -193,7 +194,7 @@ const handleStockAction = (action) => {
       navigate("/dashboard/stock/list");
       break;
 
-    case "importProduct":
+    case "import":
       navigate("/dashboard/stock/import");
       break;
 

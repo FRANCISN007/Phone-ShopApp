@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import pandas as pd
 from typing import List, Optional
+from app.users.auth import pwd_context, get_current_user
 
 from app.database import get_db
 from app.stock.products import schemas, service, models
@@ -181,10 +182,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 
 
 
-@router.post(
-    "/import-excel",
-    status_code=status.HTTP_201_CREATED
-)
+@router.post("/import-excel")
 def import_products_from_excel(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)

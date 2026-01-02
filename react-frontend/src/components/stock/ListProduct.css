@@ -1,5 +1,5 @@
 .list-container {
-  position: relative; /* make close button relative to this container */
+  position: relative; 
   padding: 4px;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
@@ -8,20 +8,17 @@
 
 .list-container h2 {
   text-align: center;
-  margin-bottom: 8px;   /* 🔽 reduced */
-  font-size: 1.2rem;    /* 🔽 smaller title */
+  margin-bottom: 8px; 
+  font-size: 1.2rem;  
 }
 
-/* ===============================
-   Table
-=============================== */
+/* Table */
 .list-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 800px;     /* 🔽 slightly smaller */
+  min-width: 800px;
 }
 
-/* Zebra striping */
 .list-table tbody tr:nth-child(odd) {
   background-color: #e6f4ea;
 }
@@ -32,11 +29,11 @@
 
 .list-table th,
 .list-table td {
-  padding: 2px 5px;      /* 🔥 VERY IMPORTANT */
+  padding: 2px 5px; 
   text-align: left;
-  font-size: 0.78rem;    /* 🔽 compact text */
+  font-size: 0.78rem;
   border: 1px solid #28a745;
-  line-height: 1.2;      /* 🔽 tighter rows */
+  line-height: 1.2;
 }
 
 .list-table th {
@@ -47,19 +44,17 @@
   font-size: 0.8rem;
 }
 
-/* ===============================
-   Action Buttons (Icon-sized)
-=============================== */
+/* Action buttons */
 .actions {
   display: flex;
   gap: 6px;
 }
 
 .actions button {
-  padding: 2px 4px;     /* 🔽 reduced */
+  padding: 2px 4px; 
   border: none;
   cursor: pointer;
-  font-size: 13px;      /* 🔽 icon-size */
+  font-size: 13px;
   border-radius: 3px;
   line-height: 1;
 }
@@ -74,9 +69,7 @@
   color: #7a1c1c;
 }
 
-/* ===============================
-   Modal (More Compact)
-=============================== */
+/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -92,7 +85,7 @@
 
 .modal {
   background: #fff;
-  padding: 12px 14px;   /* 🔽 reduced */
+  padding: 12px 14px;
   border-radius: 6px;
   min-width: 320px;
   max-width: 360px;
@@ -108,7 +101,7 @@
 .modal .form-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 6px;   /* 🔽 tighter */
+  margin-bottom: 6px;
 }
 
 .modal .form-group label {
@@ -139,136 +132,43 @@
   border-radius: 4px;
 }
 
-
-/* ===============================
-   Product Filters (Compact)
-=============================== */
-.product-filters {
-  display: flex;
-  align-items: center; /* align items center for smaller height */
-  gap: 8px;            /* tighter gap between filters */
-  margin-bottom: 8px;  /* smaller bottom margin */
-  padding: 6px;         /* smaller padding */
-  background: #ffffff;
-  border: 1px solid #28a745; /* thinner border */
-  border-radius: 4px;   /* smaller radius */
-  flex-wrap: wrap;       /* allow wrapping on small screens */
-}
-
-/* Each filter group */
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 0;       /* remove extra margin */
-}
-
-/* Label for filter */
-.filter-group label {
-  font-size: 0.65rem;    /* smaller font */
-  font-weight: bold;
-  margin-bottom: 1px;    /* smaller spacing */
-  color: #333;
-}
-
-/* Input and select fields */
-.filter-group input,
-.filter-group select {
-  padding: 3px 6px;      /* compact padding */
-  font-size: 0.75rem;    /* smaller font */
-  border-radius: 3px;    /* smaller radius */
-  border: 1px solid #ccc;
-  min-width: 140px;      /* smaller width */
-  height: 26px;          /* compact height */
-  box-sizing: border-box;
-}
-
-.filter-group input:focus,
-.filter-group select:focus {
-  outline: none;
-  border-color: #28a745;
-  box-shadow: 0 0 2px rgba(40, 167, 69, 0.3);
-}
-
-/* Clear button */
-.clear-filter-btn {
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  height: 26px;
-  transition: 0.2s;
-  align-self: flex-start; /* align with top of filters */
-}
-
-.clear-filter-btn:hover {
-  background-color: #c82333;
-}
-
-/* Responsive: wrap filters on small screens */
-@media (max-width: 500px) {
-  .product-filters {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-group input,
-  .filter-group select {
-    width: 100%;
-  }
-
-  .clear-filter-btn {
-    width: 100%;
-    margin-top: 4px;
-  }
-}
-
-
-/* ===============================
-   Product Filters
-=============================== */
+/* Filters */
 .filters {
   display: flex;
-  align-items: center;     /* align search and select vertically */
-  gap: 6px;                /* spacing between inputs */
-  margin-bottom: 8px;     /* space below filters */
-  padding: 2px 4px;        /* inner padding */
-  background-color: #f0e9e9;  /* white background */
-  border: 1px solid #0ae63d; /* green border */
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 2px 4px;
+  background-color: #f0e9e9;
+  border: 1px solid #0ae63d;
   border-radius: 5px;
-  flex-wrap: wrap;          /* wrap on small screens */
+  flex-wrap: wrap;
 }
 
-/* Each input/select field */
 .filter-input,
 .filter-select {
-  padding: 4px 6px;        /* compact padding */
-  font-size: 0.85rem;      /* smaller font */
+  padding: 4px 6px;
+  font-size: 0.85rem;
   border: 1px solid #ccc;
   border-radius: 4px;
   outline: none;
-  min-width: 90px;        /* reasonable width */
-  height: 25px;            /* compact height */
+  min-width: 90px;
+  height: 25px;
   transition: 0.2s all ease-in-out;
   box-sizing: border-box;
 }
 
-/* Focus state */
 .filter-input:focus,
 .filter-select:focus {
   border-color: #28a745;
   box-shadow: 0 0 4px rgba(40, 167, 69, 0.3);
 }
 
-/* Placeholder styling */
 .filter-input::placeholder {
   color: #999;
   font-style: italic;
 }
 
-/* Responsive: stack filters on small screens */
 @media (max-width: 500px) {
   .filters {
     flex-direction: column;
@@ -282,8 +182,7 @@
   }
 }
 
-
-/* Close button on List Product page */
+/* Close button */
 .close-btn {
   position: absolute;
   top: 12px;
@@ -305,7 +204,6 @@
 .close-btn:hover {
   background: #a71d2a;
 }
-
 
 /* Dropdown for product search in edit modal */
 .search-dropdown {
@@ -328,27 +226,4 @@
 
 .search-dropdown li:hover {
   background-color: #f0f0f0;
-}
-
-
-.close-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  line-height: 28px;
-  text-align: center;
-  transition: 0.2s;
-}
-
-.close-btn:hover {
-  background: #a71d2a;
 }

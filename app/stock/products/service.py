@@ -56,7 +56,7 @@ def create_product(db: Session, product: schemas.ProductCreate):
     # 3️⃣ Create product
     db_product = models.Product(
         name=product.name.strip(),
-        brand=product.brand.strip() if product.brand else None,
+        type=product.type.strip() if product.type else None,
         category_id=category.id,
         cost_price=product.cost_price,
         selling_price=product.selling_price
@@ -316,7 +316,7 @@ def import_products_from_excel(
         required_columns = {
             "name",
             "category",
-            "brand",
+            "type",
             "cost_price",
             "selling_price"
         }
@@ -388,7 +388,7 @@ def import_products_from_excel(
             product = Product(
                 name=name,
                 category_id=category_id,
-                brand=None if pd.isna(row["brand"]) else str(row["brand"]).strip(),
+                type=None if pd.isna(row["type"]) else str(row["type"]).strip(),
                 cost_price=clean_price(row["cost_price"]),
                 selling_price=clean_price(row["selling_price"]),
             )

@@ -6,7 +6,7 @@ const CreateProduct = ({ onClose }) => {
   const [form, setForm] = useState({
     name: "",
     category: "",
-    brand: "",
+    type: "",
     cost_price: "",
     selling_price: "",
   });
@@ -55,13 +55,13 @@ const CreateProduct = ({ onClose }) => {
       const res = await axiosWithAuth().post("/stock/products/", {
         name: form.name.trim(),
         category: form.category,
-        brand: form.brand || null,
+        type: form.type || null,
         cost_price: form.cost_price ? parseFloat(form.cost_price) : null,
         selling_price: form.selling_price ? parseFloat(form.selling_price) : null,
       });
 
       setSuccess(`Product "${res.data.name}" created successfully`);
-      setForm({ name: "", category: "", brand: "", cost_price: "", selling_price: "" });
+      setForm({ name: "", category: "", type: "", cost_price: "", selling_price: "" });
       setShowSuccessModal(true);
 
       modalTimerRef.current = setTimeout(() => {
@@ -107,7 +107,7 @@ const CreateProduct = ({ onClose }) => {
               name="name"
               value={form.name}
               onChange={handleChange}
-              placeholder="e.g. iPhone 14"
+              placeholder="enter name"
               autoFocus
             />
           </div>
@@ -129,13 +129,13 @@ const CreateProduct = ({ onClose }) => {
           </div>
 
           <div className="form-group">
-            <label>Brand</label>
+            <label>Type</label>
             <input
               type="text"
-              name="brand"
-              value={form.brand}
+              name="type"
+              value={form.type}
               onChange={handleChange}
-              placeholder="e.g. Apple"
+              placeholder="e.g. type of product"
             />
           </div>
 

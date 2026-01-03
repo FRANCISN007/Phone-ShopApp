@@ -161,7 +161,7 @@ const ListProduct = () => {
           <tr>
             <th>Name</th>
             <th>Category</th>
-            <th>Brand</th>
+            <th>Type</th>
             <th>Cost Price</th>
             <th>Selling Price</th>
             <th>Created At</th>
@@ -182,7 +182,7 @@ const ListProduct = () => {
             <tr key={p.id}>
               <td>{p.name}</td>
               <td>{p.category}</td>
-              <td>{p.brand || "-"}</td>
+              <td>{p.type || "-"}</td>
               <td>{formatAmount(p.cost_price)}</td>
               <td>{formatAmount(p.selling_price)}</td>
               <td>{new Date(p.created_at).toLocaleString()}</td>
@@ -244,12 +244,12 @@ const ListProduct = () => {
               </div>
 
               <div className="form-group">
-                <label>Brand</label>
+                <label>Type</label>
                 <input
                   type="text"
-                  value={editProduct.brand || ""}
+                  value={editProduct.type || ""}
                   onChange={(e) =>
-                    setEditProduct({ ...editProduct, brand: e.target.value })
+                    setEditProduct({ ...editProduct, type: e.target.value })
                   }
                 />
               </div>

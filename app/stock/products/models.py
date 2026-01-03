@@ -16,7 +16,7 @@ class Product(Base):
         index=True
     )
 
-    brand = Column(String, nullable=True)
+    type = Column(String, nullable=True)
     cost_price = Column(Float, nullable=True)
     selling_price = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

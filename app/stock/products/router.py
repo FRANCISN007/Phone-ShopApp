@@ -31,7 +31,7 @@ def create_product(
         id=db_product.id,
         name=db_product.name,
         category=db_product.category.name,  # ✅ STRING
-        brand=db_product.brand,
+        type=db_product.type,
         cost_price=db_product.cost_price,
         selling_price=db_product.selling_price,
         created_at=db_product.created_at
@@ -56,7 +56,7 @@ def list_products(
             id=p.id,
             name=p.name,
             category=p.category.name,
-            brand=p.brand,
+            type=p.type,
             cost_price=p.cost_price,
             selling_price=p.selling_price,
             created_at=p.created_at,
@@ -106,7 +106,7 @@ def get_product(
         id=product.id,
         name=product.name,
         category=product.category.name,   # ✅ STRING
-        brand=product.brand,
+        type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
         created_at=product.created_at,
@@ -135,7 +135,7 @@ def update_product(
         id=updated_product.id,
         name=updated_product.name,
         category=updated_product.category.name,  # ✅ STRING
-        brand=updated_product.brand,
+        type=updated_product.type,
         cost_price=updated_product.cost_price,
         selling_price=updated_product.selling_price,
         created_at=updated_product.created_at,
@@ -166,7 +166,7 @@ def update_product_price(
         id=product.id,
         name=product.name,
         category=product.category.name,  # ✅ STRING
-        brand=product.brand,
+        type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
         created_at=product.created_at,

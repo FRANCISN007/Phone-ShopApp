@@ -5,6 +5,7 @@ from typing import Optional
 
 class InventoryBase(BaseModel):
     product_id: int
+    product_name: str  # ✅ NEW
     quantity_in: float
     quantity_out: float
     adjustment_total: float

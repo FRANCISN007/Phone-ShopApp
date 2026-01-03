@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from typing import Optional
+from fastapi import Depends
+
 
 from app.database import get_db
 from app.stock.inventory import schemas, service
@@ -8,17 +11,20 @@ from app.stock.inventory import schemas, service
 router = APIRouter()
 
 
+
+
 @router.get("/", response_model=List[schemas.InventoryOut])
-def list_inventory(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return service.list_inventory(db, skip=skip, limit=limit)
-
-
-@router.get("/{product_id}", response_model=schemas.InventoryOut)
-def get_inventory(product_id: int, db: Session = Depends(get_db)):
-    inventory = service.get_inventory_by_product(db, product_id)
-    if not inventory:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory record not found for this product"
-        )
-    return inventory
+def list_inventory(
+    skip: int = 0,
+    limit: int = 100,
+    product_id: Optional[int] = None,
+    product_name: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    return service.list_inventory(
+        db,
+        skip=skip,
+        limit=limit,
+        product_id=product_id,
+        product_name=product_name,
+    )

@@ -4,15 +4,65 @@ from . import models
 from app.stock.inventory.adjustments.models import StockAdjustment
 
 from app.stock.inventory.models import Inventory
+from app.stock.products.models import  Product
 
 # --------------------------
 # Read-only: list inventory
 # --------------------------
-def list_inventory(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Inventory).offset(skip).limit(limit).all()
+def list_inventory(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    product_id: int | None = None,
+    product_name: str | None = None,
+):
+    query = (
+        db.query(
+            Inventory.id,
+            Inventory.product_id,
+            Product.name.label("product_name"),
+            Inventory.quantity_in,
+            Inventory.quantity_out,
+            Inventory.adjustment_total,
+            Inventory.current_stock,
+            Inventory.created_at,
+            Inventory.updated_at,
+        )
+        .join(Product, Product.id == Inventory.product_id)
+    )
+
+    # 🔍 Filter by product ID
+    if product_id is not None:
+        query = query.filter(Inventory.product_id == product_id)
+
+    # 🔍 Filter by product name (case-insensitive)
+    if product_name:
+        query = query.filter(Product.name.ilike(f"%{product_name}%"))
+
+    return (
+        query
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 def get_inventory_by_product(db: Session, product_id: int):
-    return db.query(models.Inventory).filter(models.Inventory.product_id == product_id).first()
+    return (
+        db.query(
+            Inventory.id,
+            Inventory.product_id,
+            Product.name.label("product_name"),
+            Inventory.quantity_in,
+            Inventory.quantity_out,
+            Inventory.adjustment_total,
+            Inventory.current_stock,
+            Inventory.created_at,
+            Inventory.updated_at,
+        )
+        .join(Product, Product.id == Inventory.product_id)
+        .filter(Inventory.product_id == product_id)
+        .first()
+    )
 
 
 # --------------------------

@@ -8,7 +8,7 @@ from datetime import datetime
 class ProductBase(BaseModel):
     name: str
     category: str          # category NAME from frontend
-    brand: Optional[str] = None
+    type: Optional[str] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
 
@@ -25,8 +25,8 @@ class ProductCreate(ProductBase):
 # -------------------------------
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
-    category: Optional[str] = None
-    brand: Optional[str] = None
+    type: Optional[str] = None       # phone, laptop, accessories
+    category: Optional[str] = None   # tecno, hp, apple, etc
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
 
@@ -38,7 +38,7 @@ class ProductOut(BaseModel):
     id: int
     name: str
     category: str          # category NAME
-    brand: Optional[str]
+    type: Optional[str]
     cost_price: Optional[float]
     selling_price: Optional[float]
     created_at: datetime
@@ -58,7 +58,7 @@ class ProductOut(BaseModel):
     id: int
     name: str
     category: Optional[str] = None  # category NAME, not object
-    brand: Optional[str] = None
+    type: Optional[str] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
     created_at: datetime

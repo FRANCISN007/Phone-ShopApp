@@ -34,7 +34,7 @@ const LoginPage = () => {
       {/* ⭐ LEFT SIDE DESCRIPTION */}
       <div className="auth-left-panel">
         <h1 className="app-title">
-          SHopMan APP
+          SHopMan App
         </h1>
 
         <p className="app-description">

@@ -1,8 +1,20 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+from datetime import datetime, timedelta
+
 from . import models, schemas
 from app.stock.inventory import service as inventory_service
 from app.stock.inventory import models as inventory_models
+
+from app.stock.inventory.adjustments import models as adj_models
+from app.stock.products import models as product_models
+
+from app.stock.inventory.adjustments import models as adj_models
+from app.stock.products import models as product_models
+from app.users import models as user_models
+
+
+
 
 
 def create_adjustment(db: Session, adjustment: schemas.StockAdjustmentCreate, adjusted_by: int):
@@ -48,9 +60,61 @@ def create_adjustment(db: Session, adjustment: schemas.StockAdjustmentCreate, ad
     return adj
 
 
-def list_adjustments(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.StockAdjustment).offset(skip).limit(limit).all()
+def list_adjustments(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    start_date=None,
+    end_date=None,
+):
+    """
+    List all stock adjustments with product name and username,
+    filtered by date range if provided
+    """
 
+    query = (
+        db.query(
+            adj_models.StockAdjustment,
+            product_models.Product.name.label("product_name"),
+            user_models.User.username.label("adjusted_by_name"),
+        )
+        .join(
+            product_models.Product,
+            product_models.Product.id == adj_models.StockAdjustment.product_id,
+        )
+        .outerjoin(
+            user_models.User,
+            user_models.User.id == adj_models.StockAdjustment.adjusted_by,
+        )
+    )
+
+    # ✅ Apply date filter
+    if start_date:
+        query = query.filter(
+            adj_models.StockAdjustment.adjusted_at
+            >= datetime.combine(start_date, datetime.min.time())
+        )
+
+    if end_date:
+        query = query.filter(
+            adj_models.StockAdjustment.adjusted_at
+            <= datetime.combine(end_date, datetime.max.time())
+        )
+
+    results = (
+        query
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    adjustments = []
+    for adj, product_name, adjusted_by_name in results:
+        adj.product_name = product_name
+        adj.adjusted_by_name = adjusted_by_name
+        adjustments.append(adj)
+
+    return adjustments
 
 def delete_adjustment(db: Session, adjustment_id: int):
     adjustment = db.query(models.StockAdjustment).filter(models.StockAdjustment.id == adjustment_id).first()

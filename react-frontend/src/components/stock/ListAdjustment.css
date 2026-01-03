@@ -127,3 +127,75 @@
   background: #c82333;
   transform: scale(1.1);
 }
+
+
+/* =======================
+   Date Filter Bar
+======================= */
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+}
+
+.filter-group input[type="date"] {
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  outline: none;
+}
+
+.filter-group input[type="date"]:focus {
+  border-color: #007bff;
+}
+
+/* =======================
+   Filter Button
+======================= */
+.filter-btn {
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #007bff;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.filter-btn:hover {
+  background-color: #0056b3;
+}
+
+/* =======================
+   Mobile Responsiveness
+======================= */
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-btn {
+    width: 100%;
+  }
+}

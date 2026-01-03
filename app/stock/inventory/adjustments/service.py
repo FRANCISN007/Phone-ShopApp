@@ -6,19 +6,24 @@ from app.stock.inventory import models as inventory_models
 
 
 def create_adjustment(db: Session, adjustment: schemas.StockAdjustmentCreate, adjusted_by: int):
-    # Fetch inventory
-    inventory = inventory_service.get_inventory_by_product(db, adjustment.product_id)
+    # Get ORM Inventory object
+    inventory = inventory_service.get_inventory_orm_by_product(db, adjustment.product_id)
     if not inventory:
         raise HTTPException(status_code=404, detail="Inventory not found")
 
-    # Check new stock
-    new_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total + adjustment.quantity
+    # Ensure numbers are not None
+    quantity_in = inventory.quantity_in or 0
+    quantity_out = inventory.quantity_out or 0
+    adjustment_total = inventory.adjustment_total or 0
+
+    # Compute new stock
+    new_stock = quantity_in - quantity_out + adjustment_total + adjustment.quantity
     if new_stock < 0:
         raise HTTPException(status_code=400, detail="Adjustment would result in negative stock")
 
-    # Update inventory adjustment_total
-    inventory.adjustment_total += adjustment.quantity
-    inventory.current_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total
+    # Update inventory
+    inventory.adjustment_total = adjustment_total + adjustment.quantity
+    inventory.current_stock = quantity_in - quantity_out + inventory.adjustment_total
 
     # Create adjustment record
     adj = models.StockAdjustment(
@@ -28,11 +33,18 @@ def create_adjustment(db: Session, adjustment: schemas.StockAdjustmentCreate, ad
         reason=adjustment.reason,
         adjusted_by=adjusted_by
     )
-    db.add(adj)
-    db.add(inventory)
-    db.commit()
-    db.refresh(adj)
-    db.refresh(inventory)
+
+    # Commit transaction
+    try:
+        db.add(adj)
+        db.add(inventory)
+        db.commit()
+        db.refresh(adj)
+        db.refresh(inventory)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create adjustment: {str(e)}")
+
     return adj
 
 

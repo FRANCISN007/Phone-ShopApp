@@ -79,8 +79,8 @@ const stockSubMenu = [
   { label: "Import Product", action: "import", icon: "📥" },
 
   { label: "Stock Balance", action: "inventory", icon: "📦" },
-  { label: " Inventory Adjustment", action: "adjustInventory", icon: "⚖️" },
-  { label: "List Adjustment", action: "listAdjustment", icon: "🧾" },
+  { label: "Stock Adjustment", action: "adjustment", icon: "⚖️" },
+  { label: "List Adjustment", action: "adjustmentlist", icon: "🧾" },
 ];
 
 
@@ -222,12 +222,12 @@ const stockSubMenu = [
         navigate("/dashboard/stock/inventory");
         break;
 
-      case "adjustInventory":
+      case "adjustment":
         navigate("/dashboard/stock/adjustment");
         break;
 
-      case "listAdjustment":
-        navigate("/dashboard/stock/adjustment/list");
+      case "adjustmentlist":
+        navigate("/dashboard/stock/adjustmentlist");
         break;
 
       default:

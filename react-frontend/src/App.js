@@ -32,6 +32,8 @@ import ListProduct from "./components/stock/ListProduct";
 
 import ImportProduct from "./components/stock/ImportProduct";
 import ListInventory from "./components/stock/ListInventory";
+import StockAdjustment from "./components/stock/StockAdjustment";
+import ListAdjustment from "./components/stock/ListAdjustment";
 
 
 // POS
@@ -73,8 +75,8 @@ const App = () => {
               <Route path="list" element={<ListProduct />} />
               <Route path="import" element={<ImportProduct />} />
               <Route path="inventory" element={<ListInventory />} />
-
-          
+              <Route path="adjustment" element={<StockAdjustment />} />
+              <Route path="adjustmentlist" element={<ListAdjustment />} />
 
             </Route>
 

@@ -29,7 +29,7 @@ def list_adjustments(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["admin"]))
+    current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
 ):
     """
     List all stock adjustments (admin-only)

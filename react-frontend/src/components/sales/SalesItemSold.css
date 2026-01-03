@@ -304,11 +304,11 @@
 .product-search-item:hover,
 .product-search-item.active {
   background-color: #28a745;
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .product-search-item:not(:last-child) {
-  border-bottom: 1px solid #e2d3d3;
+  border-bottom: 1px solid #cc9f9f;
 }
 
 /* Optional: smooth dropdown appearance */

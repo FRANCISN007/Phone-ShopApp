@@ -11,6 +11,21 @@ const DashboardPage = () => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeSubMenu, setActiveSubMenu] = useState(null); 
+
+  const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+
+  let roles = [];
+
+  if (Array.isArray(storedUser.roles)) {
+    roles = storedUser.roles;
+  } else if (typeof storedUser.role === "string") {
+    roles = [storedUser.role];
+  }
+
+  roles = roles.map((r) => r.toLowerCase());
+
+  const isAdmin = roles.includes("admin");
+
   
 
   
@@ -183,39 +198,45 @@ const stockSubMenu = [
 
   /* ===============================
    STOCK SUBMENU ACTIONS
-================================ */
-const handleStockAction = (action) => {
-  switch (action) {
-    case "create":
-      navigate("/dashboard/stock/create");
-      break;
+  ================================ */
+  const handleStockAction = (action) => {
+    if (action === "import" && !isAdmin) {
+      alert("Access denied. Admin only.");
+      return;
+    }
 
-    case "list":
-      navigate("/dashboard/stock/list");
-      break;
+    switch (action) {
+      case "create":
+        navigate("/dashboard/stock/create");
+        break;
 
-    case "import":
-      navigate("/dashboard/stock/import");
-      break;
+      case "list":
+        navigate("/dashboard/stock/list");
+        break;
 
-    case "listInventory":
-      navigate("/dashboard/stock/inventory");
-      break;
+      case "import":
+        navigate("/dashboard/stock/import");
+        break;
 
-    case "adjustInventory":
-      navigate("/dashboard/stock/adjustment");
-      break;
+      case "listInventory":
+        navigate("/dashboard/stock/inventory");
+        break;
 
-    case "listAdjustment":
-      navigate("/dashboard/stock/adjustment/list");
-      break;
+      case "adjustInventory":
+        navigate("/dashboard/stock/adjustment");
+        break;
 
-    default:
-      break;
-  }
+      case "listAdjustment":
+        navigate("/dashboard/stock/adjustment/list");
+        break;
 
-  setActiveSubMenu(null); // ✅ close submenu after click
-};
+      default:
+        break;
+    }
+
+    setActiveSubMenu(null);
+  };
+
 
 
   /* ===============================
@@ -309,12 +330,19 @@ const handleStockAction = (action) => {
                 {stockSubMenu.map((sub, idx) => (
                   <div
                     key={sub.label}
-                    className={`submenu-card card-${idx + 1}`}
-                    onClick={() => handleStockAction(sub.action)}
+                    className={`submenu-card card-${idx + 1} ${
+                      sub.action === "import" && !isAdmin ? "disabled-card" : ""
+                    }`}
+                    onClick={() =>
+                      !(sub.action === "import" && !isAdmin) &&
+                      handleStockAction(sub.action)
+                    }
                   >
                     <div className="submenu-icon">{sub.icon}</div>
                     <div className="submenu-label">{sub.label}</div>
                   </div>
+
+
                 ))}
               </div>
             </div>

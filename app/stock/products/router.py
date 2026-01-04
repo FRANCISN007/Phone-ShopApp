@@ -65,6 +65,28 @@ def list_products(
     ]
 
     
+@router.get(
+    "/search",
+    response_model=List[ProductSimpleSchema1]
+)
+def search_products(
+    query: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Simple product search for dropdowns (by name)
+    """
+    products = (
+        db.query(Product)
+        .filter(Product.name.ilike(f"%{query}%"))
+        .order_by(Product.name.asc())
+        .limit(20)
+        .all()
+    )
+
+    return products
+
+
 
 @router.get(
     "/simple",

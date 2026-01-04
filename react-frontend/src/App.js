@@ -27,6 +27,8 @@ import DebtorSalesReport from "./components/sales/DebtorSalesReport";
 import SalesByCustomer from "./components/sales/SalesByCustomer";
 import AddPayment from "./components/sales/AddPayment";
 import ListSalesPayment from "./components/sales/ListSalesPayment";
+import PriceUpdate from "./components/sales/PriceUpdate";
+
 
 // Stock
 import CreateProduct from "./components/stock/CreateProduct";
@@ -71,6 +73,8 @@ const App = () => {
               <Route path="customer" element={<SalesByCustomer />} />
               <Route path="addpayment" element={<AddPayment />} />
               <Route path="listpayment" element={<ListSalesPayment />} />
+              <Route path="priceupdate" element={<PriceUpdate />} />
+
 
             </Route>
 
@@ -82,6 +86,7 @@ const App = () => {
               <Route path="inventory" element={<ListInventory />} />
               <Route path="adjustment" element={<StockAdjustment />} />
               <Route path="adjustmentlist" element={<ListAdjustment />} />
+
 
             </Route>
 

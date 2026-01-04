@@ -72,7 +72,7 @@ const salesSubMenu = [
   // 💰 Payment
   { label: "Add Payment to Sales ", action: "addpayment", icon: "💰" },
   { label: "List Sales Payment ", action: "listpayment", icon: "🧾" },
-  { label: "Price Update ", action: "Priceupdate", icon: "💲✏️" },
+  { label: "Price Update ", action: "priceupdate", icon: "💲✏️" },
   
 ];
 
@@ -205,7 +205,7 @@ const stockSubMenu = [
         navigate("/dashboard/sales/listpayment");
         break;
 
-      case "Priceupdate":
+      case "priceupdate":
         navigate("/dashboard/sales/priceupdate");
         break;
 

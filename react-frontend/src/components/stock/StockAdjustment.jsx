@@ -14,8 +14,11 @@ const StockAdjustment = ({ onClose }) => {
 
   // 🔑 SAME PATTERN AS CREATE PRODUCT
   const [visible, setVisible] = useState(true);
+  
 
   const fetchProducts = useCallback(async () => {
+
+    
     try {
       const res = await axiosWithAuth().get("/stock/products/simple");
       setProducts(Array.isArray(res.data) ? res.data : []);

@@ -57,16 +57,53 @@ const ListSalesPayment = () => {
 
   /* ================= Totals ================= */
   const totals = useMemo(() => {
-    return payments.reduce(
-      (acc, p) => {
-        acc.amount_paid += p.amount_paid || 0;
-        acc.balance_due += p.balance_due || 0;
-        acc.total_sales += p.total_amount || 0;
-        return acc;
-      },
-      { amount_paid: 0, balance_due: 0, total_sales: 0 }
-    );
+    const invoiceMap = new Map();
+
+    let totalPaid = 0;
+
+    payments.forEach((p) => {
+      const invoiceNo = p.invoice_no ?? p.sale_invoice_no;
+
+      // Sum all payments normally
+      totalPaid += p.amount_paid || 0;
+
+      if (!invoiceMap.has(invoiceNo)) {
+        invoiceMap.set(invoiceNo, {
+          total_amount: p.total_amount || 0,
+          balance_due: p.balance_due || 0,
+          payment_date: p.payment_date
+        });
+      } else {
+        // Keep the latest balance by payment date
+        const existing = invoiceMap.get(invoiceNo);
+        const currentDate = new Date(p.payment_date);
+        const existingDate = new Date(existing.payment_date);
+
+        if (currentDate > existingDate) {
+          invoiceMap.set(invoiceNo, {
+            total_amount: existing.total_amount, // still one sale
+            balance_due: p.balance_due || 0,
+            payment_date: p.payment_date
+          });
+        }
+      }
+    });
+
+    let totalSales = 0;
+    let totalBalance = 0;
+
+    invoiceMap.forEach((inv) => {
+      totalSales += inv.total_amount;
+      totalBalance += inv.balance_due;
+    });
+
+    return {
+      total_sales: totalSales,
+      amount_paid: totalPaid,
+      balance_due: totalBalance
+    };
   }, [payments]);
+
 
   const formatAmount = (amount) => Number(amount || 0).toLocaleString("en-US");
 

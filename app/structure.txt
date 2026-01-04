@@ -200,10 +200,10 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend list product, AddPayment.jsx and css, under the src-components-receipt folder, remember to use the function 
-
+now lets work on the frontend list product, ListSalesPayment..jsx and css, under the src-components-sales folder, remember to use the function 
+add date filter and status filter link to the backend
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
 example
 const res = await axiosWithAuth().get("/sales/outstanding", {
-use similar css like the listsales
+use similar css like the listsales, follow the css but dont use the classname so they dont miss up
 i will send you the backend code to use

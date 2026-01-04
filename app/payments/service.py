@@ -4,6 +4,14 @@ from . import models, schemas
 from app.sales import models as sales_models
 import uuid
 
+from datetime import datetime, time
+from datetime import date
+from sqlalchemy import func
+
+from sqlalchemy.orm import joinedload
+
+
+
 
 # -------------------------
 # Create Payment
@@ -68,8 +76,56 @@ def create_payment(
 # -------------------------
 # List all payments
 # -------------------------
-def list_payments(db: Session):
-    return db.query(models.Payment).order_by(models.Payment.created_at.desc()).all()
+
+
+
+
+
+
+
+from datetime import datetime, time
+from sqlalchemy.orm import joinedload
+
+def list_payments(
+    db: Session,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    status: str | None = None,
+    bank_id: int | None = None
+):
+    query = db.query(models.Payment)\
+        .options(
+            joinedload(models.Payment.sale),
+            joinedload(models.Payment.user),
+            joinedload(models.Payment.bank)
+        )
+
+    # ----------------- Date Filter -----------------
+    if start_date:
+        start_dt = datetime.combine(start_date, time.min)
+        query = query.filter(models.Payment.created_at >= start_dt)
+
+    if end_date:
+        end_dt = datetime.combine(end_date, time.max)
+        query = query.filter(models.Payment.created_at <= end_dt)
+
+    # ----------------- Status Filter -----------------
+    if status:
+        query = query.filter(models.Payment.status == status.lower())
+
+    # ----------------- Bank Filter -----------------
+    if bank_id:
+        query = query.filter(models.Payment.bank_id == bank_id)
+
+    payments = query.order_by(models.Payment.created_at.desc()).all()
+
+    # ----------------- Attach extra info -----------------
+    for p in payments:
+        p.bank_name = p.bank.name if p.bank else None
+        p.created_by_name = p.user.username if p.user else None
+        p.total_amount = p.sale.total_amount if p.sale else None
+
+    return payments
 
 # -------------------------
 # List payments by sale

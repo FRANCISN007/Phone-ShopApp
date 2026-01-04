@@ -37,8 +37,11 @@ class Payment(Base):
     sale = relationship(
     "Sale",
     primaryjoin="Payment.sale_invoice_no == foreign(Sale.invoice_no)",
-    viewonly=True
+    viewonly=True,
+    uselist=False  # <-- this makes it return a single Sale object
 )
+
+
 
     bank = relationship("Bank")
     user = relationship("User")

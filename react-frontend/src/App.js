@@ -26,7 +26,7 @@ import StaffSalesReport from "./components/sales/StaffSalesReport";
 import DebtorSalesReport from "./components/sales/DebtorSalesReport";
 import SalesByCustomer from "./components/sales/SalesByCustomer";
 import AddPayment from "./components/sales/AddPayment";
-
+import ListSalesPayment from "./components/sales/ListSalesPayment";
 
 // Stock
 import CreateProduct from "./components/stock/CreateProduct";
@@ -70,7 +70,7 @@ const App = () => {
               <Route path="debtor" element={<DebtorSalesReport />} />
               <Route path="customer" element={<SalesByCustomer />} />
               <Route path="addpayment" element={<AddPayment />} />
-
+              <Route path="listpayment" element={<ListSalesPayment />} />
 
             </Route>
 

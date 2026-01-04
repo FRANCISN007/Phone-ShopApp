@@ -1,6 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+
+
+from datetime import date
+from typing import List, Optional
+
+
+
 
 from app.database import get_db
 from . import schemas, service
@@ -29,10 +35,22 @@ def create_payment_for_sale(
 # -------------------------
 # List all payments
 # -------------------------
-@router.get("/", response_model=List[schemas.PaymentOut])
-def list_payments(db: Session = Depends(get_db)):
-    return service.list_payments(db)
 
+@router.get("/", response_model=List[schemas.PaymentOut])
+def list_payments(
+    start_date: Optional[date] = Query(None, description="Start date"),
+    end_date: Optional[date] = Query(None, description="End date"),
+    status: Optional[str] = Query(None, description="Payment status: completed, part_paid, unpaid"),
+    bank_id: Optional[int] = Query(None, description="Filter by bank ID"),
+    db: Session = Depends(get_db),
+):
+    return service.list_payments(
+        db=db,
+        start_date=start_date,
+        end_date=end_date,
+        status=status,
+        bank_id=bank_id
+    )
 # -------------------------
 # List payments by sale
 # -------------------------

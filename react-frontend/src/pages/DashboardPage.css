@@ -174,7 +174,7 @@
   border-radius: 15px;
   padding: 20px;
   width: 700px;          /* moderate rectangle width */
-  height: 390px;         /* fixed height */
+  height: 370px;         /* fixed height */
   background-color: #fdfdfd;
   margin: 15px auto;     /* center horizontally */
   display: flex;
@@ -229,9 +229,9 @@
 .sales-submenu.grid-3x2 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 100px);
-  gap: 15px;
-  width: 100%;
+  grid-template-rows: repeat(3, 80px);
+  gap: 20px;
+  width: 90%;
 }
 
 /* Cards */
@@ -244,7 +244,7 @@
   color: #fff;
   font-weight: 600;
   width: 200px;          /* Set the desired width */
-  height: 100px;         /* Set the desired height */
+  height: 90px;         /* Set the desired height */
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
@@ -261,6 +261,9 @@
 .card-4 { background-color: #a36aad; } /* purple */
 .card-5 { background-color: #e2857e; } /* red */
 .card-6 { background-color: #a5c0c4; } /* cyan */
+.card-7 { background-color: #6150a1; } /* cyan */
+.card-8 { background-color: #a16868; } /* cyan */
+.card-9 { background-color: #472c2c; } /* cyan */
 
 /* New Sales Reports cards */
 
@@ -275,7 +278,7 @@
 /* Icon and label */
 .submenu-icon {
   font-size: 2rem;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .submenu-label {

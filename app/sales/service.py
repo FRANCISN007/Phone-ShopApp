@@ -76,7 +76,7 @@ def create_sale_full(
             )
 
         # 🔹 Check stock (NO BLOCKING)
-        stock = inventory_service.get_inventory_by_product(
+        stock = inventory_service.get_inventory_orm_by_product(
             db, item.product_id
         )
 

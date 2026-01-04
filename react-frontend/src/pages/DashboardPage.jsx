@@ -43,7 +43,7 @@ const DashboardPage = () => {
       { label: "Stock", icon: "📦", submenu: true },
 
       { label: "Purchase", icon: "🧾", path: "/dashboard/purchase" },
-      { label: "Payments", icon: "💳", path: "/dashboard/payments" },
+      /*{ label: "Payments", icon: "💳", path: "/dashboard/payments" },*/
       { label: "Accounts", icon: "📈", path: "/dashboard/accounts" },
       { label: "Maintenance", icon: "🛠", path: "/dashboard/maintenance" },
       { label: "Export", icon: "📤", action: "export" },
@@ -64,10 +64,16 @@ const salesSubMenu = [
   { label: "Sales Analysis Report", action: "analysis", icon: "📊" },
   { label: "Staff Sales Report", action: "staff", icon: "👨‍💼" },
   
-  { label: "Outstanding Sales", action: "outstanding", icon: "⚠️" },
+  { label: "Debtors Report", action: "debtor", icon: "⚠️" },
 
   // 👤 Customer
   { label: "Sales by Customer", action: "customer", icon: "👤" },
+
+  // 💰 Payment
+  { label: "Add Payment to Sales ", action: "addpayment", icon: "💰" },
+  { label: "List Sales Payment ", action: "listpayment", icon: "🧾" },
+  { label: "Price Update ", action: "Priceupdate", icon: "💲✏️" },
+  
 ];
 
 /* ===============================
@@ -183,13 +189,26 @@ const stockSubMenu = [
         navigate("/dashboard/sales/staff");
         break;
 
-      case "outstanding":
-        navigate("/dashboard/sales/outstanding");
+      case "debtor":
+        navigate("/dashboard/sales/debtor");
         break;
       
       case "customer":
         navigate("/dashboard/sales/customer");
         break;
+
+      case "addpayment":
+        navigate("/dashboard/sales/addpayment");
+        break;
+      
+      case "listpayment":
+        navigate("/dashboard/sales/listpayment");
+        break;
+
+      case "Priceupdate":
+        navigate("/dashboard/sales/priceupdate");
+        break;
+
       default:
         break;
     }

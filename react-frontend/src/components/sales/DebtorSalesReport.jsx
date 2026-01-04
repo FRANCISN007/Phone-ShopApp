@@ -1,14 +1,30 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axiosWithAuth from "../../utils/axiosWithAuth";
-import "./OutstandingSales.css";
+import "./DebtorSalesReport.css";
 
 const OutstandingSales = () => {
-  // Default to today in local timezone
-  const today = new Date();
-  const localToday = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
+  
+  // Default to current month (local timezone safe)
+  const now = new Date();
 
-  const [startDate, setStartDate] = useState(localToday);
-  const [endDate, setEndDate] = useState(localToday);
+  // First day of month
+  const firstDayOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  ).toLocaleDateString("en-CA");
+
+  // Last day of month
+  const lastDayOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0
+  ).toLocaleDateString("en-CA");
+
+  const [startDate, setStartDate] = useState(firstDayOfMonth);
+  const [endDate, setEndDate] = useState(lastDayOfMonth);
+
+
   const [customerName, setCustomerName] = useState("");
 
   const [show, setShow] = useState(true); // NEW: controls visibility
@@ -83,7 +99,7 @@ const OutstandingSales = () => {
         ✖
       </button>
       
-      <h2 className="outstanding-sales-title">Outstanding Sales Report</h2>
+      <h2 className="outstanding-sales-title">Debtors Sales Report</h2>
 
       {/* Filters */}
       <div className="outstanding-sales-filters">

@@ -1,199 +1,201 @@
 /* ===============================
-   Outstanding Sales (ISOLATED)
+   Debtor / Outstanding Sales (COMPACT)
 =============================== */
 
-.outstanding-sales {
-  padding: 15px;
+/* Container */
+.outstanding-sales-container {
+  position: relative;
+  padding: 8px 10px;            /* reduced */
+  font-family: Arial, sans-serif;
+  background-color: #fff;
+  border-radius: 6px;
 }
 
-/* Title */
-.outstanding-sales__title {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-/* Filters */
-.outstanding-sales__filters {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-}
-
-.outstanding-sales__filters label {
-  display: flex;
-  flex-direction: column;
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-.outstanding-sales__filters input {
-  padding: 6px 10px;
-  margin-top: 4px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.outstanding-sales__filters button {
-  padding: 7px 15px;
-  background-color: #007bff;
+/* ===============================
+   Close Button
+=============================== */
+.close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;                 /* smaller */
+  height: 26px;
+  background: #dc3545;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
-  font-weight: bold;
-  align-self: flex-end;
-}
-
-.outstanding-sales__filters button:hover {
-  background-color: #0056b3;
-}
-
-/* Table */
-.outstanding-sales__table-wrapper {
-  overflow-x: auto;
-}
-
-.outstanding-sales__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.outstanding-sales__table th,
-.outstanding-sales__table td {
-  padding: 4px 8px;
-  text-align: left;
-  font-size: 0.85rem;
-  border: 1px solid #28a745;
-}
-
-.outstanding-sales__table th {
-  background-color: #28a745;
-  font-weight: bold;
-}
-
-/* Empty */
-.outstanding-sales__empty {
-  text-align: center;
-  padding: 15px;
-  color: #777;
-}
-
-/* Totals */
-.outstanding-sales__total {
-  font-weight: bold;
-  background-color: #f0f8ff;
-}
-
-/* Balance */
-.outstanding-sales__balance {
-  color: #d9534f;
-  font-weight: bold;
-}
-
-/* Status & Error */
-.outstanding-sales__status {
-  margin: 10px 0;
-  color: #555;
-}
-
-.outstanding-sales__error {
-  margin: 10px 0;
-  color: red;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .outstanding-sales__filters {
-    flex-direction: column;
-  }
-
-  .outstanding-sales__filters button {
-    width: 100%;
-  }
-}
-
-
-.outstanding-sales-filters {
   display: flex;
-  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  transition: 0.15s;
+}
+
+.close-btn:hover {
+  background: #c82333;
+}
+
+/* ===============================
+   Title
+=============================== */
+.outstanding-sales-title {
+  font-size: 1.3rem;           /* reduced */
+  margin: 0 0 10px;             /* reduced */
+  color: #333;
+}
+
+/* ===============================
+   Filters
+=============================== */
+.outstanding-sales-filters1 {
+  display: flex;
+  gap: 8px;                    /* tighter */
   flex-wrap: wrap;
   align-items: flex-end;
-  margin-bottom: 15px;
+  margin-bottom: 8px;          /* reduced */
 }
 
-.outstanding-sales-filters .filter-group {
+.outstanding-sales-filters1 .filter-group {
   display: flex;
   flex-direction: column;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.95rem;          /* smaller labels */
 }
 
-.outstanding-sales-filters input {
-  padding: 5px 8px;
-  border-radius: 4px;
+.outstanding-sales-filters1 input {
+  padding: 6px 8px;            /* tighter inputs */
+  border-radius: 3px;
   border: 1px solid #ccc;
+  font-size: 0.95rem;
 }
 
+/* Filter button */
 .filter-btn {
-  padding: 6px 14px;
+  padding: 8px 8px;           /* compact */
   background-color: #28a745;
   color: white;
   border: none;
   border-radius: 4px;
   font-weight: bold;
+  font-size: 0.95rem;
   cursor: pointer;
+  height: 28px;
 }
 
 .filter-btn:hover {
   background-color: #218838;
 }
 
-.sub-text {
+/* ===============================
+   Status / Error
+=============================== */
+.status-text,
+.error-text {
   font-size: 0.75rem;
+  margin: 4px 0;               /* reduced */
+}
+
+.error-text {
+  color: #dc3545;
+}
+
+/* ===============================
+   Table Wrapper
+=============================== */
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #28a745;   /* thinner */
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+/* ===============================
+   Table
+=============================== */
+.sales-table1 {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.sales-table1 th,
+.sales-table1 td {
+  padding: 3px 4px;            /* VERY important for compact rows */
+  text-align: left;
+  font-size: 0.72rem;          /* smaller text */
+  border: 1px solid #28a745;
+  line-height: 1;            /* tighter rows */
+}
+
+.sales-table1 th {
+  background-color: #28a745;
+  color: #fff;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* Zebra striping */
+.sales-table1 tbody tr:nth-child(odd) {
+  background-color: #eef8f1;
+}
+
+.sales-table1 tbody tr:nth-child(even) {
+  background-color: #f8fdfb;
+}
+
+/* ===============================
+   Empty Row
+=============================== */
+.empty-row {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  padding: 6px;
+}
+
+/* ===============================
+   Sub Text
+=============================== */
+.sub-text {
+  font-size: 0.65rem;          /* smaller */
   color: #666;
 }
 
+/* ===============================
+   Balance
+=============================== */
 .balance-cell {
   color: #dc3545;
   font-weight: bold;
+  white-space: nowrap;
 }
 
-
-
-/* Container should be relative for absolute positioning */
-.outstanding-sales-container {
-  position: relative;
-  padding: 20px;
-  background: #fff; /* optional, for contrast */
-  border-radius: 8px;
-}
-
-/* Close button style */
-.close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  background: #dc3545; /* red background */
-  color: white;
-  border: none;
-  border-radius: 50%;
-  font-size: 18px;
+/* ===============================
+   Totals Row
+=============================== */
+.sales-total-row {
+  background-color: #d4edda;
   font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: 0.2s;
 }
 
-/* Hover effect */
-.close-btn:hover {
-  background: #c82333;
-  transform: scale(1.1);
+.sales-total-row td {
+  border-top: 2px solid #28a745;
+  font-size: 0.8rem;
+  padding: 4px;
+}
+
+/* ===============================
+   Responsive
+=============================== */
+@media (max-width: 768px) {
+  .outstanding-sales-filters1 {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .filter-btn {
+    width: 100%;
+  }
 }

@@ -752,6 +752,8 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
 
 
 
+from datetime import datetime, time
+
 def get_sales_by_customer(
     db: Session,
     customer_name: str | None = None,
@@ -773,12 +775,15 @@ def get_sales_by_customer(
         )
     )
 
-    # ✅ Date filters
+    # ✅ Start date → beginning of day
     if start_date:
-        query = query.filter(models.Sale.sold_at >= start_date)
+        start_dt = datetime.combine(start_date, time.min)
+        query = query.filter(models.Sale.sold_at >= start_dt)
 
+    # ✅ End date → END of day (THIS IS THE KEY FIX)
     if end_date:
-        query = query.filter(models.Sale.sold_at <= end_date)
+        end_dt = datetime.combine(end_date, time.max)
+        query = query.filter(models.Sale.sold_at <= end_dt)
 
     sales = query.order_by(models.Sale.sold_at.desc()).all()
 
@@ -792,7 +797,6 @@ def get_sales_by_customer(
             item.product_name = item.product.name if item.product else "-"
 
     return sales
-
 
 
 

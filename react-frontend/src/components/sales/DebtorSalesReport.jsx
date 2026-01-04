@@ -102,7 +102,7 @@ const OutstandingSales = () => {
       <h2 className="outstanding-sales-title">Debtors Sales Report</h2>
 
       {/* Filters */}
-      <div className="outstanding-sales-filters">
+      <div className="outstanding-sales-filters1">
         <div className="filter-group">
           <label>Start Date</label>
           <input
@@ -142,7 +142,7 @@ const OutstandingSales = () => {
 
       {/* Table */}
       <div className="table-wrapper">
-        <table className="sales-table">
+        <table className="sales-table1">
           <thead>
             <tr>
               <th>#</th>

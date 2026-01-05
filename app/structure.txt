@@ -200,8 +200,8 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend list product, PriceUpdate.jsx and css, under the src-components-sales folder, remember to use the function 
-add date filter and status filter link to the backend
+now lets work on the frontend list product, CreatePurchase.jsx and css, under the src-components-sales folder, remember to use the function 
+
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
 example
 const res = await axiosWithAuth().get("/sales/outstanding", {

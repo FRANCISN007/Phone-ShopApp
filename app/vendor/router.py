@@ -9,6 +9,16 @@ router = APIRouter()
 def create_vendor(vendor: schemas.VendorCreate, db: Session = Depends(get_db)):
     return service.create_vendor(db, vendor)
 
+@router.get("/simple", response_model=list[schemas.VendorOut])
+def list_vendors_simple(db: Session = Depends(get_db)):
+    """
+    Simple list of vendors for dropdowns.
+    Returns all vendors with id and business_name (or name).
+    """
+    vendors = service.get_all_vendors_simple(db)
+    return vendors
+
+
 @router.get("/{vendor_id}", response_model=schemas.VendorOut)
 def read_vendor(vendor_id: int, db: Session = Depends(get_db)):
     vendor = service.get_vendor(db, vendor_id)
@@ -19,6 +29,9 @@ def read_vendor(vendor_id: int, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[schemas.VendorOut])
 def list_vendors(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return service.get_vendors(db, skip, limit)
+
+
+
 
 @router.put("/{vendor_id}", response_model=schemas.VendorOut)
 def update_vendor(vendor_id: int, vendor_update: schemas.VendorUpdate, db: Session = Depends(get_db)):

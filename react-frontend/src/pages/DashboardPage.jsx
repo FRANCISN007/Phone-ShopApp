@@ -58,13 +58,13 @@ const DashboardPage = () => {
     { label: "Create Product", action: "create", icon: "➕" },
     { label: "List Product", action: "list", icon: "📋" },
     { label: "Import Product", action: "import", icon: "📥" },
-    { label: "Stock Balance", action: "inventory", icon: "📦" },
+    { label: "Stock Valuation", action: "inventory", icon: "📦" },
     { label: "Stock Adjustment", action: "adjustment", icon: "⚖️" },
     { label: "List Adjustment", action: "adjustmentlist", icon: "🧾" },
   ];
 
   const purchaseSubMenu = [
-    { label: "Create Purchase", action: "createPurchase", icon: "➕" },
+    { label: "Create Purchase", action: "create", icon: "➕" },
     { label: "List Purchase", action: "listPurchase", icon: "📋" },
     { label: "Create Vendor", action: "createVendor", icon: "➕" },
     { label: "List Vendor", action: "listVendor", icon: "🧾" },
@@ -203,7 +203,7 @@ const DashboardPage = () => {
 
   const handlePurchaseAction = action => {
     switch (action) {
-      case "createPurchase":
+      case "create":
         navigate("/dashboard/purchase/create");
         break;
       case "listPurchase":

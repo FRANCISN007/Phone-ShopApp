@@ -8,11 +8,23 @@ def create_vendor(db: Session, vendor: schemas.VendorCreate):
     db.refresh(new_vendor)
     return new_vendor
 
+
+
+def get_all_vendors_simple(db: Session):
+    """
+    Return all vendors for dropdowns
+    """
+    return db.query(models.Vendor).all()
+
+
+
 def get_vendor(db: Session, vendor_id: int):
     return db.query(models.Vendor).filter(models.Vendor.id == vendor_id).first()
 
 def get_vendors(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Vendor).offset(skip).limit(limit).all()
+
+
 
 def update_vendor(db: Session, vendor_id: int, vendor_update: schemas.VendorUpdate):
     vendor = db.query(models.Vendor).filter(models.Vendor.id == vendor_id).first()

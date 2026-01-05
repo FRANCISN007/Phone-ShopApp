@@ -40,6 +40,12 @@ import StockAdjustment from "./components/stock/StockAdjustment";
 import ListAdjustment from "./components/stock/ListAdjustment";
 
 
+
+// Purchase
+import CreatePurchase from "./components/purchase/CreatePurchase";
+
+
+
 // POS
 import PosSales from "./components/pos/PosSales";
 
@@ -75,7 +81,6 @@ const App = () => {
               <Route path="listpayment" element={<ListSalesPayment />} />
               <Route path="priceupdate" element={<PriceUpdate />} />
 
-
             </Route>
 
             {/* ✅ STOCK ROUTES */}
@@ -87,8 +92,17 @@ const App = () => {
               <Route path="adjustment" element={<StockAdjustment />} />
               <Route path="adjustmentlist" element={<ListAdjustment />} />
 
+            </Route>
+
+            {/* ✅ STOCK ROUTES */}
+            <Route path="purchase">
+              <Route path="create" element={<CreatePurchase />} />
+              
 
             </Route>
+
+
+           
 
             
 

@@ -14,7 +14,7 @@ router = APIRouter()
 def create_purchase(purchase: schemas.PurchaseCreate, db: Session = Depends(get_db)):
     try:
         db_purchase = service.create_purchase(db, purchase)
-        inventory = inventory_service.get_inventory_by_product(db, db_purchase.product_id)
+        inventory = inventory_service.get_inventory_orm_by_product(db, db_purchase.product_id)
         current_stock = inventory.current_stock if inventory else 0
         return {**db_purchase.__dict__, "current_stock": current_stock}
     except Exception as e:

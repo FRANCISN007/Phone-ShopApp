@@ -6,6 +6,8 @@ from app.stock.inventory.adjustments.models import StockAdjustment
 from app.stock.inventory.models import Inventory
 from app.stock.products.models import  Product
 
+from app.purchase.models import  Purchase
+
 # --------------------------
 # Read-only: list inventory
 # --------------------------
@@ -16,6 +18,7 @@ def list_inventory(
     product_id: int | None = None,
     product_name: str | None = None,
 ):
+    # 1️⃣ Base query for inventory joined with product
     query = (
         db.query(
             Inventory.id,
@@ -29,23 +32,57 @@ def list_inventory(
             Inventory.updated_at,
         )
         .join(Product, Product.id == Inventory.product_id)
-        .order_by(Inventory.id.asc())   # ✅ ASCENDING ORDER
+        .order_by(Inventory.id.asc())
     )
 
-    # 🔍 Filter by product ID
+    # 2️⃣ Filter by product ID
     if product_id is not None:
         query = query.filter(Inventory.product_id == product_id)
 
-    # 🔍 Filter by product name (case-insensitive)
+    # 3️⃣ Filter by product name
     if product_name:
         query = query.filter(Product.name.ilike(f"%{product_name}%"))
 
-    return (
-        query
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    inventory_list = query.offset(skip).limit(limit).all()
+
+    result = []
+    grand_total = 0
+
+    for item in inventory_list:
+        # 4️⃣ Get latest purchase cost for this product
+        latest_purchase = (
+            db.query(Purchase)
+            .filter(Purchase.product_id == item.product_id)
+            .order_by(Purchase.id.desc())  # latest first
+            .first()
+        )
+        latest_cost = latest_purchase.cost_price if latest_purchase else 0
+
+        # 5️⃣ Calculate inventory valuation for this product
+        inventory_value = item.current_stock * latest_cost
+
+        grand_total += inventory_value
+
+        result.append({
+            "id": item.id,
+            "product_id": item.product_id,
+            "product_name": item.product_name,
+            "quantity_in": item.quantity_in,
+            "quantity_out": item.quantity_out,
+            "adjustment_total": item.adjustment_total,
+            "current_stock": item.current_stock,
+            "latest_cost": latest_cost,
+            "inventory_value": inventory_value,
+            "created_at": item.created_at,
+            "updated_at": item.updated_at,
+        })
+
+    return {
+        "inventory": result,
+        "grand_total": grand_total
+    }
+
+
 
 
 def get_inventory_orm_by_product(db: Session, product_id: int):

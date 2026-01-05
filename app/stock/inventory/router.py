@@ -5,6 +5,8 @@ from typing import Optional
 from fastapi import Depends
 
 
+
+
 from app.database import get_db
 from app.stock.inventory import schemas, service
 
@@ -13,7 +15,7 @@ router = APIRouter()
 
 
 
-@router.get("/", response_model=List[schemas.InventoryOut])
+@router.get("/", response_model=dict)  # Or create a proper Pydantic schema
 def list_inventory(
     skip: int = 0,
     limit: int = 100,

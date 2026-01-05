@@ -37,7 +37,7 @@ def list_adjustments(
     end_date: Optional[date] = None,     # ✅ NEW
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["staff", "manager", "admin"])
+        role_required(["user", "manager", "admin"])
     ),
 ):
     """

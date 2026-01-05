@@ -13,25 +13,13 @@ const DashboardPage = () => {
   const [activeSubMenu, setActiveSubMenu] = useState(null); 
 
   const storedUser = JSON.parse(localStorage.getItem("user")) || {};
-
-  let roles = [];
-
-  if (Array.isArray(storedUser.roles)) {
-    roles = storedUser.roles;
-  } else if (typeof storedUser.role === "string") {
-    roles = [storedUser.role];
-  }
-
-  roles = roles.map((r) => r.toLowerCase());
-
+  let roles = Array.isArray(storedUser.roles)
+    ? storedUser.roles
+    : typeof storedUser.role === "string"
+    ? [storedUser.role]
+    : [];
+  roles = roles.map(r => r.toLowerCase());
   const isAdmin = roles.includes("admin");
-
-  
-
-  
-
-
-  
 
   /* ===============================
      MAIN MENU
@@ -41,9 +29,7 @@ const DashboardPage = () => {
       { label: "POS", icon: "🛒", path: "/dashboard/pos" },
       { label: "Sales", icon: "💰", submenu: true },
       { label: "Stock", icon: "📦", submenu: true },
-
-      { label: "Purchase", icon: "🧾", path: "/dashboard/purchase" },
-      /*{ label: "Payments", icon: "💳", path: "/dashboard/payments" },*/
+      { label: "Purchase", icon: "🧾", submenu: true },
       { label: "Accounts", icon: "📈", path: "/dashboard/accounts" },
       { label: "Maintenance", icon: "🛠", path: "/dashboard/maintenance" },
       { label: "Export", icon: "📤", action: "export" },
@@ -54,41 +40,35 @@ const DashboardPage = () => {
   );
 
   /* ===============================
-     SALES SUBMENU
+     SUBMENUS
   ================================ */
-const salesSubMenu = [
-  { label: "Sales Ledger", action: "listSales", icon: "📄" },
-  { label: "List Item Sold", action: "itemsold", icon: "🧾" },
-  
-  // 📊 Reports
-  { label: "Sales Analysis Report", action: "analysis", icon: "📊" },
-  { label: "Staff Sales Report", action: "staff", icon: "👨‍💼" },
-  
-  { label: "Debtors Report", action: "debtor", icon: "⚠️" },
+  const salesSubMenu = [
+    { label: "Sales Ledger", action: "listSales", icon: "📄" },
+    { label: "List Item Sold", action: "itemsold", icon: "🧾" },
+    { label: "Sales Analysis Report", action: "analysis", icon: "📊" },
+    { label: "Staff Sales Report", action: "staff", icon: "👨‍💼" },
+    { label: "Debtors Report", action: "debtor", icon: "⚠️" },
+    { label: "Sales by Customer", action: "customer", icon: "👤" },
+    { label: "Add Payment to Sales", action: "addpayment", icon: "💰" },
+    { label: "List Sales Payment", action: "listpayment", icon: "🧾" },
+    { label: "Price Update", action: "priceupdate", icon: "💲✏️" },
+  ];
 
-  // 👤 Customer
-  { label: "Sales by Customer", action: "customer", icon: "👤" },
+  const stockSubMenu = [
+    { label: "Create Product", action: "create", icon: "➕" },
+    { label: "List Product", action: "list", icon: "📋" },
+    { label: "Import Product", action: "import", icon: "📥" },
+    { label: "Stock Balance", action: "inventory", icon: "📦" },
+    { label: "Stock Adjustment", action: "adjustment", icon: "⚖️" },
+    { label: "List Adjustment", action: "adjustmentlist", icon: "🧾" },
+  ];
 
-  // 💰 Payment
-  { label: "Add Payment to Sales ", action: "addpayment", icon: "💰" },
-  { label: "List Sales Payment ", action: "listpayment", icon: "🧾" },
-  { label: "Price Update ", action: "priceupdate", icon: "💲✏️" },
-  
-];
-
-/* ===============================
-   STOCK SUBMENU
-================================ */
-const stockSubMenu = [
-  { label: "Create Product", action: "create", icon: "➕" },
-  { label: "List Product", action: "list", icon: "📋" },
-  { label: "Import Product", action: "import", icon: "📥" },
-
-  { label: "Stock Balance", action: "inventory", icon: "📦" },
-  { label: "Stock Adjustment", action: "adjustment", icon: "⚖️" },
-  { label: "List Adjustment", action: "adjustmentlist", icon: "🧾" },
-];
-
+  const purchaseSubMenu = [
+    { label: "Create Purchase", action: "createPurchase", icon: "➕" },
+    { label: "List Purchase", action: "listPurchase", icon: "📋" },
+    { label: "Create Vendor", action: "createVendor", icon: "➕" },
+    { label: "List Vendor", action: "listVendor", icon: "🧾" },
+  ];
 
   /* ===============================
      EXPORT TO EXCEL
@@ -100,26 +80,18 @@ const stockSubMenu = [
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Data");
 
-    const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+    const headers = Array.from(table.querySelectorAll("thead th")).map(th =>
       th.innerText.trim()
     );
     sheet.addRow(headers).font = { bold: true };
 
-    Array.from(table.querySelectorAll("tbody tr")).forEach((tr) => {
-      const row = Array.from(tr.querySelectorAll("td")).map((td) =>
-        td.innerText.trim()
-      );
+    Array.from(table.querySelectorAll("tbody tr")).forEach(tr => {
+      const row = Array.from(tr.querySelectorAll("td")).map(td => td.innerText.trim());
       sheet.addRow(row);
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(
-      new Blob([buffer], {
-        type:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }),
-      "export.xlsx"
-    );
+    saveAs(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "export.xlsx");
   }, []);
 
   /* ===============================
@@ -141,25 +113,17 @@ const stockSubMenu = [
      MENU ACTION HANDLER
   ================================ */
   const handleMenuAction = useCallback(
-    (item) => {
+    item => {
       if (item.action === "export") return exportToExcel();
       if (item.action === "print") return printContent();
-
       if (item.label === "POS") {
-        window.open(
-          `${window.location.origin}/dashboard/pos`,
-          "_blank",
-          "noopener,noreferrer"
-        );
+        window.open(`${window.location.origin}/dashboard/pos`, "_blank", "noopener,noreferrer");
         return;
       }
-
       if (item.submenu) {
         setActiveSubMenu(activeSubMenu === item.label ? null : item.label);
         return;
       }
-
-
       if (item.path) {
         setActiveSubMenu(null);
         navigate(item.path);
@@ -169,10 +133,9 @@ const stockSubMenu = [
   );
 
   /* ===============================
-     SALES SUBMENU ACTIONS
+     SUBMENU ACTIONS
   ================================ */
-  const handleSalesAction = (action) => {
-    
+  const handleSalesAction = action => {
     switch (action) {
       case "listSales":
         navigate("/dashboard/sales/list");
@@ -180,45 +143,34 @@ const stockSubMenu = [
       case "itemsold":
         navigate("/dashboard/sales/itemsold");
         break;
-      
       case "analysis":
         navigate("/dashboard/sales/analysis");
         break;
-
       case "staff":
         navigate("/dashboard/sales/staff");
         break;
-
       case "debtor":
         navigate("/dashboard/sales/debtor");
         break;
-      
       case "customer":
         navigate("/dashboard/sales/customer");
         break;
-
       case "addpayment":
         navigate("/dashboard/sales/addpayment");
         break;
-      
       case "listpayment":
         navigate("/dashboard/sales/listpayment");
         break;
-
       case "priceupdate":
         navigate("/dashboard/sales/priceupdate");
         break;
-
       default:
         break;
     }
     setActiveSubMenu(null);
   };
 
-  /* ===============================
-   STOCK SUBMENU ACTIONS
-  ================================ */
-  const handleStockAction = (action) => {
+  const handleStockAction = action => {
     if (action === "import" && !isAdmin) {
       alert("Access denied. Admin only.");
       return;
@@ -228,108 +180,98 @@ const stockSubMenu = [
       case "create":
         navigate("/dashboard/stock/create");
         break;
-
       case "list":
         navigate("/dashboard/stock/list");
         break;
-
       case "import":
         navigate("/dashboard/stock/import");
         break;
-
       case "inventory":
         navigate("/dashboard/stock/inventory");
         break;
-
       case "adjustment":
         navigate("/dashboard/stock/adjustment");
         break;
-
       case "adjustmentlist":
         navigate("/dashboard/stock/adjustmentlist");
         break;
-
       default:
         break;
     }
-
     setActiveSubMenu(null);
   };
 
-
+  const handlePurchaseAction = action => {
+    switch (action) {
+      case "createPurchase":
+        navigate("/dashboard/purchase/create");
+        break;
+      case "listPurchase":
+        navigate("/dashboard/purchase/list");
+        break;
+      case "createVendor":
+        navigate("/dashboard/purchase/vendor/create");
+        break;
+      case "listVendor":
+        navigate("/dashboard/purchase/vendor/list");
+        break;
+      default:
+        break;
+    }
+    setActiveSubMenu(null);
+  };
 
   /* ===============================
      KEYBOARD NAVIGATION
   ================================ */
   useEffect(() => {
     const cols = 6;
-    const handleKeyDown = (e) => {
+    const handleKeyDown = e => {
       const tag = e.target.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable)
-        return;
-
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) return;
       if (location.pathname.startsWith("/dashboard/pos")) return;
 
-      if (e.key === "ArrowRight") setActiveIndex((i) => (i + 1) % mainMenu.length);
-      else if (e.key === "ArrowLeft")
-        setActiveIndex((i) => (i === 0 ? mainMenu.length - 1 : i - 1));
-      else if (e.key === "ArrowDown")
-        setActiveIndex((i) => Math.min(i + cols, mainMenu.length - 1));
-      else if (e.key === "ArrowUp") setActiveIndex((i) => Math.max(i - cols, 0));
+      if (e.key === "ArrowRight") setActiveIndex(i => (i + 1) % mainMenu.length);
+      else if (e.key === "ArrowLeft") setActiveIndex(i => (i === 0 ? mainMenu.length - 1 : i - 1));
+      else if (e.key === "ArrowDown") setActiveIndex(i => Math.min(i + cols, mainMenu.length - 1));
+      else if (e.key === "ArrowUp") setActiveIndex(i => Math.max(i - cols, 0));
       else if (e.key === "Enter") handleMenuAction(mainMenu[activeIndex]);
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeIndex, mainMenu, handleMenuAction, location.pathname]);
 
-  
   /* ===============================
      RENDER
   ================================ */
   return (
     <div className="dashboard-container">
-      {/* 🔹 TOP POS MENU */}
+      {/* TOP MENU */}
       <div className="top-menu">
         {mainMenu.map((item, index) => (
           <div
             key={item.label}
-            className={`menu-card ${index === activeIndex ? "active" : ""} ${
-              item.danger ? "danger" : ""
-            }`}
+            className={`menu-card ${index === activeIndex ? "active" : ""} ${item.danger ? "danger" : ""}`}
             onClick={() => handleMenuAction(item)}
           >
-            <div className={`menu-icon ${item.label === "Exit" ? "exit-icon" : ""}`}>
-              {item.icon}
-            </div>
+            <div className={`menu-icon ${item.label === "Exit" ? "exit-icon" : ""}`}>{item.icon}</div>
             <div className="menu-label">{item.label}</div>
           </div>
         ))}
       </div>
 
-
-  
-
-      {/* 🔹 MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <main className="main-content">
         <section className="content-area">
-          {/* Render either submenu OR outlet */}
           {activeSubMenu === "Sales" ? (
             <div className="submenu-frame center-frame">
               <div className="submenu-header">
                 <h2 className="submenu-heading">Sales Menu</h2>
-                <button className="close-btn" onClick={() => setActiveSubMenu(null)}>
-                  ✖
-                </button>
+                <button className="close-btn" onClick={() => setActiveSubMenu(null)}>✖</button>
               </div>
-
-              <div className="sales-submenu grid-3x2">
+              <div className="sales-submenu grid-3x3">
                 {salesSubMenu.map((sub, idx) => (
-                  <div
-                    key={sub.label}
-                    className={`submenu-card card-${idx + 1}`}
-                    onClick={() => handleSalesAction(sub.action)}
-                  >
+                  <div key={sub.label} className={`submenu-card card-${idx + 1}`} onClick={() => handleSalesAction(sub.action)}>
                     <div className="submenu-icon">{sub.icon}</div>
                     <div className="submenu-label">{sub.label}</div>
                   </div>
@@ -340,39 +282,46 @@ const stockSubMenu = [
             <div className="submenu-frame center-frame">
               <div className="submenu-header">
                 <h2 className="submenu-heading">Stock Menu</h2>
-                <button className="close-btn" onClick={() => setActiveSubMenu(null)}>
-                  ✖
-                </button>
+                <button className="close-btn" onClick={() => setActiveSubMenu(null)}>✖</button>
               </div>
-
-              <div className="sales-submenu grid-3x2">
+              <div className="sales-submenu grid-3x3">
                 {stockSubMenu.map((sub, idx) => (
                   <div
                     key={sub.label}
-                    className={`submenu-card card-${idx + 1} ${
-                      sub.action === "import" && !isAdmin ? "disabled-card" : ""
-                    }`}
-                    onClick={() =>
-                      !(sub.action === "import" && !isAdmin) &&
-                      handleStockAction(sub.action)
-                    }
+                    className={`submenu-card card-${idx + 1} ${sub.action === "import" && !isAdmin ? "disabled-card" : ""}`}
+                    onClick={() => !(sub.action === "import" && !isAdmin) && handleStockAction(sub.action)}
                   >
                     <div className="submenu-icon">{sub.icon}</div>
                     <div className="submenu-label">{sub.label}</div>
                   </div>
-
-
                 ))}
               </div>
             </div>
-          ) : (
+          ) : activeSubMenu === "Purchase" ? (
+              <div className="submenu-frame center-frame purchase-frame">
+                <div className="submenu-header">
+                  <h2 className="submenu-heading">Purchase Menu</h2>
+                  <button className="close-btn" onClick={() => setActiveSubMenu(null)}>✖</button>
+                </div>
+                <div className="sales-submenu grid-2x2">
+                  {purchaseSubMenu.map((sub, idx) => (
+                    <div
+                      key={sub.label}
+                      className={`submenu-card card-${idx + 1}`}
+                      onClick={() => handlePurchaseAction(sub.action)}
+                    >
+                      <div className="submenu-icon">{sub.icon}</div>
+                      <div className="submenu-label">{sub.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+            : (
             <Outlet />
           )}
-
         </section>
       </main>
-
-
     </div>
   );
 };

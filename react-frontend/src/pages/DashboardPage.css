@@ -174,8 +174,8 @@
   border-radius: 15px;
   padding: 20px;
   width: 700px;          /* moderate rectangle width */
-  height: 370px;         /* fixed height */
-  background-color: #fdfdfd;
+  height: 380px;         /* fixed height */
+  background-color: #a06d6d;
   margin: 15px auto;     /* center horizontally */
   display: flex;
   flex-direction: column;
@@ -226,7 +226,7 @@
 
 
 /* Grid layout 3x2 */
-.sales-submenu.grid-3x2 {
+.sales-submenu.grid-3x3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 80px);
@@ -262,10 +262,12 @@
 .card-5 { background-color: #e2857e; } /* red */
 .card-6 { background-color: #a5c0c4; } /* cyan */
 .card-7 { background-color: #6150a1; } /* cyan */
-.card-8 { background-color: #a16868; } /* cyan */
+.card-8 { background-color: #6d6060; } /* cyan */
 .card-9 { background-color: #472c2c; } /* cyan */
 
 /* New Sales Reports cards */
+
+
 
 
 /* Hover effect */
@@ -294,3 +296,52 @@
   pointer-events: none;
 }
 
+
+.grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-gap: 20px;
+}
+
+
+/* Default submenu frame (Sales & Stock) */
+.submenu-frame {
+  width: 800px;
+  height: 500px; /* original size */
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+
+
+.purchase-frame {
+  width: 500px !important;
+  height: 350px !important;
+}
+
+
+/* Stock submenu (3x2) */
+.stock-frame {
+  width: 700px;
+  height: 350px;
+  margin: 0 auto;             /* center frame horizontally */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;     /* center vertically */
+  align-items: center;         /* center horizontally */
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Grid for cards inside Stock submenu */
+.stock-frame .sales-submenu {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 20px;
+  justify-items: center;       /* center each card horizontally in its column */
+  align-items: center;         /* center each card vertically */
+}

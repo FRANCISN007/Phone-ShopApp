@@ -29,6 +29,7 @@ def list_inventory(
             Inventory.updated_at,
         )
         .join(Product, Product.id == Inventory.product_id)
+        .order_by(Inventory.id.asc())   # ✅ ASCENDING ORDER
     )
 
     # 🔍 Filter by product ID
@@ -45,6 +46,7 @@ def list_inventory(
         .limit(limit)
         .all()
     )
+
 
 def get_inventory_orm_by_product(db: Session, product_id: int):
     return (

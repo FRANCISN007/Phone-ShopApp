@@ -3,7 +3,7 @@
 =============================== */
 .sales-payment-container {
   position: relative;
-  padding: 5px;
+  padding: 4px;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
   border-radius: 4px;
@@ -13,31 +13,49 @@
    Title
 =============================== */
 .sales-payment-title {
-  font-size: 1.8rem;
-  margin-bottom: 15px;
+  font-size: 1.35rem;
+  margin-bottom: 6px;
   color: #333;
+  font-weight: 600;
 }
 
 /* ===============================
    Filters
 =============================== */
 .sales-payment-filters {
-  margin-bottom: 15px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
 }
 
 .sales-payment-filters label {
-  font-weight: bold;
-  font-size: 0.95rem;
+  font-weight: 600;
+  font-size: 0.8rem;
 }
 
 .sales-payment-filters input[type="date"],
 .sales-payment-filters select {
-  padding: 5px 8px;
-  border-radius: 4px;
+  padding: 3px 5px;
+  font-size: 0.75rem;
+  border-radius: 3px;
   border: 1px solid #ccc;
+}
+
+.sales-payment-filters button {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.sales-payment-filters button:hover {
+  opacity: 0.9;
 }
 
 /* ===============================
@@ -45,8 +63,8 @@
 =============================== */
 .sales-payment-table-wrapper {
   overflow-x: auto;
-  border: 2px solid #28a745;
-  border-radius: 6px;
+  border: 1px solid #28a745;
+  border-radius: 4px;
   background-color: white;
 }
 
@@ -59,27 +77,32 @@
   min-width: 900px;
 }
 
+/* Cells */
 .sales-payment-table th,
 .sales-payment-table td {
-  padding: 4px 8px;
+  padding: 2px 5px;
+  font-size: 0.75rem;
+  line-height: 1.15;
   text-align: left;
-  font-size: 0.85rem;
   border: 1px solid #28a745;
+  white-space: nowrap;
 }
 
+/* Header */
 .sales-payment-table th {
   background-color: #28a745;
   color: white;
-  font-weight: bold;
+  font-weight: 600;
+  padding: 3px 5px;
 }
 
 /* Zebra rows */
 .sales-payment-table tbody tr:nth-child(odd) {
-  background-color: #e6f4ea;
+  background-color: #eaf6ee;
 }
 
 .sales-payment-table tbody tr:nth-child(even) {
-  background-color: #f0faf5;
+  background-color: #f4fbf7;
 }
 
 /* Empty row */
@@ -87,43 +110,37 @@
   text-align: center;
   font-style: italic;
   color: #666;
+  font-size: 0.75rem;
+  padding: 6px 0;
 }
 
-/* Loading / Error */
+/* ===============================
+   Status / Error
+=============================== */
 .sales-payment-status-text,
 .sales-payment-error-text {
-  font-weight: bold;
-  margin: 10px 0;
+  font-weight: 600;
+  margin: 4px 0;
+  font-size: 0.75rem;
 }
 
 .sales-payment-error-text {
   color: #dc3545;
 }
 
-
-.sales-payment-filters button {
-  padding: 6px 12px;
-  border: none;
-  background-color: #28a745;
-  color: white;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: 0.2s;
-}
 /* ===============================
    Close Button
 =============================== */
 .sales-payment-close-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 6px;
+  right: 6px;
   background: #dc3545;
   color: white;
   border: none;
-  font-size: 18px;
-  width: 32px;
-  height: 32px;
+  font-size: 14px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   cursor: pointer;
   font-weight: bold;
@@ -136,5 +153,42 @@
 
 .sales-payment-close-btn:hover {
   background: #c82333;
-  transform: scale(1.1);
+}
+
+/* ===============================
+   Delete Icon
+=============================== */
+.delete-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+
+.delete-icon-btn:hover {
+  transform: scale(1.15);
+}
+
+
+/* ===============================
+   TOTAL ROW (Emphasized)
+=============================== */
+.sales-total-row {
+  font-weight: bold;
+  background-color: #dff3e4;
+}
+
+.sales-total-row td {
+  font-size: 0.9rem;     /* bigger than normal rows */
+  padding: 4px 6px;     /* slightly more breathing space */
+}
+
+/* Emphasize amount columns more */
+.sales-total-row td:nth-child(4),
+.sales-total-row td:nth-child(5),
+.sales-total-row td:nth-child(6) {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #d32323;
 }

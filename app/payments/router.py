@@ -37,7 +37,8 @@ def create_payment_for_sale(
 # -------------------------
 
 @router.get("/", response_model=List[schemas.PaymentOut])
-def list_payments(
+def list_payments_endpoint(
+    invoice_no: Optional[str] = Query(None, description="Filter by invoice number"),
     start_date: Optional[date] = Query(None, description="Start date"),
     end_date: Optional[date] = Query(None, description="End date"),
     status: Optional[str] = Query(None, description="Payment status: completed, part_paid, unpaid"),
@@ -46,11 +47,14 @@ def list_payments(
 ):
     return service.list_payments(
         db=db,
+        invoice_no=invoice_no,
         start_date=start_date,
         end_date=end_date,
         status=status,
         bank_id=bank_id
     )
+
+
 # -------------------------
 # List payments by sale
 # -------------------------

@@ -1,10 +1,19 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException
+
+from sqlalchemy import cast, String
+
 from . import models, schemas
 from app.sales import models as sales_models
 import uuid
 
-from datetime import datetime, time
+
+from sqlalchemy import text
+
+
+from datetime import datetime, date, time
+from typing import Optional, List
+
 from datetime import date
 from sqlalchemy import func
 
@@ -83,21 +92,25 @@ def create_payment(
 
 
 
-from datetime import datetime, time
-from sqlalchemy.orm import joinedload
 
 def list_payments(
     db: Session,
+    invoice_no: str | None = None,
     start_date: date | None = None,
     end_date: date | None = None,
     status: str | None = None,
     bank_id: int | None = None
 ):
-    query = db.query(models.Payment)\
-        .options(
-            joinedload(models.Payment.sale),
-            joinedload(models.Payment.user),
-            joinedload(models.Payment.bank)
+    query = db.query(models.Payment).options(
+        joinedload(models.Payment.sale),
+        joinedload(models.Payment.user),
+        joinedload(models.Payment.bank)
+    )
+
+    # ----------------- Invoice Filter -----------------
+    if invoice_no:
+        query = query.filter(
+            cast(models.Payment.sale_invoice_no, String).ilike(f"%{invoice_no}%")
         )
 
     # ----------------- Date Filter -----------------
@@ -126,6 +139,7 @@ def list_payments(
         p.total_amount = p.sale.total_amount if p.sale else None
 
     return payments
+
 
 # -------------------------
 # List payments by sale

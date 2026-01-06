@@ -200,10 +200,12 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend list product, CreatePurchase.jsx and css, under the src-components-sales folder, remember to use the function 
+now lets work on the frontend list product, ListPurchase.jsx and css, under the src-components-purchase 
+folder, remember to use the function 
 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
 example
 const res = await axiosWithAuth().get("/sales/outstanding", {
 
-i will send you the backend code to use
+i will send you the backend code to use   
+we need to add edit and delete to the action

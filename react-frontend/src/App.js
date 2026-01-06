@@ -43,7 +43,7 @@ import ListAdjustment from "./components/stock/ListAdjustment";
 
 // Purchase
 import CreatePurchase from "./components/purchase/CreatePurchase";
-
+import ListPurchase from "./components/purchase/ListPurchase";
 
 
 // POS
@@ -97,7 +97,7 @@ const App = () => {
             {/* ✅ STOCK ROUTES */}
             <Route path="purchase">
               <Route path="create" element={<CreatePurchase />} />
-              
+              <Route path="list" element={<ListPurchase />} />
 
             </Route>
 

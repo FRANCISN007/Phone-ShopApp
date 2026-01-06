@@ -3,6 +3,8 @@ from app.purchase import models as purchase_models, schemas as purchase_schemas
 from app.stock.inventory import service as inventory_service
 from datetime import datetime
 
+
+
 from app.stock.products import models as product_models
 
 
@@ -47,8 +49,10 @@ def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
 
 
 def list_purchases(db: Session, skip: int = 0, limit: int = 100):
+    """
+    List purchases from the database
+    """
     return db.query(purchase_models.Purchase).offset(skip).limit(limit).all()
-
 
 def get_purchase(db: Session, purchase_id: int):
     return db.query(purchase_models.Purchase).filter(
@@ -88,7 +92,7 @@ def delete_purchase(db: Session, purchase_id: int):
         return None
 
     # Revert inventory: subtract quantity_in from stock
-    inventory = inventory_service.get_inventory_by_product(db, purchase.product_id)
+    inventory = inventory_service.get_inventory_orm_by_product(db, purchase.product_id)
     if inventory:
         inventory.quantity_in -= purchase.quantity
         inventory.current_stock = inventory.quantity_in - inventory.quantity_out + inventory.adjustment_total

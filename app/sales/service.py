@@ -161,7 +161,7 @@ def create_sale_item(
         )
 
     # Validate stock
-    stock = inventory_service.get_inventory_by_product(
+    stock = inventory_service.get_inventory_orm_by_product(
         db, item.product_id
     )
     if not stock or stock.current_stock < item.quantity:
@@ -808,7 +808,7 @@ def delete_sale(db: Session, invoice_no: int):
 
     # 2️⃣ Restore inventory for each sale item
     for item in sale.items:
-        inventory = inventory_service.get_inventory_by_product(db, item.product_id)
+        inventory = inventory_service.get_inventory_orm_by_product(db, item.product_id)
         if inventory:
             inventory.quantity_out -= item.quantity
             inventory.current_stock = (
@@ -841,7 +841,7 @@ def delete_all_sales(db: Session):
     for sale in sales:
         # 1️⃣ Restore inventory for each sale item
         for item in sale.items:
-            inventory = inventory_service.get_inventory_by_product(
+            inventory = inventory_service.get_inventory_orm_by_product(
                 db, item.product_id
             )
             if inventory:

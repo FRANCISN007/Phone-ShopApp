@@ -65,7 +65,7 @@ const DashboardPage = () => {
 
   const purchaseSubMenu = [
     { label: "Create Purchase", action: "create", icon: "➕" },
-    { label: "List Purchase", action: "listPurchase", icon: "📋" },
+    { label: "List Purchase", action: "list", icon: "📋" },
     { label: "Create Vendor", action: "createVendor", icon: "➕" },
     { label: "List Vendor", action: "listVendor", icon: "🧾" },
   ];
@@ -206,7 +206,7 @@ const DashboardPage = () => {
       case "create":
         navigate("/dashboard/purchase/create");
         break;
-      case "listPurchase":
+      case "list":
         navigate("/dashboard/purchase/list");
         break;
       case "createVendor":

@@ -72,6 +72,9 @@ const ListProduct = () => {
     });
   }, [products, searchTerm, selectedCategory]);
 
+  const totalProducts = filteredProducts.length;
+
+
   /* ================= Actions ================= */
 
   const handleDelete = async (id) => {
@@ -131,7 +134,8 @@ const ListProduct = () => {
 
       <h2>Product List</h2>
 
-      {/* ================= Filters ================= */}
+      {/* ================= Filters + Summary ================= */}
+    <div className="filters-row">
       <div className="filters">
         <input
           type="text"
@@ -154,6 +158,14 @@ const ListProduct = () => {
           ))}
         </select>
       </div>
+
+  {/* ===== Product Summary (Top Right) ===== */}
+  <div className="product-summary">
+    <span>Total Products</span>
+    <strong>{totalProducts}</strong>
+  </div>
+</div>
+
 
       {/* ================= Table ================= */}
       <table className="list-table">

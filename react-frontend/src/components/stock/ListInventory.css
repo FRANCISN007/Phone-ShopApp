@@ -148,3 +148,17 @@
 .inventory-filters button:hover {
   background-color: #218838;
 }
+
+
+/* ===== Grand Total Styling ===== */
+.grand-total-row td {
+  font-weight: 700;
+  font-size: 16px;
+  background-color: #f5f5f5;
+}
+
+.grand-total-row td:last-child {
+  font-size: 15px;
+  font-weight: 800;
+  color: #000;
+}

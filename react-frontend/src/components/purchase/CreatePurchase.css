@@ -1,9 +1,9 @@
 /* ===== Container ===== */
 .create-purchase-container {
-  max-width: 1000px;
-  margin: 10px auto;
+  max-width: 800px;
+  margin: 1px auto;
   background: #e6e2e2;
-  padding: 10px;
+  padding: 4px;
   border-radius: 10px;
   box-shadow: 0 3px 10px rgba(0,0,0,0.08);
   font-family: Arial, sans-serif;
@@ -74,9 +74,9 @@
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr 2fr 0fr; /* ✅ match table-row */
+  grid-template-columns: 1fr 2fr 2fr 2fr 0fr; /* ✅ match table-row */
   background-color: #b9b3b3;
-  padding: 8px;
+  padding: 3px;
   font-weight: 600;
   font-size: 14px;
   border-bottom: 1px solid #b48f8f;
@@ -88,20 +88,22 @@
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr 2fr 0fr;
+  grid-template-columns: 1fr 2fr 2fr 2fr 0fr;
   gap: 2px;
   padding: 5px;
   align-items: center;
   border-bottom: 1px solid #c2aeae;
 }
 
+
+
 .table-row:nth-child(even) {
-  background-color: #fafafa;
+  background-color: #aed6bf;
 }
 
 .table-row input,
 .table-row select {
-  padding: 4px;
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
@@ -112,11 +114,11 @@
 
 .table-row input,
 .table-row select {
-  padding: 4px;
+  padding: 2px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
-  text-align: center;      /* ✅ center text */
+  text-align:left;      /* ✅ center text */
 }
 
 
@@ -132,7 +134,7 @@
   background-color: #27ae60;
   color: #fff;
   border: none;
-  padding: 8px 14px;
+  padding: 6px 8px;
   font-size: 14px;
   border-radius: 6px;
   cursor: pointer;

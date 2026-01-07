@@ -106,8 +106,8 @@ const ListPurchase = () => {
       id: purchase.id,
       product_id: purchase.product_id,
       product_name: purchase.product_name,
-      quantity: purchase.quantity,
-      cost_price: purchase.cost_price,
+      quantity: Number(purchase.quantity),
+      cost_price: Number(purchase.cost_price),
       vendor_id: purchase.vendor_id,
     });
 
@@ -116,20 +116,35 @@ const ListPurchase = () => {
   };
 
 
+
   const handleEditChange = (e) => {
+    const { name, value } = e.target;
+
     setEditData({
       ...editData,
-      [e.target.name]: e.target.value,
+      [name]:
+        name === "quantity" || name === "cost_price"
+          ? value === "" ? "" : Number(value)
+          : value,
     });
   };
+
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
 
+    if (
+      editData.quantity === "" ||
+      isNaN(editData.quantity)
+    ) {
+      alert("Quantity must be a valid number");
+      return;
+    }
+
     try {
       await axiosWithAuth().put(`/purchase/${editData.id}`, {
-        product_id: Number(editData.product_id), // ✅ REQUIRED
-        quantity: Number(editData.quantity),
+        product_id: Number(editData.product_id),
+        quantity: Number(editData.quantity),     // ✅ enforce number
         cost_price: Number(editData.cost_price),
         vendor_id: Number(editData.vendor_id),
       });
@@ -140,6 +155,8 @@ const ListPurchase = () => {
       alert(err.response?.data?.detail || "Update failed");
     }
   };
+
+
 
   if (!show) return null;
 

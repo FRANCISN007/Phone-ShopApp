@@ -3,6 +3,7 @@ from app.purchase import models as purchase_models, schemas as purchase_schemas
 from app.stock.inventory import service as inventory_service
 from datetime import datetime
 
+from datetime import datetime, timedelta
 
 
 from app.stock.products import models as product_models
@@ -48,11 +49,56 @@ def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
     return db_purchase
 
 
-def list_purchases(db: Session, skip: int = 0, limit: int = 100):
-    """
-    List purchases from the database
-    """
-    return db.query(purchase_models.Purchase).offset(skip).limit(limit).all()
+def list_purchases(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    product_id: int | None = None,
+    vendor_id: int | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+):
+    query = db.query(purchase_models.Purchase)
+
+    # ===============================
+    # PRODUCT FILTER
+    # ===============================
+    if product_id:
+        query = query.filter(
+            purchase_models.Purchase.product_id == product_id
+        )
+
+    # ===============================
+    # VENDOR FILTER
+    # ===============================
+    if vendor_id:
+        query = query.filter(
+            purchase_models.Purchase.vendor_id == vendor_id
+        )
+
+    # ===============================
+    # DATE RANGE FILTER
+    # ===============================
+    if start_date:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        query = query.filter(
+            purchase_models.Purchase.purchase_date >= start_dt
+        )
+
+    if end_date:
+        # move to next day 00:00 to include full end date
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+        query = query.filter(
+            purchase_models.Purchase.purchase_date < end_dt
+        )
+
+    return (
+        query
+        .order_by(purchase_models.Purchase.purchase_date.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 def get_purchase(db: Session, purchase_id: int):
     return db.query(purchase_models.Purchase).filter(
@@ -72,7 +118,9 @@ def update_purchase(
     old_product_id = purchase.product_id
     old_quantity = purchase.quantity
 
-    # ✅ Update product if changed
+    # ===============================
+    # UPDATE PURCHASE FIELDS
+    # ===============================
     if update_data.product_id is not None:
         purchase.product_id = update_data.product_id
 
@@ -87,32 +135,44 @@ def update_purchase(
 
     purchase.total_cost = purchase.quantity * purchase.cost_price
 
+    # ===============================
+    # INVENTORY: REVERSE → APPLY
+    # ===============================
+
+    # 1️⃣ Remove OLD stock
+    inventory_service.add_stock(
+        db,
+        product_id=old_product_id,
+        quantity=-old_quantity,
+        commit=False
+    )
+
+    # 2️⃣ Add NEW stock
+    inventory_service.add_stock(
+        db,
+        product_id=purchase.product_id,
+        quantity=purchase.quantity,
+        commit=False
+    )
+
+    # ===============================
+    # UPDATE PRODUCT COST PRICE
+    # ===============================
+    product = (
+        db.query(product_models.Product)
+        .filter(product_models.Product.id == purchase.product_id)
+        .first()
+    )
+    if not product:
+        raise Exception("Product not found")
+
+    product.cost_price = purchase.cost_price
+
+    # ===============================
+    # COMMIT ONCE
+    # ===============================
     db.commit()
     db.refresh(purchase)
-
-    # ===============================
-    # INVENTORY ADJUSTMENT (CORRECT)
-    # ===============================
-
-    # If product changed
-    if old_product_id != purchase.product_id:
-        # Remove full quantity from old product
-        inventory_service.add_stock(
-            db, old_product_id, -old_quantity
-        )
-
-        # Add full quantity to new product
-        inventory_service.add_stock(
-            db, purchase.product_id, purchase.quantity
-        )
-
-    else:
-        # Same product → adjust only quantity difference
-        diff = purchase.quantity - old_quantity
-        if diff != 0:
-            inventory_service.add_stock(
-                db, purchase.product_id, diff
-            )
 
     return purchase
 

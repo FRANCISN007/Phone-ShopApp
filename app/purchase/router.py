@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+
 
 from app.database import get_db
 from app.purchase import schemas, service
@@ -30,33 +31,52 @@ def create_purchase(purchase: schemas.PurchaseCreate, db: Session = Depends(get_
     
 
 @router.get("/", response_model=List[schemas.PurchaseOut])
-def list_purchases_route(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    # Call the correct service function, NOT the route itself
-    purchases = purchase_service.list_purchases(db, skip, limit)
+def list_purchases_route(
+    skip: int = 0,
+    limit: int = 100,
+    product_id: Optional[int] = Query(None),
+    vendor_id: Optional[int] = Query(None),
+    start_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    db: Session = Depends(get_db),
+):
+    purchases = purchase_service.list_purchases(
+        db=db,
+        skip=skip,
+        limit=limit,
+        product_id=product_id,
+        vendor_id=vendor_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
     result = []
 
     for p in purchases:
-        # Get current stock
         stock_entry = inventory_service.get_inventory_orm_by_product(db, p.product_id)
         current_stock = stock_entry.current_stock if stock_entry else 0
 
-        # Get product name
-        product = db.query(product_models.Product).filter(product_models.Product.id == p.product_id).first()
+        product = (
+            db.query(product_models.Product)
+            .filter(product_models.Product.id == p.product_id)
+            .first()
+        )
         product_name = product.name if product else None
 
-        # Get vendor name
         vendor_name = None
         if p.vendor_id:
-            vendor = db.query(vendor_models.Vendor).filter(vendor_models.Vendor.id == p.vendor_id).first()
+            vendor = (
+                db.query(vendor_models.Vendor)
+                .filter(vendor_models.Vendor.id == p.vendor_id)
+                .first()
+            )
             vendor_name = vendor.business_name if vendor else None
 
-        # Construct response dictionary
         result.append({
             **p.__dict__,
             "current_stock": current_stock,
             "product_name": product_name,
-            "vendor_name": vendor_name
+            "vendor_name": vendor_name,
         })
 
     return result

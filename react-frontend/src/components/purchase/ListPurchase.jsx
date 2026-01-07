@@ -10,14 +10,22 @@ const ListPurchase = () => {
   const [error, setError] = useState("");
   const [show, setShow] = useState(true);
 
+  const [products, setProducts] = useState([]);
+  const [productQuery, setProductQuery] = useState("");
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+
   // 🔹 Edit modal state
   const [showEdit, setShowEdit] = useState(false);
   const [editData, setEditData] = useState({
     id: null,
+    product_id: "",
+    product_name: "",
     quantity: "",
     cost_price: "",
     vendor_id: "",
   });
+
 
   /* =========================
      COMPUTED VALUES
@@ -56,6 +64,26 @@ const ListPurchase = () => {
     fetchVendors();
   }, []);
 
+  const searchProducts = async (query) => {
+    if (!query || query.length < 1) {
+      setProducts([]);
+      return;
+    }
+
+    try {
+      setLoadingProducts(true);
+      const res = await axiosWithAuth().get(
+        `/stock/products/search?query=${query}`
+      );
+      setProducts(res.data);
+    } catch {
+      console.error("Failed to search products");
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+
   /* =========================
      DELETE PURCHASE
      ========================= */
@@ -76,12 +104,17 @@ const ListPurchase = () => {
   const handleEditOpen = (purchase) => {
     setEditData({
       id: purchase.id,
+      product_id: purchase.product_id,
+      product_name: purchase.product_name,
       quantity: purchase.quantity,
       cost_price: purchase.cost_price,
       vendor_id: purchase.vendor_id,
     });
+
+    setProductQuery(purchase.product_name);
     setShowEdit(true);
   };
+
 
   const handleEditChange = (e) => {
     setEditData({
@@ -95,6 +128,7 @@ const ListPurchase = () => {
 
     try {
       await axiosWithAuth().put(`/purchase/${editData.id}`, {
+        product_id: Number(editData.product_id), // ✅ REQUIRED
         quantity: Number(editData.quantity),
         cost_price: Number(editData.cost_price),
         vendor_id: Number(editData.vendor_id),
@@ -194,6 +228,43 @@ const ListPurchase = () => {
             <h3>Edit Purchase</h3>
 
             <form onSubmit={handleEditSubmit}>
+              <label>
+                Product
+                <input
+                  type="text"
+                  placeholder="Search product..."
+                  value={productQuery}
+                  onChange={(e) => {
+                    setProductQuery(e.target.value);
+                    searchProducts(e.target.value);
+                  }}
+                />
+
+                {loadingProducts && <div className="dropdown-loading">Searching...</div>}
+
+                {products.length > 0 && (
+                  <ul className="dropdown-list">
+                    {products.map((p) => (
+                      <li
+                        key={p.id}
+                        onClick={() => {
+                          setEditData({
+                            ...editData,
+                            product_id: p.id,
+                            product_name: p.name,
+                          });
+                          setProductQuery(p.name);
+                          setProducts([]);
+                        }}
+                      >
+                        {p.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </label>
+
+
               <label>
                 Quantity
                 <input

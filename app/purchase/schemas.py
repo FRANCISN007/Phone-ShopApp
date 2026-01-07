@@ -15,6 +15,7 @@ class PurchaseCreate(PurchaseBase):
 
 
 class PurchaseUpdate(BaseModel):
+    product_id: Optional[int] = None   # ✅ THIS is what we update with
     quantity: Optional[int] = None
     cost_price: Optional[float] = None
     vendor_id: Optional[int] = None

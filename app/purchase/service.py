@@ -60,28 +60,59 @@ def get_purchase(db: Session, purchase_id: int):
     ).first()
 
 
-def update_purchase(db: Session, purchase_id: int, update_data: purchase_schemas.PurchaseUpdate):
+def update_purchase(
+    db: Session,
+    purchase_id: int,
+    update_data: purchase_schemas.PurchaseUpdate
+):
     purchase = get_purchase(db, purchase_id)
     if not purchase:
         return None
 
+    old_product_id = purchase.product_id
     old_quantity = purchase.quantity
+
+    # ✅ Update product if changed
+    if update_data.product_id is not None:
+        purchase.product_id = update_data.product_id
 
     if update_data.quantity is not None:
         purchase.quantity = update_data.quantity
+
     if update_data.cost_price is not None:
         purchase.cost_price = update_data.cost_price
+
     if update_data.vendor_id is not None:
         purchase.vendor_id = update_data.vendor_id
 
     purchase.total_cost = purchase.quantity * purchase.cost_price
+
     db.commit()
     db.refresh(purchase)
 
-    # Adjust inventory based on quantity difference
-    diff = (purchase.quantity - old_quantity)
-    if diff != 0:
-        inventory_service.add_stock(db, purchase.product_id, diff)
+    # ===============================
+    # INVENTORY ADJUSTMENT (CORRECT)
+    # ===============================
+
+    # If product changed
+    if old_product_id != purchase.product_id:
+        # Remove full quantity from old product
+        inventory_service.add_stock(
+            db, old_product_id, -old_quantity
+        )
+
+        # Add full quantity to new product
+        inventory_service.add_stock(
+            db, purchase.product_id, purchase.quantity
+        )
+
+    else:
+        # Same product → adjust only quantity difference
+        diff = purchase.quantity - old_quantity
+        if diff != 0:
+            inventory_service.add_stock(
+                db, purchase.product_id, diff
+            )
 
     return purchase
 

@@ -73,13 +73,48 @@ def get_purchase(purchase_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{purchase_id}", response_model=schemas.PurchaseOut)
-def update_purchase(purchase_id: int, update_data: schemas.PurchaseUpdate, db: Session = Depends(get_db)):
+def update_purchase(
+    purchase_id: int,
+    update_data: schemas.PurchaseUpdate,
+    db: Session = Depends(get_db),
+):
     purchase = service.update_purchase(db, purchase_id, update_data)
     if not purchase:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase not found")
-    stock_entry = inventory_service.get_inventory_orm_by_product(db, purchase.product_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Purchase not found"
+        )
+
+    # Get current stock
+    stock_entry = inventory_service.get_inventory_orm_by_product(
+        db, purchase.product_id
+    )
     current_stock = stock_entry.current_stock if stock_entry else 0
-    return {**purchase.__dict__, "current_stock": current_stock}
+
+    # ✅ Get product name
+    product = (
+        db.query(product_models.Product)
+        .filter(product_models.Product.id == purchase.product_id)
+        .first()
+    )
+    product_name = product.name if product else None
+
+    # ✅ Get vendor name
+    vendor_name = None
+    if purchase.vendor_id:
+        vendor = (
+            db.query(vendor_models.Vendor)
+            .filter(vendor_models.Vendor.id == purchase.vendor_id)
+            .first()
+        )
+        vendor_name = vendor.business_name if vendor else None
+
+    return {
+        **purchase.__dict__,
+        "product_name": product_name,
+        "vendor_name": vendor_name,
+        "current_stock": current_stock,
+    }
 
 
 @router.delete("/{purchase_id}")

@@ -200,12 +200,124 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend list product, ListPurchase.jsx and css, under the src-components-purchase 
+now lets work on the frontend create expenses, CreateExpenses.jsx and css, under the src-components-accounts 
 folder, remember to use the function 
 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
 example
+
 const res = await axiosWithAuth().get("/sales/outstanding", {
 
 i will send you the backend code to use   
 we need to add edit and delete to the action
+
+
+
+
+
+
+
+{/* ================= EDIT MODAL ================= */}
+      {showEdit && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Edit Purchase</h3>
+
+            <form onSubmit={handleEditSubmit}>
+              <label>
+                Product
+                <input
+                  type="text"
+                  placeholder="Search product..."
+                  value={productQuery}
+                  onChange={(e) => {
+                    setProductQuery(e.target.value);
+                    searchProducts(e.target.value);
+                  }}
+                />
+
+                {loadingProducts && <div className="dropdown-loading">Searching...</div>}
+
+                {products.length > 0 && (
+                  <ul className="dropdown-list">
+                    {products.map((p) => (
+                      <li
+                        key={p.id}
+                        onClick={() => {
+                          setEditData({
+                            ...editData,
+                            product_id: p.id,
+                            product_name: p.name,
+                          });
+                          setProductQuery(p.name);
+                          setProducts([]);
+                        }}
+                      >
+                        {p.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </label>
+
+
+              <label>
+                Quantity
+                <input
+                  type="number"
+                  name="quantity"
+                  value={editData.quantity}
+                  onChange={handleEditChange}
+                  required
+                />
+              </label>
+
+              <label>
+                Cost Price
+                <input
+                  type="number"
+                  name="cost_price"
+                  value={editData.cost_price}
+                  onChange={handleEditChange}
+                  required
+                />
+              </label>
+
+              <label>
+                Vendor
+                <select
+                  name="vendor_id"
+                  value={editData.vendor_id}
+                  onChange={handleEditChange}
+                  required
+                >
+                  <option value="">-- Select Vendor --</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.business_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="modal-actions">
+                <button type="submit" className="save-btn">
+                  Update
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => setShowEdit(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ListPurchase;

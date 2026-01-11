@@ -1,21 +1,36 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./ListPurchase.css";
 
 const ListPurchase = () => {
   const [purchases, setPurchases] = useState([]);
   const [vendors, setVendors] = useState([]);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [show, setShow] = useState(true);
 
+  /* =========================
+     FILTER STATES
+     ========================= */
+  const [vendorId, setVendorId] = useState("");
+  const [productId, setProductId] = useState("");
+  
+  // Default startDate = 1st of current month, endDate = today
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const formatDate = (d) => d.toISOString().split("T")[0];
+
+  const [startDate, setStartDate] = useState(formatDate(firstDay));
+  const [endDate, setEndDate] = useState(formatDate(today));
+
+  /* =========================
+     PRODUCT SEARCH (FILTER + EDIT)
+     ========================= */
   const [products, setProducts] = useState([]);
   const [productQuery, setProductQuery] = useState("");
   const [loadingProducts, setLoadingProducts] = useState(false);
 
-
-  // 🔹 Edit modal state
+  /* =========================
+     EDIT MODAL
+     ========================= */
   const [showEdit, setShowEdit] = useState(false);
   const [editData, setEditData] = useState({
     id: null,
@@ -26,9 +41,8 @@ const ListPurchase = () => {
     vendor_id: "",
   });
 
-
   /* =========================
-     COMPUTED VALUES
+     COMPUTED
      ========================= */
   const grandTotal = purchases.reduce(
     (acc, p) => acc + Number(p.total_cost || 0),
@@ -36,19 +50,22 @@ const ListPurchase = () => {
   );
 
   /* =========================
-     FETCH DATA
+     FETCH PURCHASES (FILTERED)
      ========================= */
-  const fetchPurchases = async () => {
+  const fetchPurchases = useCallback(async () => {
     try {
-      setLoading(true);
-      const res = await axiosWithAuth().get("/purchase/");
+      const params = {};
+      if (productId) params.product_id = productId;
+      if (vendorId) params.vendor_id = vendorId;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const res = await axiosWithAuth().get("/purchase/", { params });
       setPurchases(res.data);
     } catch {
-      setError("Failed to load purchases");
-    } finally {
-      setLoading(false);
+      console.error("Failed to load purchases");
     }
-  };
+  }, [productId, vendorId, startDate, endDate]);
 
   const fetchVendors = async () => {
     try {
@@ -62,11 +79,17 @@ const ListPurchase = () => {
   useEffect(() => {
     fetchPurchases();
     fetchVendors();
-  }, []);
+  }, [fetchPurchases]);
 
+  /* =========================
+     PRODUCT SEARCH
+     ========================= */
   const searchProducts = async (query) => {
-    if (!query || query.length < 1) {
+    setProductQuery(query);
+
+    if (!query) {
       setProducts([]);
+      setProductId("");
       return;
     }
 
@@ -77,21 +100,34 @@ const ListPurchase = () => {
       );
       setProducts(res.data);
     } catch {
-      console.error("Failed to search products");
+      console.error("Product search failed");
     } finally {
       setLoadingProducts(false);
     }
   };
 
+  /* =========================
+     FILTER ACTIONS
+     ========================= */
+  const applyFilters = () => fetchPurchases();
+
+  const resetFilters = () => {
+    setVendorId("");
+    setProductId("");
+    setProductQuery("");
+    setStartDate(formatDate(firstDay));
+    setEndDate(formatDate(today));
+    fetchPurchases();
+  };
 
   /* =========================
-     DELETE PURCHASE
+     DELETE
      ========================= */
-  const handleDelete = async (purchaseId) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("Delete this purchase?")) return;
 
     try {
-      await axiosWithAuth().delete(`/purchase/${purchaseId}`);
+      await axiosWithAuth().delete(`/purchase/${id}`);
       fetchPurchases();
     } catch (err) {
       alert(err.response?.data?.detail || "Delete failed");
@@ -99,56 +135,44 @@ const ListPurchase = () => {
   };
 
   /* =========================
-     EDIT PURCHASE
+     EDIT
      ========================= */
-  const handleEditOpen = (purchase) => {
+  const handleEditOpen = (p) => {
     setEditData({
-      id: purchase.id,
-      product_id: purchase.product_id,
-      product_name: purchase.product_name,
-      quantity: Number(purchase.quantity),
-      cost_price: Number(purchase.cost_price),
-      vendor_id: purchase.vendor_id,
+      id: p.id,
+      product_id: p.product_id,
+      product_name: p.product_name,
+      quantity: Number(p.quantity),
+      cost_price: Number(p.cost_price),
+      vendor_id: p.vendor_id,
     });
-
-    setProductQuery(purchase.product_name);
+    setProductQuery(p.product_name);
     setShowEdit(true);
   };
 
-
-
   const handleEditChange = (e) => {
     const { name, value } = e.target;
-
     setEditData({
       ...editData,
       [name]:
         name === "quantity" || name === "cost_price"
-          ? value === "" ? "" : Number(value)
+          ? value === ""
+            ? ""
+            : Number(value)
           : value,
     });
   };
 
-
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-
-    if (
-      editData.quantity === "" ||
-      isNaN(editData.quantity)
-    ) {
-      alert("Quantity must be a valid number");
-      return;
-    }
 
     try {
       await axiosWithAuth().put(`/purchase/${editData.id}`, {
         product_id: Number(editData.product_id),
-        quantity: Number(editData.quantity),     // ✅ enforce number
+        quantity: Number(editData.quantity),
         cost_price: Number(editData.cost_price),
         vendor_id: Number(editData.vendor_id),
       });
-
       setShowEdit(false);
       fetchPurchases();
     } catch (err) {
@@ -156,87 +180,93 @@ const ListPurchase = () => {
     }
   };
 
-
-
   if (!show) return null;
 
   return (
     <div className="list-sales-container">
-      <button className="close-btn" onClick={() => setShow(false)}>
-        ✖
-      </button>
-
+      <button className="close-btn" onClick={() => setShow(false)}>✖</button>
       <h2 className="outstanding-sales-title">📦 Purchase List</h2>
 
-      {loading && <div className="status-text">Loading purchases...</div>}
-      {error && <div className="error-text">{error}</div>}
+      {/* ================= FILTER BAR ================= */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="Search product..."
+          value={productQuery}
+          onChange={(e) => searchProducts(e.target.value)}
+        />
 
-      <div className="table-wrapper">
-        <table className="sales-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Product ID</th>
-              <th>Product Name</th>
-              <th>Vendor Name</th>
-              <th>Quantity</th>
-              <th>Cost Price</th>
-              <th>Total Cost</th>
-              <th>Current Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+        {products.length > 0 && (
+          <ul className="dropdown-list">
+            {products.map((p) => (
+              <li
+                key={p.id}
+                onClick={() => {
+                  setProductId(p.id);
+                  setProductQuery(p.name);
+                  setProducts([]);
+                  fetchPurchases();
+                }}
+              >
+                {p.name}
+              </li>
+            ))}
+          </ul>
+        )}
 
-          <tbody>
-            {purchases.length === 0 && !loading ? (
-              <tr>
-                <td colSpan="9" className="empty-row">
-                  No purchases found
-                </td>
-              </tr>
-            ) : (
-              <>
-                {purchases.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.id}</td>
-                    <td>{p.product_id}</td>
-                    <td>{p.product_name}</td>
-                    <td>{p.vendor_name}</td>
-                    <td>{p.quantity}</td>
-                    <td>{Number(p.cost_price).toLocaleString("en-NG")}</td>
-                    <td>{Number(p.total_cost).toLocaleString("en-NG")}</td>
-                    <td>{p.current_stock}</td>
-                    <td className="action-cell">
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEditOpen(p)}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(p.id)}
-                      >
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+        <select value={vendorId} onChange={(e) => setVendorId(e.target.value)}>
+          <option value="">All Vendors</option>
+          {vendors.map((v) => (
+            <option key={v.id} value={v.id}>{v.business_name}</option>
+          ))}
+        </select>
 
-                <tr className="purchase-grand-total-row">
-                  <td colSpan="5" className="purchase-grand-total-label">
-                    GRAND TOTAL
-                  </td>
-                  <td className="purchase-grand-total-amount">
-                    ₦{grandTotal.toLocaleString("en-NG")}
-                  </td>
-                  <td colSpan="3"></td>
-                </tr>
-              </>
-            )}
-          </tbody>
-        </table>
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+
+        <button onClick={applyFilters}>Apply</button>
+        <button onClick={resetFilters}>Reset</button>
       </div>
+
+      {/* ================= TABLE ================= */}
+      <table className="sales-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Vendor</th>
+            <th>Qty</th>
+            <th>Cost</th>
+            <th>Total</th>
+            <th>Stock</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {purchases.map((p) => (
+            <tr key={p.id}>
+              <td>{p.id}</td>
+              <td>{p.purchase_date}</td>
+              <td>{p.product_name}</td>
+              <td>{p.vendor_name}</td>
+              <td>{p.quantity}</td>
+              <td>{Number(p.cost_price).toLocaleString("en-NG")}</td>
+              <td>{Number(p.total_cost).toLocaleString("en-NG")}</td>
+              <td>{p.current_stock}</td>
+              <td>
+                <button onClick={() => handleEditOpen(p)}>✏️</button>
+                <button onClick={() => handleDelete(p.id)}>🗑️</button>
+              </td>
+            </tr>
+          ))}
+
+          <tr className="purchase-grand-total-row">
+            <td colSpan="5">GRAND TOTAL</td>
+            <td colSpan="4">₦{grandTotal.toLocaleString("en-NG")}</td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* ================= EDIT MODAL ================= */}
       {showEdit && (
@@ -280,7 +310,6 @@ const ListPurchase = () => {
                   </ul>
                 )}
               </label>
-
 
               <label>
                 Quantity

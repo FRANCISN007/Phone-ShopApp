@@ -30,7 +30,7 @@ const DashboardPage = () => {
       { label: "Sales", icon: "💰", submenu: true },
       { label: "Stock", icon: "📦", submenu: true },
       { label: "Purchase", icon: "🧾", submenu: true },
-      { label: "Accounts", icon: "📈", path: "/dashboard/accounts" },
+      { label: "Accounts", icon: "📈", submenu: true },
       { label: "Maintenance", icon: "🛠", path: "/dashboard/maintenance" },
       { label: "Export", icon: "📤", action: "export" },
       { label: "Print", icon: "🖨️", action: "print" },
@@ -66,9 +66,19 @@ const DashboardPage = () => {
   const purchaseSubMenu = [
     { label: "Create Purchase", action: "create", icon: "➕" },
     { label: "List Purchase", action: "list", icon: "📋" },
-    { label: "Create Vendor", action: "createVendor", icon: "➕" },
-    { label: "List Vendor", action: "listVendor", icon: "🧾" },
+    { label: "Create Vendor", action: "createvendor", icon: "➕" },
+    { label: "List Vendor", action: "listvendor", icon: "🧾" },
   ];
+
+
+  const accountsSubMenu = [
+    { label: "Create Expenses", action: "create", icon: "➕" },
+    { label: "List Expenses", action: "list", icon: "📋" },
+    { label: "Create Revenue Item", action: "createrevenue", icon: "➕" },
+    { label: "Profit and Loss", action: "profit/loss", icon: "🧾" },
+  ];
+
+
 
   /* ===============================
      EXPORT TO EXCEL
@@ -209,17 +219,40 @@ const DashboardPage = () => {
       case "list":
         navigate("/dashboard/purchase/list");
         break;
-      case "createVendor":
-        navigate("/dashboard/purchase/vendor/create");
+      case "createvendor":
+        navigate("/dashboard/purchase/createvendor");
         break;
-      case "listVendor":
-        navigate("/dashboard/purchase/vendor/list");
+      case "listvendor":
+        navigate("/dashboard/purchase/listvendor");
         break;
       default:
         break;
     }
     setActiveSubMenu(null);
   };
+
+
+const handleAccountsAction = action => {
+    switch (action) {
+      case "create":
+        navigate("/dashboard/accounts/expenses/create");
+        break;
+      case "listexpenses":
+        navigate("/dashboard/account/expenses/list");
+        break;
+      case "revenue":
+        navigate("/dashboard/accounts/exepenses/revenue");
+        break;
+      case "profitloss":
+        navigate("/dashboard/accounts/profitloss");
+        break;
+      default:
+        break;
+    }
+    setActiveSubMenu(null);
+  };
+
+
 
   /* ===============================
      KEYBOARD NAVIGATION
@@ -316,7 +349,29 @@ const DashboardPage = () => {
                   ))}
                 </div>
               </div>
+            ) : activeSubMenu === "Accounts" ? (
+              <div className="submenu-frame center-frame accounts-frame">
+                <div className="submenu-header">
+                  <h2 className="submenu-heading">Accounts Menu</h2>
+                  <button className="close-btn" onClick={() => setActiveSubMenu(null)}>✖</button>
+                </div>
+                <div className="sales-submenu grid-2x2">
+                  {accountsSubMenu.map((sub, idx) => (
+                    <div
+                      key={sub.label}
+                      className={`submenu-card card-${idx + 1}`}
+                      onClick={() => handleAccountsAction(sub.action)}
+                    >
+                      <div className="submenu-icon">{sub.icon}</div>
+                      <div className="submenu-label">{sub.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )
+
+            
+
             : (
             <Outlet />
           )}

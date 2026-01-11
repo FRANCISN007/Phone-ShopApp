@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List,  Dict
 
 from app.database import get_db
 from . import schemas, service
@@ -26,7 +26,7 @@ def create_expense(
 
 
 
-@router.get("/", response_model=List[schemas.ExpenseOut])
+@router.get("/", response_model=Dict)
 def list_expenses(db: Session = Depends(get_db)):
     return service.list_expenses(db)
 

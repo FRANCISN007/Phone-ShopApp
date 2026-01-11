@@ -11,7 +11,8 @@ class Expense(Base):
 
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
 
-    category = Column(String, nullable=False)
+    account_type = Column(String, nullable=False)
+
     description = Column(String, nullable=True)
 
     amount = Column(Float, nullable=False)

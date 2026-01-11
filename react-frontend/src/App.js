@@ -44,6 +44,14 @@ import ListAdjustment from "./components/stock/ListAdjustment";
 // Purchase
 import CreatePurchase from "./components/purchase/CreatePurchase";
 import ListPurchase from "./components/purchase/ListPurchase";
+import CreateVendor from "./components/purchase/CreateVendor";
+import ListVendor from "./components/purchase/ListVendor";
+
+
+
+// Accounts
+import CreateExpenses from "./components/accounts/CreateExpenses";
+
 
 
 // POS
@@ -98,11 +106,17 @@ const App = () => {
             <Route path="purchase">
               <Route path="create" element={<CreatePurchase />} />
               <Route path="list" element={<ListPurchase />} />
+              <Route path="createvendor" element={<CreateVendor />} />
+              <Route path="listvendor" element={<ListVendor />} />
 
             </Route>
 
 
-           
+           {/* ✅ ACCOUNTS ROUTES */}
+            <Route path="accounts">
+              <Route path="expenses/create" element={<CreateExpenses />} />
+              
+            </Route>
 
             
 

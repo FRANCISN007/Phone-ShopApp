@@ -31,7 +31,7 @@ def serialize_expense(expense: models.Expense):
     return {
         "id": expense.id,
         "vendor_id": expense.vendor_id,
-        "category": expense.category,
+        "account_type": expense.account_type,
         "description": expense.description,
         "amount": expense.amount,
         "payment_method": expense.payment_method,
@@ -58,7 +58,7 @@ def create_expense(
 
     new_expense = models.Expense(
         vendor_id=expense.vendor_id,
-        category=expense.category,
+        account_type=expense.account_type,
         description=expense.description,
         amount=expense.amount,
         payment_method=expense.payment_method,
@@ -83,8 +83,16 @@ def list_expenses(db: Session):
         .order_by(models.Expense.expense_date.desc())
         .all()
     )
-    return [serialize_expense(exp) for exp in expenses]
 
+    serialized = [serialize_expense(exp) for exp in expenses]
+
+    # Calculate total expenses
+    total_expenses = sum(exp.amount for exp in expenses)
+
+    return {
+        "total_expenses": total_expenses,
+        "expenses": serialized
+    }
 
 # =========================
 # Get Expense by ID
@@ -142,13 +150,14 @@ def update_expense(
 # =========================
 def delete_expense(db: Session, expense_id: int):
     expense = db.query(models.Expense).filter(
-        models.Expense.id == expense_id
+        models.Expense.id == expense_id,
+        models.Expense.is_active == True
     ).first()
 
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
 
-    db.delete(expense)
+    expense.is_active = False
     db.commit()
 
     return {

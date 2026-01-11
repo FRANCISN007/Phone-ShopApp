@@ -7,6 +7,8 @@ from app.purchase import models as purchase_models
 from app.accounts.expenses import models as expense_models
 import calendar
 
+from app.stock.category import models as category_models
+
 def get_profit_and_loss(
     db: Session,
     start_date: datetime | None = None,
@@ -35,9 +37,11 @@ def get_profit_and_loss(
     # -------------------------
     # 1. Revenue by category
     # -------------------------
+    
+
     revenue_query = (
         db.query(
-            product_models.Product.category,
+            category_models.Category.name.label("category"),
             func.sum(
                 sales_models.SaleItem.quantity *
                 sales_models.SaleItem.selling_price
@@ -52,13 +56,19 @@ def get_profit_and_loss(
             product_models.Product,
             product_models.Product.id == sales_models.SaleItem.product_id
         )
+        .join(
+            category_models.Category,
+            category_models.Category.id == product_models.Product.category_id
+        )
         .filter(
             sales_models.Sale.sold_at >= start_date,
             sales_models.Sale.sold_at <= end_date
         )
-        .group_by(product_models.Product.category)
+        .group_by(category_models.Category.name)
         .all()
     )
+
+
 
 
     revenue = {row.category: row.revenue for row in revenue_query}
@@ -113,18 +123,19 @@ def get_profit_and_loss(
     # -------------------------
     expense_query = (
         db.query(
-            expense_models.Expense.category,
+            expense_models.Expense.account_type.label("account_type"),
             func.sum(expense_models.Expense.amount).label("total")
         )
+
         .filter(
             expense_models.Expense.expense_date >= start_date,
             expense_models.Expense.expense_date <= end_date
         )
-        .group_by(expense_models.Expense.category)
+        .group_by(expense_models.Expense.account_type)
         .all()
     )
 
-    expenses = {row.category: row.total for row in expense_query}
+    expenses = {row.account_type: row.total for row in expense_query}
     total_expenses = sum(expenses.values()) if expenses else 0
 
     # -------------------------

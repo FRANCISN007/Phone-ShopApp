@@ -321,6 +321,11 @@
   height: 350px !important;
 }
 
+.accounts-frame {
+  width: 500px !important;
+  height: 350px !important;
+}
+
 
 /* Stock submenu (3x2) */
 .stock-frame {

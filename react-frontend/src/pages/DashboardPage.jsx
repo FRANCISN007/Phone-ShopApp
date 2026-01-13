@@ -237,8 +237,8 @@ const handleAccountsAction = action => {
       case "create":
         navigate("/dashboard/accounts/expenses/create");
         break;
-      case "listexpenses":
-        navigate("/dashboard/account/expenses/list");
+      case "list":
+        navigate("/dashboard/accounts/expenses/list");
         break;
       case "revenue":
         navigate("/dashboard/accounts/exepenses/revenue");

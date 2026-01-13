@@ -8,6 +8,7 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id = Column(Integer, primary_key=True, index=True)
+    ref_no = Column(String(100), unique=True, index=True, nullable=False)
 
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
 
@@ -30,3 +31,6 @@ class Expense(Base):
 
     vendor = relationship("Vendor")
     creator = relationship("User", foreign_keys=[created_by])
+    bank = relationship("Bank") 
+
+    created_by_user = relationship("User", backref="expenses", foreign_keys=[created_by])

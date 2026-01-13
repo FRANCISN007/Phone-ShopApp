@@ -51,7 +51,7 @@ import ListVendor from "./components/purchase/ListVendor";
 
 // Accounts
 import CreateExpenses from "./components/accounts/CreateExpenses";
-
+import ListExpenses from "./components/accounts/ListExpenses";
 
 
 // POS
@@ -115,6 +115,7 @@ const App = () => {
            {/* ✅ ACCOUNTS ROUTES */}
             <Route path="accounts">
               <Route path="expenses/create" element={<CreateExpenses />} />
+              <Route path="expenses/list" element={<ListExpenses />} />
               
             </Route>
 

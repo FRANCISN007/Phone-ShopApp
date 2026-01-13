@@ -8,6 +8,7 @@ from typing import Optional
 # =========================
 class ExpenseBase(BaseModel):
     vendor_id: int
+    ref_no: str
     account_type: str
     description: Optional[str] = None
     amount: float
@@ -28,6 +29,7 @@ class ExpenseCreate(ExpenseBase):
 # =========================
 class ExpenseUpdate(BaseModel):
     vendor_id: Optional[int] = None
+    ref_no: Optional[str] = None
     account_type: Optional[str] = None   # Transpot, Rent, Utilities, Salary, Maintenance, general, Cost of Sales, Telephone Expense, Generator & fuel etc.
     description: Optional[str] = None
     amount: Optional[float] = None
@@ -48,6 +50,7 @@ class ExpenseOut(ExpenseBase):
 
     created_by: int | None
     created_by_username: str | None
+    bank_name: Optional[str] = None
 
     class Config:
         from_attributes = True

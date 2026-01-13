@@ -30,7 +30,7 @@ class SaleItemOut(BaseModel):
     
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SaleItemOut2(BaseModel):
@@ -81,7 +81,7 @@ class SaleOut(BaseModel):
     items: List[SaleItemOut] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class SaleOut2(BaseModel):
     id: int
@@ -114,7 +114,7 @@ class SaleOutStaff(BaseModel):
     items: List[SaleItemOut] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 

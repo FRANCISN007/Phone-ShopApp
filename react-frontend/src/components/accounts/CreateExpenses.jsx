@@ -9,11 +9,15 @@ const ACCOUNT_TYPES = [
   "Staff Welfare",
   "Repairs & Maintenance",
   "Printing & Stationeries",
+  "Utility Bills",
   "Gifts & Donations",
   "Rates & Levies",
   "Rent",
   "Vehicle Expenses",
   "Security Expenses",
+  "Office Expenses",
+  "Fumigation Expenses",
+  "Electrical Expenses",
   "Entertainment",
   "General Expenses",
   "Cost of Sales",
@@ -23,9 +27,13 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
   const [vendors, setVendors] = useState([]);
   const [banks, setBanks] = useState([]);
   const [visible, setVisible] = useState(true);
-  const [success, setSuccess] = useState(""); // ✅ success message
+
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
+    ref_no: "",
     vendor_id: "",
     account_type: "",
     description: "",
@@ -34,9 +42,6 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
     bank_id: "",
     expense_date: new Date().toISOString().slice(0, 16),
   });
-
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // ==============================
   // Fetch vendors & banks
@@ -69,10 +74,13 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
   // ==============================
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === "payment_method" && value === "cash" ? { bank_id: "" } : {}),
+      ...(name === "payment_method" && value === "cash"
+        ? { bank_id: "" }
+        : {}),
     }));
   };
 
@@ -84,18 +92,21 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
     setError("");
     setSuccess("");
 
+    if (!formData.ref_no.trim()) {
+      setError("Reference number is required");
+      return;
+    }
+
     if (!formData.payment_method) {
       setError("Please select a payment method");
       return;
     }
 
-    if (["transfer", "pos"].includes(formData.payment_method) && !formData.bank_id) {
+    if (
+      ["transfer", "pos"].includes(formData.payment_method) &&
+      !formData.bank_id
+    ) {
       setError("Bank is required for Transfer or POS payments");
-      return;
-    }
-
-    if (formData.payment_method === "cash" && formData.bank_id) {
-      setError("Bank must not be selected for Cash payments");
       return;
     }
 
@@ -115,9 +126,10 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
       // ✅ show success message
       setSuccess("Expense created successfully!");
 
-      // reset form fields except date
+      // reset form for next entry
       setFormData((prev) => ({
         ...prev,
+        ref_no: "",
         vendor_id: "",
         account_type: "",
         description: "",
@@ -128,9 +140,8 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
 
       if (onSuccess) onSuccess();
 
-      // hide success message after 2 seconds but keep form
+      // auto-hide success message only
       setTimeout(() => setSuccess(""), 2000);
-
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to create expense");
     } finally {
@@ -151,19 +162,29 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
   return (
     <div className="expense-overlay">
       <div className="expense-container">
-        {/* Close Button */}
         <button className="close-btn" onClick={handleClose}>✖</button>
 
         <h2>Create Expense</h2>
 
-        {/* Error Message */}
         {error && <p className="message error">{error}</p>}
-
-        {/* Success Message */}
         {success && <p className="message success">{success}</p>}
 
         <form onSubmit={handleSubmit} className="expense-form">
           <div className="form-grid">
+
+            {/* Reference Number */}
+            <div className="form-group">
+              <label>Reference No</label>
+              <input
+                type="text"
+                name="ref_no"
+                value={formData.ref_no}
+                onChange={handleChange}
+                placeholder="PCV-001"
+                required
+              />
+            </div>
+
             {/* Vendor */}
             <div className="form-group">
               <label>Vendor</label>
@@ -262,9 +283,10 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Optional details..."
-                style={{ fontSize: "14px" }} // ✅ font size corrected
+                style={{ fontSize: "14px" }}
               />
             </div>
+
           </div>
 
           <button type="submit" disabled={loading}>

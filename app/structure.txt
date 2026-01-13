@@ -200,7 +200,7 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend create expenses, CreateExpenses.jsx and css, under the src-components-accounts 
+now lets work on the frontend list expenses, ListExpenses.jsx and css, under the src-components-accounts 
 folder, remember to use the function 
 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 

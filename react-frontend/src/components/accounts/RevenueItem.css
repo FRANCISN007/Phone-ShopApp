@@ -1,0 +1,155 @@
+/* ===============================
+   Container
+=============================== */
+.revenue-item-container {
+  padding: 10px;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+/* ===============================
+   Title
+=============================== */
+.revenue-item-title {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+/* ===============================
+   Form
+=============================== */
+.revenue-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.revenue-form input {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 200px;
+}
+
+.revenue-form button {
+  padding: 6px 14px;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.revenue-form button:hover {
+  background-color: #218838;
+}
+
+.cancel-btn {
+  background-color: #6c757d !important;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268 !important;
+}
+
+/* ===============================
+   Table Wrapper
+=============================== */
+.table-wrapper {
+  overflow-x: auto;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  background-color: white;
+}
+
+/* ===============================
+   Table
+=============================== */
+.revenue-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.revenue-table th,
+.revenue-table td {
+  padding: 5px 8px;
+  text-align: left;
+  font-size: 0.85rem;
+  border: 1px solid #28a745;
+}
+
+.revenue-table th {
+  background-color: #28a745;
+  color: white;
+  font-weight: bold;
+}
+
+/* Zebra striping */
+.revenue-table tbody tr:nth-child(odd) {
+  background-color: #e6f4ea;
+}
+
+.revenue-table tbody tr:nth-child(even) {
+  background-color: #f0faf5;
+}
+
+/* Empty row */
+.empty-row {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+}
+
+/* ===============================
+   Actions
+=============================== */
+.action-cell {
+  display: flex;
+  gap: 5px;
+}
+
+.edit-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.edit-btn:hover {
+  background-color: #0069d9;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background-color: #a37277;
+}
+
+/* Loading / Error */
+.status-text {
+  margin: 8px;
+  font-weight: bold;
+}
+
+.error-text {
+  margin: 8px;
+  font-weight: bold;
+  color: #dc3545;
+}

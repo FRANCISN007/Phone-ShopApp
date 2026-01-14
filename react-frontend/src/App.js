@@ -52,6 +52,12 @@ import ListVendor from "./components/purchase/ListVendor";
 // Accounts
 import CreateExpenses from "./components/accounts/CreateExpenses";
 import ListExpenses from "./components/accounts/ListExpenses";
+import RevenueItem from "./components/accounts/RevenueItem";
+import ProfitLoss from "./components/accounts/ProfitLoss";
+
+// Maintenance
+import UserManagement from "./modules/users/UserManagement";
+
 
 
 // POS
@@ -116,10 +122,19 @@ const App = () => {
             <Route path="accounts">
               <Route path="expenses/create" element={<CreateExpenses />} />
               <Route path="expenses/list" element={<ListExpenses />} />
-              
+              <Route path="revenueitem" element={<RevenueItem />} />
+              <Route path="profitloss" element={<ProfitLoss />} />
             </Route>
 
             
+            {/* ✅ USERS ROUTES */}
+            <Route path="modules">
+              <Route path="users" element={<UserManagement />} />
+              
+            </Route>
+
+
+
 
           </Route>
         </Route>

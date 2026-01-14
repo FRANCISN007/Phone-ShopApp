@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+
 import "./UserManagement.css";
 import { useNavigate } from "react-router-dom";
 
@@ -41,17 +42,8 @@ const UserManagement = ({ token }) => {
   roles = roles.map((r) => r.toLowerCase());
   const isAdmin = roles.includes("admin"); // ✔ more reliable
 
-  // Fetch data on load
-  useEffect(() => {
-    if (!token) {
-      setError("You must be logged in");
-      return;
-    }
-    fetchUsers();
-    fetchUserRole();
-  }, [token]);
 
-  const fetchUserRole = async () => {
+  const fetchUserRole = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -67,9 +59,9 @@ const UserManagement = ({ token }) => {
       console.error(err);
       setError("Unable to determine user role");
     }
-  };
+  }, [token]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/users/`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -80,7 +72,21 @@ const UserManagement = ({ token }) => {
     } catch (err) {
       setError(err.message || "Network error");
     }
-  };
+  }, [token]);
+
+
+  // Fetch data on load
+  useEffect(() => {
+    if (!token) {
+      setError("You must be logged in");
+      return;
+    }
+    fetchUsers();
+    fetchUserRole();
+  }, [token, fetchUsers, fetchUserRole]);
+
+
+  
 
   const showPopup = (msg) => {
     setPopupMsg(msg);
@@ -257,7 +263,8 @@ const UserManagement = ({ token }) => {
               {selectedAction === "list" && (
                 <button
                   className="close-main-button"
-                  onClick={() => navigate("/dashboard/rooms/status")}
+                  onClick={() => navigate(-1)}
+
                 >
                   ❌
                 </button>

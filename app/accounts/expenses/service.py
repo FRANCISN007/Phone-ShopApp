@@ -1,6 +1,13 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from datetime import datetime
+
+from sqlalchemy.orm import joinedload
+
+from sqlalchemy import func
+
+from datetime import datetime, timedelta
+from sqlalchemy import func
+
 
 from datetime import date
 from typing import Optional
@@ -68,6 +75,9 @@ def serialize_expense(expense: models.Expense):
 # =========================
 # Create Expense
 # =========================
+from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException, status
+
 def create_expense(
     db: Session,
     expense: schemas.ExpenseCreate,
@@ -88,18 +98,23 @@ def create_expense(
         created_by=user_id
     )
 
-    db.add(new_expense)
-    db.commit()
-    db.refresh(new_expense)
+    try:
+        db.add(new_expense)
+        db.commit()
+        db.refresh(new_expense)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reference number already exists"
+        )
+
     return serialize_expense(new_expense)
 
 
 # =========================
 # List Expenses
 # =========================
-from sqlalchemy.orm import joinedload
-
-from sqlalchemy import func
 
 def list_expenses(
     db: Session,
@@ -110,16 +125,19 @@ def list_expenses(
     query = db.query(models.Expense).filter(models.Expense.is_active == True)
 
     # =========================
-    # DATE FILTER
+    # DATE FILTER (FIXED)
     # =========================
     if start_date:
-        query = query.filter(models.Expense.expense_date >= start_date)
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        query = query.filter(models.Expense.expense_date >= start_dt)
 
     if end_date:
-        query = query.filter(models.Expense.expense_date <= end_date)
+        # Move to next day midnight, then use <
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+        query = query.filter(models.Expense.expense_date < end_dt)
 
     # =========================
-    # ACCOUNT TYPE FILTER (FIX)
+    # ACCOUNT TYPE FILTER
     # =========================
     if account_type:
         query = query.filter(
@@ -139,7 +157,6 @@ def list_expenses(
         "total_expenses": total_expenses,
         "expenses": [serialize_expense(exp) for exp in expenses],
     }
-
 
 
 # =========================

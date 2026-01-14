@@ -200,7 +200,7 @@ def create_sale(db: Session, sale: schemas.SaleCreate, user_id: int):
     return db_sale
 
 
-now lets work on the frontend list expenses, ListExpenses.jsx and css, under the src-components-accounts 
+now lets work on the frontend Revenue Item, RevenueItem.jsx and css, under the src-components-accounts 
 folder, remember to use the function 
 
 import axiosWithAuth from "../../utils/axiosWithAuth"; 
@@ -209,7 +209,7 @@ example
 const res = await axiosWithAuth().get("/sales/outstanding", {
 
 i will send you the backend code to use   
-we need to add edit and delete to the action
+
 
 
 

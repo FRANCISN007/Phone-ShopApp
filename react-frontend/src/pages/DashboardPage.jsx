@@ -31,7 +31,7 @@ const DashboardPage = () => {
       { label: "Stock", icon: "📦", submenu: true },
       { label: "Purchase", icon: "🧾", submenu: true },
       { label: "Accounts", icon: "📈", submenu: true },
-      { label: "Maintenance", icon: "🛠", path: "/dashboard/maintenance" },
+      { label: "Maintenance", icon: "🛠", path: "/dashboard/users" },
       { label: "Export", icon: "📤", action: "export" },
       { label: "Print", icon: "🖨️", action: "print" },
       { label: "Exit", icon: "⎋", path: "/exit", danger: true },
@@ -74,8 +74,8 @@ const DashboardPage = () => {
   const accountsSubMenu = [
     { label: "Create Expenses", action: "create", icon: "➕" },
     { label: "List Expenses", action: "list", icon: "📋" },
-    { label: "Create Revenue Item", action: "createrevenue", icon: "➕" },
-    { label: "Profit and Loss", action: "profit/loss", icon: "🧾" },
+    { label: "Create Revenue Item", action: "revenueitem", icon: "➕" },
+    { label: "Profit and Loss", action: "profitloss", icon: "🧾" },
   ];
 
 
@@ -240,8 +240,8 @@ const handleAccountsAction = action => {
       case "list":
         navigate("/dashboard/accounts/expenses/list");
         break;
-      case "revenue":
-        navigate("/dashboard/accounts/exepenses/revenue");
+      case "revenueitem":
+        navigate("/dashboard/accounts/revenueitem");
         break;
       case "profitloss":
         navigate("/dashboard/accounts/profitloss");

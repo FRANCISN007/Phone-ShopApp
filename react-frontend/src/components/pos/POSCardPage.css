@@ -107,7 +107,7 @@
 
 /* Cells */
 .cart-grid.row .cell {
-  padding: 2px 4px;
+  padding: 0px 2px;
   border-right: 1px solid #d0d0d0;
   height: 22px;
   display: flex;
@@ -155,6 +155,7 @@
 .amount-cell {
   justify-content: center;
   font-variant-numeric: tabular-nums;
+  font-weight: bold;
 }
 
 .action-cell {
@@ -176,6 +177,7 @@
   border-top: 3px double #000; /* 🔥 accounting double line */
   background: #f0f0f0;
   font-weight: bold;
+  font-size: 1.1rem;
 }
 
 .cart-grid.total-row > div {
@@ -225,12 +227,16 @@
   column-gap: 6px;
   row-gap: 0;
   overflow-y: auto;
+  color: #000000; /* blue text */
+  
 }
 
+
+
 .item-card {
-  background: #d5d5da;
+  background: #b6b6c7;
   padding: 1px 2px;
-  border-radius: 1px;
+  border-radius: 6px;
   border: 1px solid #1607f1;
   text-align: center;
   cursor: pointer;
@@ -250,29 +256,12 @@
   color: #fff;
 }
 
-/* =========================
-   BACK BUTTON
-========================= */
-.back-button {
-  margin-bottom: 4px;
-  padding: 8px 12px;
-  font-size: 1rem;
-  cursor: pointer;
-  border: none;
-  background: #15a1dd;
-  border-radius: 4px;
-}
+
 
 .back-button:hover {
   background: #74b9ff;
   color: #fff;
 }
-
-/* CATEGORY */
-.category-card {
-  font-weight: bold;
-}
-
 
 
 /* =========================
@@ -289,7 +278,7 @@
 /* Category tab */
 .category-tab {
   padding: 15px 12px;
-  background: #b8b991;
+  background: #dbe9db;
   border: 1px solid #1417e2;
   border-radius: 4px;
   font-weight: bold;
@@ -309,4 +298,9 @@
   background: #2d3436;
   color: #fff;
   border-color: #101213;
+}
+
+
+.empty-cell {
+  cursor: default;
 }

@@ -63,11 +63,24 @@ def create_product(db: Session, product: schemas.ProductCreate):
     )
 
     db.add(db_product)
+    db.flush()  # 🔥 get product ID without committing yet
+
+    # 4️⃣ AUTO-CREATE INVENTORY RECORD (ZERO STOCK)
+    inventory = inventory_models.Inventory(
+        product_id=db_product.id,
+        quantity_in=0,
+        quantity_out=0,
+        adjustment_total=0,
+        current_stock=0
+    )
+
+    db.add(inventory)
+
+    # 5️⃣ Commit once (atomic)
     db.commit()
     db.refresh(db_product)
 
-    return db_product  # ORM ONLY
-
+    return db_product
     
 
 def get_products(

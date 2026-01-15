@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./RevenueItem.css";
 
-const RevenueItem = () => {
+const RevenueItem = ({ onClose }) => {
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -11,7 +11,15 @@ const RevenueItem = () => {
   const [error, setError] = useState("");
 
   /* =========================
-     FETCH CATEGORIES
+     SAFE CLOSE HANDLER
+  ========================= */
+  const handleClose = () => {
+    if (onClose) onClose();
+    else window.history.back(); // 🔥 fallback
+  };
+
+  /* =========================
+     FETCH REVENUE ITEMS
   ========================= */
   const fetchCategories = async () => {
     try {
@@ -20,7 +28,7 @@ const RevenueItem = () => {
       setCategories(res.data);
       setError("");
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load categories");
+      setError(err.response?.data?.detail || "Failed to load revenue items");
     } finally {
       setLoading(false);
     }
@@ -76,8 +84,7 @@ const RevenueItem = () => {
      DELETE
   ========================= */
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this revenue item?"))
-      return;
+    if (!window.confirm("Delete this revenue item?")) return;
 
     try {
       await axiosWithAuth().delete(`/stock/category/${id}`);
@@ -88,21 +95,27 @@ const RevenueItem = () => {
   };
 
   return (
-    <div className="revenue-item-container">
+    <div className="revenue-item-container compact">
+
+      {/* CLOSE BUTTON */}
+      <button className="close-btn" onClick={handleClose}>
+        ✕
+      </button>
+
       <h2 className="revenue-item-title">Revenue Items</h2>
 
       {/* ================= CREATE / EDIT FORM ================= */}
-      <form className="revenue-form" onSubmit={handleSubmit}>
+      <form className="revenue-form compact-form" onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Revenue Item Name"
+          placeholder="Revenue item name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
         <input
           type="text"
-          placeholder="Description (optional)"
+          placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
@@ -137,7 +150,7 @@ const RevenueItem = () => {
               <th>#</th>
               <th>Revenue Item</th>
               <th>Description</th>
-              <th>Created At</th>
+              <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -159,16 +172,18 @@ const RevenueItem = () => {
                   </td>
                   <td className="action-cell">
                     <button
-                      className="edit-btn"
+                      className="icon-btn edit-btn"
+                      title="Edit"
                       onClick={() => handleEdit(cat)}
                     >
-                      Edit
+                      ✏️
                     </button>
                     <button
-                      className="delete-btn"
+                      className="icon-btn delete-btn"
+                      title="Delete"
                       onClick={() => handleDelete(cat.id)}
                     >
-                      Delete
+                      🗑️
                     </button>
                   </td>
                 </tr>

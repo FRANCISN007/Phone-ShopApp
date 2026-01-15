@@ -10,6 +10,9 @@ const POSCardPage = () => {
   const [products, setProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null); // selected category object
   const [cartItems, setCartItems] = useState([]);
+
+  const EMPTY_ROWS = 10; // number of visible sales rows
+
   
   /* =========================
      FETCH CATEGORIES & PRODUCTS
@@ -81,39 +84,54 @@ const POSCardPage = () => {
             <div>Item</div>
             <div>Qty</div>
             <div>Amount</div>
-            <div>×</div>
+            <div>X</div>
           </div>
 
           {/* DATA ROWS */}
           <div className="cart-items">
-            {cartItems.map((item, index) => (
-              <div
-                key={item.id}
-                className={`cart-grid row ${
-                  index === cartItems.length - 1 ? "last-added" : ""
-                }`}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") incrementQty(item.id);
-                  if (e.key === "Delete") removeItem(item.id);
-                }}
-              >
-                <div className="cell item-name">{item.name}</div>
-                <div
-                  className="cell qty-cell"
-                  onClick={() => incrementQty(item.id)}
-                >
-                  {item.qty}
-                </div>
-                <div className="cell amount-cell">
-                  {(item.qty * item.selling_price).toLocaleString()}
-                </div>
-                <div className="cell action-cell">
-                  <button onClick={() => removeItem(item.id)}>×</button>
-                </div>
-              </div>
-            ))}
+            {Array.from({ length: Math.max(EMPTY_ROWS, cartItems.length) }).map(
+              (_, index) => {
+                const item = cartItems[index];
+
+                return (
+                  <div
+                    key={item ? item.id : `empty-${index}`}
+                    className={`cart-grid row ${
+                      item && index === cartItems.length - 1 ? "last-added" : ""
+                    }`}
+                  >
+                    {/* ITEM NAME */}
+                    <div className="cell item-name">
+                      {item ? item.name : ""}
+                    </div>
+
+                    {/* QTY */}
+                    <div
+                      className={`cell qty-cell ${item ? "" : "empty-cell"}`}
+                      onClick={() => item && incrementQty(item.id)}
+                    >
+                      {item ? item.qty : ""}
+                    </div>
+
+                    {/* AMOUNT */}
+                    <div className="cell amount-cell">
+                      {item
+                        ? (item.qty * item.selling_price).toLocaleString()
+                        : ""}
+                    </div>
+
+                    {/* ACTION */}
+                    <div className="cell action-cell">
+                      {item && (
+                        <button onClick={() => removeItem(item.id)}>X</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+            )}
           </div>
+
 
           {/* TOTAL ROW */}
           <div className="cart-grid total-row">

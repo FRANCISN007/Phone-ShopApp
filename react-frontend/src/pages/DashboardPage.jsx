@@ -27,6 +27,7 @@ const DashboardPage = () => {
   const mainMenu = useMemo(
     () => [
       { label: "POS", icon: "🛒", path: "/dashboard/pos" },
+      { label: "POS-Card", icon: "💳", path: "/dashboard/pos-card" }, // <-- open full screen
       { label: "Sales", icon: "💰", submenu: true },
       { label: "Stock", icon: "📦", submenu: true },
       { label: "Purchase", icon: "🧾", submenu: true },
@@ -79,6 +80,7 @@ const DashboardPage = () => {
   ];
 
 
+  
 
   /* ===============================
      EXPORT TO EXCEL
@@ -126,10 +128,17 @@ const DashboardPage = () => {
     item => {
       if (item.action === "export") return exportToExcel();
       if (item.action === "print") return printContent();
+
+      // Open full screen POS-Card
       if (item.label === "POS") {
         window.open(`${window.location.origin}/dashboard/pos`, "_blank", "noopener,noreferrer");
         return;
       }
+      if (item.label === "POS-Card") {
+        window.open(`${window.location.origin}/dashboard/pos-card`, "_blank", "noopener,noreferrer");
+        return;
+      }
+
       if (item.submenu) {
         setActiveSubMenu(activeSubMenu === item.label ? null : item.label);
         return;
@@ -142,9 +151,15 @@ const DashboardPage = () => {
     [navigate, exportToExcel, printContent, activeSubMenu]
   );
 
+
   /* ===============================
      SUBMENU ACTIONS
   ================================ */
+
+
+  
+
+
   const handleSalesAction = action => {
     switch (action) {
       case "listSales":

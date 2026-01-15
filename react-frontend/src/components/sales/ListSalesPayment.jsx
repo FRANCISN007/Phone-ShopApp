@@ -234,7 +234,7 @@ const ListSalesPayment = () => {
                 <td style={{ fontWeight: "bold", fontSize: "1rem" }}>
                   {formatAmount(totals.balance_due)}
                 </td>
-                <td colSpan="3"></td>
+                <td colSpan="4"></td>
               </tr>
             </tfoot>
           )}

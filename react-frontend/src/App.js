@@ -62,6 +62,8 @@ import UserManagement from "./modules/users/UserManagement";
 
 // POS
 import PosSales from "./components/pos/PosSales";
+import POSCardPage from "./components/pos/POSCardPage";
+
 
 console.log("✅ API BASE:", process.env.REACT_APP_API_BASE_URL);
 
@@ -82,6 +84,7 @@ const App = () => {
             {/* Dashboard Pages */}
             <Route path="users" element={<UsersPage />} />
             <Route path="pos" element={<PosSales />} />
+            <Route path="pos-card" element={<POSCardPage />} />
 
             {/* ✅ SALES ROUTES */}
             <Route path="sales">

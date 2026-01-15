@@ -107,6 +107,23 @@ def list_products_simple(
     ]
 
 
+# products/simple
+@router.get("/simple-pos")
+def simple_products(db: Session = Depends(get_db)):
+    products = db.query(Product).all()
+    result = []
+    for p in products:
+        result.append({
+            "id": p.id,
+            "name": p.name,
+            "selling_price": p.selling_price,
+            "category_id": p.category_id,
+            "category_name": p.category.name  # <-- add this
+        })
+    return result
+
+
+
 
 @router.get(
     "/{product_id}",

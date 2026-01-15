@@ -10,8 +10,7 @@ const POSCardPage = () => {
   const [products, setProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null); // selected category object
   const [cartItems, setCartItems] = useState([]);
-  const [showProducts, setShowProducts] = useState(false); // toggle between category and product view
-
+  
   /* =========================
      FETCH CATEGORIES & PRODUCTS
   ========================= */
@@ -133,49 +132,39 @@ const POSCardPage = () => {
 
       {/* ================= BOTTOM ================= */}
       <div className="poscard-items">
-        {/* CATEGORY VIEW */}
-        {!showProducts && (
-          <div className="item-grid">
-            {categories.map((cat) => (
+
+        {/* ===== CATEGORY BAR (ALWAYS VISIBLE) ===== */}
+        <div className="category-bar">
+          {categories.map((cat) => (
+            <div
+              key={cat.id}
+              className={`category-tab ${
+                activeCategory?.id === cat.id ? "active" : ""
+              }`}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {cat.name}
+            </div>
+          ))}
+        </div>
+
+        {/* ===== PRODUCT GRID (SHOW ONLY WHEN CATEGORY IS CLICKED) ===== */}
+        <div className="item-grid">
+          {activeCategory &&
+            filteredProducts.map((item) => (
               <div
-                key={cat.id}
-                className="item-card category-card"
-                onClick={() => {
-                  setActiveCategory(cat);
-                  setShowProducts(true);
-                }}
+                key={item.id}
+                className="item-card"
+                onClick={() => addItemToCart(item)}
               >
-                <div>{cat.name}</div>
+                <div>{item.name}</div>
+                <div>{item.selling_price.toLocaleString()}</div>
               </div>
             ))}
-          </div>
-        )}
+        </div>
 
-        {/* PRODUCT VIEW */}
-        {showProducts && (
-          <>
-            <button
-              className="back-button"
-              onClick={() => setShowProducts(false)}
-            >
-              ← Back to Categories
-            </button>
-            <div className="item-grid products">
-
-              {filteredProducts.map((item) => (
-                <div
-                  key={item.id}
-                  className="item-card"
-                  onClick={() => addItemToCart(item)}
-                >
-                  <div>{item.name}</div>
-                  <div>{item.selling_price.toLocaleString()}</div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
       </div>
+
     </div>
   );
 };

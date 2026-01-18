@@ -8,7 +8,9 @@ export const printA4Receipt = ({
   refNo,
   paymentMethod,
   amountPaid,
-  totalAmount,
+  grossTotal,
+  totalDiscount,
+  netTotal,
   balance,
   items,
   amountInWords,
@@ -16,14 +18,20 @@ export const printA4Receipt = ({
 }) => {
   const printWindow = window.open("", "_blank", "width=800,height=600");
 
-  const itemsHtml = items.map(item => `
-    <tr>
-      <td style="width:50%">${item.name}</td>
-      <td style="width:10%; text-align:center;">${item.quantity}</td>
-      <td style="width:20%; text-align:right;">${formatCurrency(item.selling_price)}</td>
-      <td style="width:20%; text-align:right;">${formatCurrency(item.total_amount)}</td>
-    </tr>
-  `).join("");
+  const itemsHtml = items
+    .map(
+      (item) => `
+      <tr>
+        <td style="width:30%">${item.product_name}</td>
+        <td style="width:8%; text-align:center;">${item.quantity}</td>
+        <td style="width:12%; text-align:right;">${formatCurrency(item.selling_price)}</td>
+        <td style="width:15%; text-align:right;">${formatCurrency(item.gross_amount)}</td>
+        <td style="width:15%; text-align:right;">${formatCurrency(item.discount || 0)}</td>
+        <td style="width:20%; text-align:right;">${formatCurrency(item.net_amount)}</td>
+      </tr>
+    `
+    )
+    .join("");
 
   printWindow.document.write(`
     <html>
@@ -39,10 +47,23 @@ export const printA4Receipt = ({
           .bold { font-weight: bold; }
           hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
           table { width: 100%; border-collapse: collapse; }
-          th { border-bottom: 1px solid #000; padding-bottom: 4px; text-align: left; }
-          td { padding: 4px 0; }
-          .total-line { font-weight: bold; text-align: right; margin-top: 4px; }
-          .footer { margin-top: 10px; text-align: center; }
+          th {
+            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+            text-align: left;
+            font-size: 11px;
+          }
+          td { padding: 4px 0; font-size: 11px; }
+          .total-line {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-top: 4px;
+          }
+          .footer {
+            margin-top: 10px;
+            text-align: center;
+          }
         </style>
       </head>
       <body>
@@ -55,16 +76,25 @@ export const printA4Receipt = ({
         <div>Customer: ${customerName || "-"}</div>
         <div>Phone: ${customerPhone || "-"}</div>
         <div>Ref No: ${refNo || "-"}</div>
-        <div>Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}</div>
+        <div>
+          Payment:
+          ${
+            amountPaid > 0 && paymentMethod
+              ? paymentMethod.toUpperCase()
+              : "NOT PAID"
+          }
+        </div>
         <hr />
 
         <table>
           <thead>
             <tr>
-              <th>Item</th>
+              <th>Product</th>
               <th style="text-align:center;">Qty</th>
               <th style="text-align:right;">Price</th>
-              <th style="text-align:right;">Total</th>
+              <th style="text-align:right;">Gross</th>
+              <th style="text-align:right;">Discount</th>
+              <th style="text-align:right;">Net</th>
             </tr>
           </thead>
           <tbody>
@@ -74,9 +104,32 @@ export const printA4Receipt = ({
 
         <hr />
 
-        <div class="total-line">Total: ${formatCurrency(totalAmount)}</div>
-        <div class="total-line">Paid: ${formatCurrency(amountPaid)}</div>
-        <div class="total-line">Balance: ${formatCurrency(balance)}</div>
+        <div class="total-line">
+          <span>Gross Total:</span>
+          <span>${formatCurrency(grossTotal)}</span>
+        </div>
+
+        <div class="total-line">
+          <span>Total Discount:</span>
+          <span>- ${formatCurrency(totalDiscount)}</span>
+        </div>
+
+        <div class="total-line">
+          <span>Net Total:</span>
+          <span>${formatCurrency(netTotal)}</span>
+        </div>
+
+        <div class="total-line">
+          <span>Paid:</span>
+          <span>${formatCurrency(amountPaid)}</span>
+        </div>
+
+        <div class="total-line">
+          <span>Balance:</span>
+          <span>${formatCurrency(balance)}</span>
+        </div>
+
+        <hr />
 
         <div style="margin-top:6px; font-size:11px;">
           <strong>Amount in Words:</strong><br/>

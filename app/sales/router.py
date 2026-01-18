@@ -5,7 +5,7 @@ from datetime import date
 from typing import Optional
 from sqlalchemy import text
 
-from app.sales.schemas import SaleOut, SaleOutStaff,  SaleFullCreate, OutstandingSalesResponse, SalesListResponse, ItemSoldResponse
+from app.sales.schemas import SaleOut,  SaleOut2, SaleFullCreate, OutstandingSalesResponse, SalesListResponse, ItemSoldResponse
 from app.sales import models as sales_models
 from app.payments.models import Payment
 
@@ -122,10 +122,7 @@ def outstanding_sales(
 
 
 
-@router.get(
-    "/by-customer",
-    response_model=List[SaleOut]
-)
+@router.get("/by-customer", response_model=List[SaleOut2])
 def sales_by_customer(
     customer_name: str | None = Query(None, description="Customer name"),
     start_date: date | None = Query(None, description="Start date"),
@@ -186,7 +183,7 @@ def update_sale_header(
 ):
     """
     Update sale header information.
-    Totals and balance are recalculated automatically.
+    Totals and balance are recalculated automatically (net_amount considered).
     """
     return service.update_sale(db, invoice_no, sale_update)
 
@@ -241,7 +238,8 @@ def get_sale_invoice_reprint(
         db.query(sales_models.Sale)
         .options(
             joinedload(sales_models.Sale.items)
-            .joinedload(sales_models.SaleItem.product)
+                .joinedload(sales_models.SaleItem.product),
+            joinedload(sales_models.Sale.payments)
         )
         .filter(sales_models.Sale.invoice_no == invoice_no)
         .first()
@@ -250,15 +248,14 @@ def get_sale_invoice_reprint(
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
 
-    # 2️⃣ SAME totals logic as list_sales
-    total_amount = float(sale.total_amount or 0)
+    # 2️⃣ Recalculate totals from NET AMOUNTS
+    total_amount = sum((item.net_amount or 0) for item in sale.items)
 
-    payments = getattr(sale, "payments", []) or []
+    payments = sale.payments or []
     total_paid = sum(float(p.amount_paid or 0) for p in payments)
-
     balance_due = total_amount - total_paid
 
-    # 3️⃣ SAME payment status logic
+    # 3️⃣ Payment status logic
     if total_paid == 0:
         payment_status = "pending"
     elif balance_due > 0:
@@ -266,7 +263,7 @@ def get_sale_invoice_reprint(
     else:
         payment_status = "completed"
 
-    # 4️⃣ Return with product_name
+    # 4️⃣ Return receipt (discount-aware)
     return schemas.SaleOut2(
         id=sale.id,
         invoice_no=sale.invoice_no,
@@ -287,11 +284,14 @@ def get_sale_invoice_reprint(
                 product_name=item.product.name if item.product else None,
                 quantity=item.quantity,
                 selling_price=item.selling_price,
-                total_amount=item.total_amount
+                gross_amount=item.gross_amount,
+                discount=item.discount,
+                net_amount=item.net_amount
             )
             for item in (sale.items or [])
         ]
     )
+
 
 
 

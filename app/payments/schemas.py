@@ -9,7 +9,7 @@ import pytz
 # -------------------------
 class PaymentBase(BaseModel):
     amount_paid: float
-    discount_allowed: Optional[float] = 0.0
+    
     payment_method: str                 # cash / transfer / pos
     bank_id: Optional[int] = None
     reference_no: Optional[str] = None
@@ -44,3 +44,14 @@ class PaymentOut(PaymentBase):
         from_attributes = True
         populate_by_name = True
 
+
+
+# -------------------------
+# Update Payment Schema
+# -------------------------
+class PaymentUpdate(BaseModel):
+    amount_paid: Optional[float] = None
+
+    payment_method: Optional[str] = None  # cash / transfer / pos
+    bank_id: Optional[int] = None
+    payment_date: Optional[datetime] = None

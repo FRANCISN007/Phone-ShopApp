@@ -10,20 +10,35 @@ const SalesByCustomer = () => {
   const [endDate, setEndDate] = useState(today);
 
   const [sales, setSales] = useState([]);
-  const [grandTotal, setGrandTotal] = useState(0);
+  const [summary, setSummary] = useState({
+    total_amount: 0,
+    total_discount: 0,
+    total_paid: 0,
+    total_balance: 0,
+  });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
+  const [show, setShow] = useState(true);
 
-  const [show, setShow] = useState(true); // NEW: controls visibility
+  // Helpers
+  const money = (v) =>
+    Number(v || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+
+  const formatDate = (dt) => (dt ? dt.substring(0, 10) : "-");
+
+  const getInvoiceDiscount = (items = []) =>
+    items.reduce((sum, i) => sum + (i.discount || 0), 0);
 
   const fetchSales = useCallback(async () => {
-    // 🔴 HARD restriction (same as backend)
     if (!customerName.trim()) {
       setError("Please enter a customer name");
       setSales([]);
-      setGrandTotal(0);
+      setSummary({ total_amount: 0, total_discount: 0, total_paid: 0, total_balance: 0 });
       return;
     }
 
@@ -43,47 +58,28 @@ const SalesByCustomer = () => {
       const data = res.data || [];
       setSales(data);
 
-      // ✅ GRAND TOTAL (matches backend totals)
-      const total = data.reduce(
-        (sum, sale) => sum + Number(sale.total_amount || 0),
-        0
-      );
-      setGrandTotal(total);
+      const total_amount = data.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+      const total_discount = data.reduce((sum, s) => sum + getInvoiceDiscount(s.items), 0);
+      const total_paid = data.reduce((sum, s) => sum + (s.total_paid || 0), 0);
+      const total_balance = data.reduce((sum, s) => sum + (s.balance_due || 0), 0);
 
+      setSummary({ total_amount, total_discount, total_paid, total_balance });
     } catch (err) {
       console.error("Sales by customer error:", err.response || err);
       setError("Failed to load sales");
       setSales([]);
-      setGrandTotal(0);
+      setSummary({ total_amount: 0, total_discount: 0, total_paid: 0, total_balance: 0 });
     } finally {
       setLoading(false);
     }
   }, [customerName, startDate, endDate]);
 
-  const money = (v) =>
-    Number(v || 0).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-
-  const formatDate = (dt) => {
-    if (!dt) return "-";
-    return dt.substring(0, 10);
-  };
-
-  if (!show) return null; // hide the component when closed
-
+  if (!show) return null;
 
   return (
     <div className="sales-by-customer-container">
+      <button className="close-btn" onClick={() => setShow(false)}>✖</button>
 
-      {/* Close button */}
-    <button
-        className="close-btn"
-        onClick={() => setShow(false)} // hides the page
-        >
-        ✖
-     </button>  
       <h2 className="sales-title">Sales By Customer</h2>
 
       {/* Filters */}
@@ -100,28 +96,17 @@ const SalesByCustomer = () => {
 
         <div className="filter-group">
           <label>Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
 
         <div className="filter-group">
           <label>End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
 
-        <button className="filter-btn" onClick={fetchSales}>
-          Search
-        </button>
+        <button className="filter-btn" onClick={fetchSales}>Search</button>
       </div>
 
-      {/* Status */}
       {loading && <div className="status-text">Loading...</div>}
       {error && <div className="error-text">{error}</div>}
 
@@ -138,15 +123,16 @@ const SalesByCustomer = () => {
               <th>Qty</th>
               <th>Price</th>
               <th>Invoice Total</th>
+              <th>Discount</th>
+              <th>Total Paid</th>
+              <th>Balance Due</th>
+              <th>Status</th>
             </tr>
           </thead>
-
           <tbody>
             {searched && sales.length === 0 && !loading && (
               <tr>
-                <td colSpan="8" className="empty-row">
-                  No sales found for this customer
-                </td>
+                <td colSpan="12" className="empty-row">No sales found for this customer</td>
               </tr>
             )}
 
@@ -158,30 +144,36 @@ const SalesByCustomer = () => {
                     <td>{sale.invoice_no}</td>
                     <td>{formatDate(sale.invoice_date)}</td>
                     <td>
-                      <strong>{sale.customer_name || "Walk-in"}</strong>
-                      <div className="sub-text">
-                        {sale.customer_phone || "-"}
-                      </div>
+                      <strong>{sale.customer_name}</strong>
+                      <div className="sub-text">{sale.customer_phone}</div>
                     </td>
                     <td>{item.product_name}</td>
                     <td>{item.quantity}</td>
                     <td>{money(item.selling_price)}</td>
 
                     {itemIndex === 0 && (
-                      <td rowSpan={sale.items.length}>
-                        {money(sale.total_amount)}
-                      </td>
+                      <>
+                        <td rowSpan={sale.items.length}>{money(sale.total_amount)}</td>
+                        <td rowSpan={sale.items.length}>{money(getInvoiceDiscount(sale.items))}</td>
+                        <td rowSpan={sale.items.length}>{money(sale.total_paid)}</td>
+                        <td rowSpan={sale.items.length}>{money(sale.balance_due)}</td>
+                        <td rowSpan={sale.items.length}>{sale.payment_status}</td>
+                      </>
                     )}
                   </tr>
                 ))}
               </React.Fragment>
             ))}
 
-            {/* ✅ GRAND TOTAL */}
+            {/* GRAND TOTAL */}
             {sales.length > 0 && (
               <tr className="sales-total-row">
                 <td colSpan="7">GRAND TOTAL</td>
-                <td>{money(grandTotal)}</td>
+                <td>{money(summary.total_amount)}</td>
+                <td>{money(summary.total_discount)}</td>
+                <td>{money(summary.total_paid)}</td>
+                <td>{money(summary.total_balance)}</td>
+                <td>-</td>
               </tr>
             )}
           </tbody>

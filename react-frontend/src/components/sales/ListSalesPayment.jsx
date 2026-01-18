@@ -13,10 +13,21 @@ const ListSalesPayment = () => {
   const [endDate, setEndDate] = useState(today);
   const [status, setStatus] = useState("");
   const [bankId, setBankId] = useState("");
-  const [invoiceNo, setInvoiceNo] = useState(""); // <-- New state for invoice filter
+  const [invoiceNo, setInvoiceNo] = useState("");
 
   const [banks, setBanks] = useState([]);
   const [show, setShow] = useState(true);
+
+  // ----- Edit Modal State -----
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [currentPayment, setCurrentPayment] = useState(null);
+  const [editForm, setEditForm] = useState({
+    amount_paid: "",
+    discount_allowed: "",
+    payment_method: "",
+    bank_id: "",
+    payment_date: "",
+  });
 
   /* ================= Fetch Banks ================= */
   const fetchBanks = useCallback(async () => {
@@ -39,7 +50,7 @@ const ListSalesPayment = () => {
       if (endDate) params.end_date = endDate;
       if (status) params.status = status;
       if (bankId) params.bank_id = bankId;
-      if (invoiceNo) params.invoice_no = invoiceNo; // <-- Include invoice filter
+      if (invoiceNo) params.invoice_no = invoiceNo;
 
       const res = await axiosWithAuth().get("/payments/", { params });
       setPayments(res.data || []);
@@ -70,6 +81,48 @@ const ListSalesPayment = () => {
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.detail || "Failed to delete payment");
+    }
+  };
+
+  /* ================= Open Edit Modal ================= */
+  const openEditModal = (payment) => {
+    setCurrentPayment(payment);
+    setEditForm({
+      amount_paid: payment.amount_paid,
+      discount_allowed: payment.discount_allowed || 0,
+      payment_method: payment.payment_method,
+      bank_id: payment.bank_id || "",
+      payment_date: payment.payment_date.split("T")[0], // date only
+    });
+    setEditModalVisible(true);
+  };
+
+  /* ================= Handle Edit Form Changes ================= */
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  /* ================= Submit Edit ================= */
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentPayment) return;
+
+    try {
+      await axiosWithAuth().put(`/payments/${currentPayment.id}`, {
+        amount_paid: parseFloat(editForm.amount_paid),
+        discount_allowed: parseFloat(editForm.discount_allowed),
+        payment_method: editForm.payment_method,
+        bank_id: editForm.bank_id || null,
+        payment_date: editForm.payment_date,
+      });
+
+      setEditModalVisible(false);
+      setCurrentPayment(null);
+      fetchPayments();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.detail || "Failed to update payment");
     }
   };
 
@@ -165,10 +218,7 @@ const ListSalesPayment = () => {
           Loading payments...
         </div>
       )}
-
-      {error && (
-        <div className="sales-payment-error-text">{error}</div>
-      )}
+      {error && <div className="sales-payment-error-text">{error}</div>}
 
       {/* ================= Table ================= */}
       {!loading && (
@@ -191,7 +241,7 @@ const ListSalesPayment = () => {
           <tbody>
             {payments.length === 0 ? (
               <tr>
-                <td colSpan="9" className="sales-payment-empty-row">
+                <td colSpan="10" className="sales-payment-empty-row">
                   No payments found
                 </td>
               </tr>
@@ -208,6 +258,13 @@ const ListSalesPayment = () => {
                   <td>{p.bank_name}</td>
                   <td>{p.status}</td>
                   <td>
+                    <button
+                      className="edit-icon-btn"
+                      title="Edit Payment"
+                      onClick={() => openEditModal(p)}
+                    >
+                      ✏️
+                    </button>
                     <button
                       className="delete-icon-btn"
                       title="Delete Payment"
@@ -239,6 +296,93 @@ const ListSalesPayment = () => {
             </tfoot>
           )}
         </table>
+      )}
+
+      {/* ================= Edit Modal ================= */}
+      {editModalVisible && currentPayment && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Edit Payment</h3>
+            <form onSubmit={handleEditSubmit} className="edit-form">
+              <label>
+                Amount Paid
+                <input
+                  type="number"
+                  step="0.01"
+                  name="amount_paid"
+                  value={editForm.amount_paid}
+                  onChange={handleEditChange}
+                  required
+                />
+              </label>
+
+              <label>
+                Discount Allowed
+                <input
+                  type="number"
+                  step="0.01"
+                  name="discount_allowed"
+                  value={editForm.discount_allowed}
+                  onChange={handleEditChange}
+                />
+              </label>
+
+              <label>
+                Payment Method
+                <select
+                  name="payment_method"
+                  value={editForm.payment_method}
+                  onChange={handleEditChange}
+                  required
+                >
+                  <option value="cash">Cash</option>
+                  <option value="pos">POS</option>
+                  <option value="transfer">Transfer</option>
+                </select>
+              </label>
+
+              <label>
+                Bank
+                <select
+                  name="bank_id"
+                  value={editForm.bank_id || ""}
+                  onChange={handleEditChange}
+                >
+                  <option value="">Select Bank</option>
+                  {banks.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Payment Date
+                <input
+                  type="date"
+                  name="payment_date"
+                  value={editForm.payment_date}
+                  onChange={handleEditChange}
+                  required
+                />
+              </label>
+
+              <div className="modal-actions">
+                <button type="submit">Save</button>
+                <button
+                  type="button"
+                  className="modal-cancel-btn"
+                  onClick={() => setEditModalVisible(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+
+
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

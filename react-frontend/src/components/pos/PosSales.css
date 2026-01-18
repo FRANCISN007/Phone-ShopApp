@@ -3,14 +3,23 @@
 ================================ */
 .pos-sales-container {
   max-width: 1370px;
-  margin: 0px auto;
-  padding: 16px;
+  margin: 0 auto;
+  padding: 2px;
   background: #e2e2e6;
   border: 2px solid #0e3cd3;
   border-radius: 10px;
   box-shadow: inset 0 0 0 2px #dbeafe;
   font-family: "Segoe UI", Tahoma, sans-serif;
-  color: #000000;
+  color: #000;
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* or adjust as needed */
+}
+
+.pos-scrollable-content {
+  overflow-y: auto;
+  flex-grow: 1;
+  margin-bottom: 0px;
 }
 
 /* ===============================
@@ -18,10 +27,18 @@
 ================================ */
 .pos-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0px;
+  justify-content: space-between;
+  padding: 6px 18px;
+  border-bottom: 1px solid #e5e7eb;
 }
+
+.pos-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* 👈 space between dropdown & close X */
+}
+
 
 .pos-heading {
   font-size: 20px;
@@ -31,30 +48,22 @@
 
 .pos-close-btn {
   background: transparent;
-  border: 2px solid red;     /* 🔴 red border */
+  border: 2px solid red;
   color: red;
-
   font-size: 18px;
   cursor: pointer;
-
-  width: 32px;              /* control size */
+  width: 32px;
   height: 32px;
-  border-radius: 50%;       /* circular border */
-
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .pos-close-btn:hover {
   background: rgba(255, 0, 0, 0.1);
   transform: scale(1.05);
-}
-
-
-.pos-close-btn:hover {
   color: #dc2626;
 }
 
@@ -66,11 +75,10 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   padding: 2px;
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #0964ee;
   border-radius: 8px;
   margin-bottom: 2px;
-   
 }
 
 .input-group {
@@ -96,10 +104,9 @@
 .input-group input:focus {
   outline: none;
   border-color: #2563eb;
-  background: #ffffff;
+  background: #fff;
 }
 
-/* Invoice number */
 .invoice-no {
   grid-column: span 4;
   font-size: 16px;
@@ -108,59 +115,46 @@
 }
 
 /* ===============================
-   SALES TABLE (COMPACT)
+   POS SALES TABLE
 ================================ */
 .pos-sales-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px; /* slightly smaller */
-  background: #ffffff;
+  font-size: 13px;
+  background: #fff;
 }
 
-.pos-sales-table th {
-  border: 1px solid #9ca3af;
-  background: #f1f5f9;
-  font-weight: 700;
-  padding: 4px 6px; /* reduced */
-}
-
+.pos-sales-table th,
 .pos-sales-table td {
   border: 1px solid #3966af;
-  padding: 0% 2%; /* 🔥 tighter rows */
+  padding: 2px 4px;
   line-height: 1.2;
 }
 
-/* ===============================
-   ZEBRA STRIPING
-================================ */
-.pos-sales-table tbody tr:nth-child(odd) {
-  background-color: #f9fafb;
+.pos-sales-table th {
+  background: #f1f5f9;
+  font-weight: 700;
+  text-align: left;
 }
 
-.pos-sales-table tbody tr:nth-child(even) {
-  background-color: #e3f0e2;
-}
-
-/* Optional hover highlight */
-.pos-sales-table tbody tr:hover {
-  background-color: #e0ecff;
-}
-
-
-
-
-/* ALIGNMENTS */
+/* COLUMN WIDTHS */
+.pos-sales-table th:nth-child(1),
+.pos-sales-table td:nth-child(1) { width: 35%; text-align: left; }
 .pos-sales-table th:nth-child(2),
+.pos-sales-table td:nth-child(2) { width: 10%; text-align: center; }
 .pos-sales-table th:nth-child(3),
-.pos-sales-table td:nth-child(2),
-.pos-sales-table td:nth-child(3) {
-  text-align: center;
-}
-
+.pos-sales-table td:nth-child(3) { width: 15%; text-align: right; }
 .pos-sales-table th:nth-child(4),
-.pos-sales-table td:nth-child(4) {
-  text-align: right;
-}
+.pos-sales-table td:nth-child(4) { width: 15%; text-align: right; font-weight: 700; color: #111827; font-size: 14px; }
+.pos-sales-table th:nth-child(5),
+.pos-sales-table td:nth-child(5) { width: 10%; text-align: right; }
+.pos-sales-table th:nth-child(6),
+.pos-sales-table td:nth-child(6) { width: 15%; text-align: right; font-weight: 700; color: #111827; font-size: 14px; }
+
+/* ZEBRA STRIPING */
+.pos-sales-table tbody tr:nth-child(odd) { background-color: #f9fafb; }
+.pos-sales-table tbody tr:nth-child(even) { background-color: #e3f0e2; }
+.pos-sales-table tbody tr:hover { background-color: #e0ecff; }
 
 /* Inputs inside table */
 .pos-sales-table select,
@@ -168,9 +162,9 @@
   width: 100%;
   border: none;
   background: transparent;
-  padding: 4px;
+  padding: 2px;
+  font-size: 14px;
   text-align: inherit;
-  font-size: 15px;
 }
 
 .pos-sales-table select:focus,
@@ -180,7 +174,7 @@
 }
 
 /* ===============================
-   TOTAL + COMPLETE SALE ROW
+   TOTAL + GRAND TOTAL
 ================================ */
 .pos-total-row {
   display: grid;
@@ -190,35 +184,39 @@
   padding: 10px;
   margin-top: 2px;
   border-top: 2px solid #111827;
-  background: #ffffff;
-  
+  background: #fff;
 }
 
+.pos-total-row span { font-size: 15px; font-weight: 800; }
 
-.pos-total-row span {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-
-/* Bold total in each row */
-.pos-sales-table tbody td:nth-child(4) {
+.grand-total-container {
+  display: grid;
+  grid-template-columns: 35% 10% 15% 15% 10% 15%;
+  margin-top: 2px;
   font-weight: 700;
   font-size: 15px;
-  color: #111827; /* optional, darker for emphasis */
+  background: #f9fafb;
+  padding: 4px 6px;
+  border-top: 2px solid #111827;
+}
+
+.gt-label { grid-column: 5; text-align: right; }
+.gt-amount { grid-column: 6; text-align: right; }
+
+.balance-row {
+  grid-column: 5 / 6;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 /* ===============================
    ACTION BUTTONS
 ================================ */
-.pos-bottom-actions {
-  display: flex;
-  justify-content: flex-start;
-  margin-top: 1px;
-
-
-
-}
+.pos-bottom-actions { display: flex; justify-content: flex-start; margin-top: 1px; }
 
 .add-btn {
   background: #e5e7eb;
@@ -229,157 +227,53 @@
   border-radius: 6px;
   transition: all 0.2s ease;
 }
+.add-btn:hover { background: #2563eb; color: #fff; }
 
-.add-btn:hover {
-  background: #2563eb;
-  color: #ffffff;
-}
+.add-product-row { text-align: left; padding: 6px; border: none; background: #f9fafb; }
+.add-product-row .add-btn { margin: 0; padding: 6px 12px; border-radius: 6px; border: 1px solid #9ca3af; background: #e5e7eb; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.add-product-row .add-btn:hover { background: #2563eb; color: #fff; }
 
-/* Complete Sale button */
-.submit-btn {
-  background: #4c72ee;
-  color: #ffffff;
-  border: none;
-  padding: 9px 18px;
-  font-weight: 700;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+.submit-btn { background: #4c72ee; color: #fff; border: none; padding: 9px 18px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+.submit-btn:hover { background: #1e3a8a; }
 
-.submit-btn:hover {
-  background: #1e3a8a;
-}
+.remove-btn { background: #f87171; color: #fff; font-weight: 600; padding: 4px 8px; border-radius: 5px; cursor: pointer; }
+.remove-btn:hover { text-decoration: underline; background: #bdc1ca; }
 
-/* ===============================
-   REMOVE BUTTON
-================================ */
-.remove-btn { 
-  background: #f87171; 
-  color: white; 
-  font-weight: 600; 
-  padding: 4px 8px; 
-  border-radius: 5px; 
-  cursor: pointer; }
-
-.remove-btn:hover {
-  text-decoration: underline;
-  background: #bdc1ca;
-}
-
-/* ===============================
-   RESPONSIVE
-================================ */
-@media (max-width: 900px) {
-  .pos-meta-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .pos-total-row {
-    grid-template-columns: 1fr 1fr;
-    row-gap: 10px;
-  }
-}
-
-
-
-/* Add Product button inside table row */
-.add-product-row {
-  text-align: left;
-  padding: 6px;
-  border: none;
-  background: #f9fafb;
-}
-
-.add-product-row .add-btn {
-  margin: 0;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #9ca3af;
-  background: #e5e7eb;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.add-product-row .add-btn:hover {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-/* GRAND TOTAL ALIGNED UNDER TOTAL COLUMN */
-.grand-total-container {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr); /* match table columns */
-  margin-top: 1px;
-  font-weight: 700;
-  font-size: 15px;
-  background: #f9fafb;
-  padding: 2px 4px;
-  border-top: 2px solid #111827;
-}
-
-.gt-label {
-  grid-column: 3; /* place near Total column */
-  text-align: right;
-}
-
-.gt-amount {
-  grid-column: 4; /* right-align under Total column */
-  text-align: right;
-}
-
-/* CENTERED COMPLETE SALE BUTTON */
 .complete-sale-container {
   display: flex;
   gap: 10px;
-  justify-content: flex-end; /* aligns buttons to the right */
-  margin-top: 0px;
+  justify-content: flex-end;
+  margin-top: 0;
+  text-align: center;
+  padding: 10px 0;
+  background: #f9f9f9;
+  border-top: 1px solid #ddd;
 }
 
-.preview-btn {
-  background-color: #eea546;
-  color: #ffffff;
-  border: none;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.preview-btn:hover {
-  background-color: #ee8f0a;
-}
-
-
-
-
+.preview-btn { background-color: #eea546; color: #fff; border: none; padding: 6px 8px; cursor: pointer; border-radius: 6px; }
+.preview-btn:hover { background-color: #ee8f0a; }
 
 .pay-now-btn {
-  margin-left: 6px;          /* reduced */
-  padding: 4px 8px;          /* tighter */
+  margin-left: 6px;
+  padding: 4px 8px;
   font-weight: 600;
-  font-size: 12px;           /* smaller text */
+  font-size: 12px;
   background: #16a34a;
   color: #fff;
   border: none;
-  border-radius: 4px;        /* slightly tighter */
+  border-radius: 4px;
   cursor: pointer;
   line-height: 1.2;
 }
-
-.pay-now-btn:hover {
-  background: #15803d;
-}
-
+.pay-now-btn:hover { background: #15803d; }
 
 /* ===============================
    COMPACT PAYMENT CARD
 ================================ */
-
 .payment-card {
   margin-top: 4px;
   padding: 6px 8px;
-  width: 240px;                 /* 🔥 fixed compact width */
+  width: 240px;
   border: 1px solid #2559c2;
   border-radius: 6px;
   background: #c5cfda;
@@ -402,128 +296,176 @@
   gap: 6px;
   margin-bottom: 4px;
 }
-
-.payment-row.compact label {
-  font-size: 14px;
-  white-space: nowrap;
-  color: #101113;
-}
-
-.payment-row.compact strong {
-  font-weight: 700;
-  color: #d32f2f; /* red */
-}
-
-
-
+.payment-row.compact label { font-size: 14px; white-space: nowrap; color: #101113; }
+.payment-row.compact strong { font-weight: 700; color: #d32f2f; }
 .payment-row.compact input,
-.payment-row.compact select {
-  width: 120px;                 /* 🔥 short inputs */
-  height: 24px;
-  padding: 2px 6px;
-  font-size: 11px;
-  border-radius: 4px;
-  border: 1px solid #d1d5db;
+.payment-row.compact select { width: 120px; height: 24px; padding: 2px 6px; font-size: 11px; border-radius: 4px; border: 1px solid #d1d5db; }
+
+.pay-area { position: relative; display: inline-flex; flex-direction: column; align-items: flex-end; margin-left: 12px; }
+
+/* ===============================
+   PRODUCT SEARCH
+================================ */
+.product-search-wrapper { position: relative; }
+.product-search-input { width: 100%; padding: 6px; font-size: 14px; }
+.product-search-dropdown { position: absolute; width: 100%; background: #fff; border: 1px solid #ccc; max-height: 240px; overflow-y: auto; z-index: 1000; }
+.product-search-item { padding: 6px; cursor: pointer; }
+.product-search-item:hover { background: #f2f2f2; }
+.product-search-item.active { background-color: #d5d7d8; }
+.product-search-empty { padding: 6px; color: #999; }
+.product-search-count { font-size: 11px; padding: 4px 8px; color: #666; border-bottom: 1px solid #eee; }
+
+/* ===============================
+   RESPONSIVE
+================================ */
+@media (max-width: 900px) {
+  .pos-meta-grid { grid-template-columns: repeat(2, 1fr); }
+  .pos-total-row { grid-template-columns: 1fr 1fr; row-gap: 10px; }
+  .grand-total-container { grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr; }
 }
 
 
-/* Pay Now + Payment Card wrapper */
+/* ===============================
+   Pay Area Wrapper
+================================ */
 .pay-area {
+  display: flex;
+  justify-content: flex-end;     /* align Pay Now / Payment to the right */
+  width: 100%;
+  margin-top: 10px;
   position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;   /* 🔥 RIGHT SIDE */
-  margin-left: 12px;
+  gap: 6px;
 }
 
-/* Payment card sits directly under Pay Now */
-.payment-card {
+/* ===============================
+   Pay Area Wrapper
+================================ */
+/* ===============================
+   Pay Area Wrapper
+================================ */
+.pay-area {
+  display: flex;
+  justify-content: flex-end;   /* move to right */
+  width: 100%;
+  padding-right: 24px;        /* NOT extreme */
+  margin-top: 0px;
+  box-sizing: border-box;
+}
+
+/* ===============================
+   Pay + Balance Container
+================================ */
+.pay-balance-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 260px;
+}
+
+/* ===============================
+   Balance Display (INLINE)
+================================ */
+.balance-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 16px;
+  color: #dc2626;
+}
+
+
+/* ===============================
+   Buttons under Payment Card
+================================ */
+.complete-sale-container.payment-complete {
+  display: flex;
+  gap: 8px;
   margin-top: 4px;
 }
-
-
-
-
-.pos-sales-container {
-  display: flex;
-  flex-direction: column;
-  height: 75vh; /* or any height that fits your layout */
-  padding: 10px;
+.preview-btn {
+  background-color: #eea546;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
 }
-
-.pos-scrollable-content {
-  overflow-y: auto; /* vertical scroll */
-  flex-grow: 1;     /* take remaining space */
-  margin-bottom: 10px; /* space before footer */
+.preview-btn:hover { background-color: #ee8f0a; }
+.submit-btn {
+  background-color: #4c72ee;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
 }
-
-.complete-sale-container {
-  text-align: center;
-  padding: 10px 0;
-  background: #f9f9f9; /* optional, to separate footer */
-  border-top: 1px solid #ddd;
-}
+.submit-btn:hover { background-color: #1e3a8a; }
 
 
-
-
-
-.balance-row {
-  grid-column: 5 / 6; /* place in the last column */
-  text-align: right;   /* align text to the right */
-  display: flex;
-  justify-content: flex-end; /* push label + amount together to right */
-  gap: 6px;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-
-
-
-.product-search-wrapper {
-  position: relative;
-}
-
-.product-search-input {
-  width: 100%;
-  padding: 6px;
-  font-size: 14px;
-}
-
-.product-search-dropdown {
-  position: absolute;
-  width: 100%;
-  background: #fff;
-  border: 1px solid #ccc;
-  max-height: 240px;        /* ~10–12 items visible */
-  overflow-y: auto;         /* ENABLE SCROLL */
-  z-index: 1000;
-}
-
-.product-search-item {
-  padding: 6px;
+.receipt-format-select {
+  height: 26px;
+  padding: 2px 6px;
+  font-size: 12px;
+  border: 1px solid #9ca3af;
+  border-radius: 4px;
+  background: #f9fafb;
   cursor: pointer;
 }
 
-.product-search-item:hover {
-  background: #f2f2f2;
-}
-
-.product-search-empty {
-  padding: 6px;
-  color: #999;
+.receipt-format-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #fff;
 }
 
 
-.product-search-count {
+/* ===============================
+   ADD PRODUCT + GROSS TOTAL ROW
+================================ */
+.add-product-summary-row td {
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  padding: 4px 6px;
+}
+
+/* Gross total display */
+.gross-total-cell {
+  text-align: right;
+  font-weight: 700;
+}
+
+.gross-total-label {
   font-size: 11px;
-  padding: 4px 8px;
-  color: #666;
-  border-bottom: 1px solid #eee;
+  color: #374151;
+  text-transform: uppercase;
+}
+
+.gross-total-value {
+  font-size: 16px;
+  color: #111827;
 }
 
 
-.product-search-item.active {
-  background-color: #d5d7d8;
+/* Net Total Cell */
+.gross-total-cell {
+  text-align: right;
+  padding: 12px 19px;
+  background: #f9fafb;            /* light neutral background */
+  border-top: 2px solid #e5e7eb;   /* subtle separation */
 }
+
+/* Net Total Badge */
+.gross-total-inline {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 16px;                /* clear but not oversized */
+  font-weight: 700;
+  color: #09ff00;                 /* dark green (money tone) */
+  background: #000000;            /* soft green background */
+  border: 1px solid #10b981;      /* green border */
+  border-radius: 6px;
+  letter-spacing: 0.1px;
+}
+

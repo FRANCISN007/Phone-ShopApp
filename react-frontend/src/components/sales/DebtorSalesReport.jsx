@@ -3,35 +3,35 @@ import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./DebtorSalesReport.css";
 
 const OutstandingSales = () => {
-  
-  // Default to current month (local timezone safe)
+  // =========================
+  // DEFAULT MONTH RANGE
+  // =========================
   const now = new Date();
 
-  // First day of month
   const firstDayOfMonth = new Date(
     now.getFullYear(),
     now.getMonth(),
     1
   ).toLocaleDateString("en-CA");
 
-  // Last day of month
   const lastDayOfMonth = new Date(
     now.getFullYear(),
     now.getMonth() + 1,
     0
   ).toLocaleDateString("en-CA");
 
+  // =========================
+  // STATE
+  // =========================
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(lastDayOfMonth);
-
-
   const [customerName, setCustomerName] = useState("");
-
-  const [show, setShow] = useState(true); // NEW: controls visibility
+  const [show, setShow] = useState(true);
 
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState({
     sales_sum: 0,
+    discount_sum: 0,
     paid_sum: 0,
     balance_sum: 0,
   });
@@ -39,69 +39,76 @@ const OutstandingSales = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch outstanding sales
-    const fetchOutstandingSales = useCallback(async () => {
+  const getInvoiceDiscount = (items = []) =>
+    items.reduce((sum, i) => sum + (i.discount || 0), 0);
+
+  // =========================
+  // FETCH DATA
+  // =========================
+  const fetchOutstandingSales = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Add one day to endDate for full coverage
-      const endDateAdjusted = endDate
-        ? new Date(endDate)
-        : new Date();
-
-      endDateAdjusted.setHours(23, 59, 59, 999); // end of day
-
       const res = await axiosWithAuth().get("/sales/outstanding", {
         params: {
-          start_date: startDate || undefined, // YYYY-MM-DD
-          end_date: endDate || undefined,     // YYYY-MM-DD
+          start_date: startDate || undefined,
+          end_date: endDate || undefined,
           customer_name: customerName || undefined,
         },
       });
 
-    setSales(res.data?.sales ?? []);
-    setSummary(res.data?.summary ?? {});
-  } catch (err) {
-    console.error("Outstanding sales fetch error:", err.response || err);
-    setError("Failed to load outstanding sales");
-  } finally {
-    setLoading(false);
-  }
-}, [startDate, endDate, customerName]);
+      setSales(res.data?.sales ?? []);
 
+      // Compute total discount for grand total
+      const discount_sum = (res.data?.sales ?? []).reduce(
+        (sum, sale) => sum + getInvoiceDiscount(sale.items),
+        0
+      );
 
-  // Fetch sales for today on mount
+      setSummary({
+        sales_sum: res.data?.summary?.sales_sum ?? 0,
+        discount_sum,
+        paid_sum: res.data?.summary?.paid_sum ?? 0,
+        balance_sum: res.data?.summary?.balance_sum ?? 0,
+      });
+    } catch (err) {
+      console.error("Outstanding sales fetch error:", err);
+      setError("Failed to load outstanding sales");
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate, customerName]);
+
   useEffect(() => {
     fetchOutstandingSales();
   }, [fetchOutstandingSales]);
 
+  // =========================
+  // HELPERS
+  // =========================
   const money = (v) =>
     Number(v || 0).toLocaleString(undefined, {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
 
-  const formatDate = (dtString) => {
-    if (!dtString) return "-";
-    return dtString.substring(0, 10); // "YYYY-MM-DD"
-  };
+  const formatDate = (dt) => (dt ? dt.substring(0, 10) : "-");
 
-  if (!show) return null; // hide the component when closed
+  if (!show) return null;
 
+  // =========================
+  // RENDER
+  // =========================
   return (
     <div className="outstanding-sales-container">
-      {/* Close button */}
-      <button
-        className="close-btn"
-        onClick={() => setShow(false)} // hides the page
-      >
+      <button className="close-btn" onClick={() => setShow(false)}>
         ✖
       </button>
-      
+
       <h2 className="outstanding-sales-title">Debtors Sales Report</h2>
 
-      {/* Filters */}
+      {/* ========================= FILTERS ========================= */}
       <div className="outstanding-sales-filters1">
         <div className="filter-group">
           <label>Start Date</label>
@@ -136,11 +143,11 @@ const OutstandingSales = () => {
         </button>
       </div>
 
-      {/* Status */}
+      {/* ========================= STATUS ========================= */}
       {loading && <div className="status-text">Loading...</div>}
       {error && <div className="error-text">{error}</div>}
 
-      {/* Table */}
+      {/* ========================= TABLE ========================= */}
       <div className="table-wrapper">
         <table className="sales-table1">
           <thead>
@@ -152,47 +159,47 @@ const OutstandingSales = () => {
               <th>Product</th>
               <th>Qty</th>
               <th>Price</th>
+              <th>Discount</th>
               <th>Invoice Total</th>
+              
               <th>Total Paid</th>
               <th>Balance Due</th>
             </tr>
           </thead>
+
           <tbody>
             {sales.length === 0 && !loading && (
               <tr>
-                <td colSpan="10" className="empty-row">
+                <td colSpan="11" className="empty-row">
                   No outstanding sales found
                 </td>
               </tr>
             )}
 
             {sales.map((sale, index) => (
-              <React.Fragment key={`invoice-${sale.invoice_no}-${sale.id}`}>
+              <React.Fragment key={sale.id}>
                 {sale.items.map((item, itemIndex) => (
-                  <tr key={`${sale.id}-${item.id}`}>
+                  <tr key={item.id}>
                     <td>{index + 1}</td>
                     <td>{sale.invoice_no}</td>
                     <td>{formatDate(sale.invoice_date)}</td>
+
                     <td>
                       <strong>{sale.customer_name?.trim() || "Walk-in"}</strong>
                       <div className="sub-text">{sale.customer_phone || "-"}</div>
                     </td>
+
                     <td>{item.product_name}</td>
                     <td>{item.quantity}</td>
                     <td>{money(item.selling_price)}</td>
 
                     {itemIndex === 0 && (
                       <>
-                        <td rowSpan={sale.items.length || 1}>
-                          {money(sale.total_amount)}
-                        </td>
-                        <td rowSpan={sale.items.length || 1}>
-                          {money(sale.total_paid)}
-                        </td>
-                        <td
-                          rowSpan={sale.items.length || 1}
-                          className="balance-cell"
-                        >
+                        <td rowSpan={sale.items.length}>{money(getInvoiceDiscount(sale.items))}</td>
+                        <td rowSpan={sale.items.length}>{money(sale.total_amount)}</td>
+                        
+                        <td rowSpan={sale.items.length}>{money(sale.total_paid)}</td>
+                        <td rowSpan={sale.items.length} className="balance-cell">
                           {money(sale.balance_due)}
                         </td>
                       </>
@@ -202,10 +209,13 @@ const OutstandingSales = () => {
               </React.Fragment>
             ))}
 
+            {/* GRAND TOTAL */}
             {sales.length > 0 && (
               <tr className="sales-total-row">
                 <td colSpan="7">GRAND TOTAL</td>
+                <td>{money(summary.discount_sum)}</td>
                 <td>{money(summary.sales_sum)}</td>
+                
                 <td>{money(summary.paid_sum)}</td>
                 <td>{money(summary.balance_sum)}</td>
               </tr>

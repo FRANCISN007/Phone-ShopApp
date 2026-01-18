@@ -72,6 +72,10 @@ class SaleItem(Base):
     selling_price = Column(Float, nullable=False)
     total_amount = Column(Float, nullable=False)
 
+    gross_amount = Column(Float, nullable=False)
+    discount = Column(Float, default=0)
+    net_amount = Column(Float, nullable=False)
+
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product")
 

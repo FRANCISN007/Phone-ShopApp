@@ -5,6 +5,8 @@ from sqlalchemy import cast, String
 
 from . import models, schemas
 from app.sales import models as sales_models
+from app.bank import models as bank_models
+from app.users import models as user_models
 import uuid
 
 
@@ -66,7 +68,7 @@ def create_payment(
     new_payment = models.Payment(
         sale_invoice_no=invoice_no,
         amount_paid=payment.amount_paid,
-        discount_allowed=payment.discount_allowed or 0,
+        
         payment_method=payment.payment_method,
         bank_id=payment.bank_id,
         reference_no=generated_reference_no,  # <-- ALWAYS use UUID
@@ -152,6 +154,66 @@ def list_payments_by_sale(db: Session, invoice_no: int):
 # -------------------------
 def get_payment(db: Session, payment_id: int):
     return db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+
+
+
+def update_payment(db: Session, payment_id: int, payment_update: schemas.PaymentUpdate, user_id: int):
+    existing_payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+    if not existing_payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    sale = db.query(sales_models.Sale).filter(sales_models.Sale.invoice_no == existing_payment.sale_invoice_no).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+
+    # Update fields
+    if payment_update.amount_paid is not None:
+        existing_payment.amount_paid = payment_update.amount_paid
+    
+        
+    if payment_update.payment_method is not None:
+        existing_payment.payment_method = payment_update.payment_method
+    if payment_update.bank_id is not None:
+        existing_payment.bank_id = payment_update.bank_id
+    if payment_update.payment_date is not None:
+        existing_payment.payment_date = payment_update.payment_date
+
+    # Recalculate balance and status
+    total_paid = sum(p.amount_paid for p in sale.payments if p.id != payment_id) + existing_payment.amount_paid
+    new_balance_due = sale.total_amount - total_paid
+    existing_payment.balance_due = new_balance_due
+
+    if new_balance_due == sale.total_amount:
+        existing_payment.status = "pending"
+    elif new_balance_due > 0:
+        existing_payment.status = "part_paid"
+    else:
+        existing_payment.status = "completed"
+
+    db.commit()
+    db.refresh(existing_payment)
+
+    # ✅ Populate the related fields
+    bank_name = None
+    if existing_payment.bank_id:
+        bank = db.query(bank_models.Bank).filter(bank_models.Bank.id == existing_payment.bank_id).first()
+        if bank:
+            bank_name = bank.name
+
+    created_by_name = None
+    if existing_payment.created_by:
+        user = db.query(user_models.User).filter(user_models.User.id == existing_payment.created_by).first()
+        if user:
+            created_by_name = user.username  # or user.username
+
+    return schemas.PaymentOut(
+        **existing_payment.__dict__,
+        bank_name=bank_name,
+        created_by_name=created_by_name,
+        total_amount=sale.total_amount
+    )
+
+
 
 # -------------------------
 # Delete payment

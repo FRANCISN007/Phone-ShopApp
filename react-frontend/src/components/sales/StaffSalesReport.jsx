@@ -6,16 +6,15 @@ const StaffSalesReport = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const [sales, setSales] = useState([]);
-  const [staffId, setStaffId] = useState(""); // will hold selected staff's ID
-  const [staffList, setStaffList] = useState([]); // dropdown options
+  const [staffId, setStaffId] = useState("");
+  const [staffList, setStaffList] = useState([]);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [show, setShow] = useState(true);
 
-  const [show, setShow] = useState(true); // NEW: controls visibility
-
-  // Fetch sales report
+  /* ================= FETCH REPORT ================= */
   const fetchReport = async () => {
     try {
       setLoading(true);
@@ -27,20 +26,20 @@ const StaffSalesReport = () => {
       if (endDate) params.end_date = endDate;
 
       const res = await axiosWithAuth().get("/sales/report/staff", { params });
-      setSales(res.data);
+      setSales(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
       setError("Failed to load staff sales report");
+      setSales([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch staff list for dropdown
+  /* ================= FETCH STAFF ================= */
   const fetchStaffList = async () => {
     try {
       const res = await axiosWithAuth().get("/users/");
-      // Ensure staffList is always an array
       setStaffList(Array.isArray(res.data) ? res.data : res.data.users || []);
     } catch (err) {
       console.error(err);
@@ -48,49 +47,45 @@ const StaffSalesReport = () => {
     }
   };
 
-
-  // Format amount with commas, no decimals
-  const formatAmount = (amount) => {
-    if (amount === null || amount === undefined) return "0";
-    return Number(amount).toLocaleString(undefined, {
+  /* ================= FORMATTERS ================= */
+  const formatAmount = (value) =>
+    Number(value || 0).toLocaleString(undefined, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 0
     });
-  };
 
+  /* ================= EFFECT ================= */
   useEffect(() => {
     fetchStaffList();
     fetchReport();
     // eslint-disable-next-line
   }, []);
 
-  const totalSalesAmount = sales.reduce(
-    (sum, sale) => sum + (sale.total_amount || 0),
-    0
-  );
+  /* ================= TOTAL NET SALES ================= */
+  const totalNetSales = sales.reduce((sum, sale) => {
+    return (
+      sum +
+      (sale.items || []).reduce(
+        (itemSum, item) => itemSum + Number(item.net_amount || 0),
+        0
+      )
+    );
+  }, 0);
 
-  if (!show) return null; // hide the component when closed
+  if (!show) return null;
 
-
+  /* ================= RENDER ================= */
   return (
     <div className="list-sales-container">
-      {/* Close button */}
-      <button
-        className="close-btn"
-        onClick={() => setShow(false)} // hides the page
-      >
-        ✖
-      </button>
-      <h2 className="list-sales-title">Staff Sales Report</h2>
+      <button className="close-btn" onClick={() => setShow(false)}>✖</button>
 
-      {/* ================= Filters ================= */}
+      <h2 className="list-sales-title">👤 Staff Sales Report</h2>
+
+      {/* ================= FILTERS ================= */}
       <div className="sales-filters">
         <label>
           Staff:
-          <select
-            value={staffId}
-            onChange={(e) => setStaffId(e.target.value)}
-          >
+          <select value={staffId} onChange={(e) => setStaffId(e.target.value)}>
             <option value="">All Staff</option>
             {staffList.map((staff) => (
               <option key={staff.id} value={staff.id}>
@@ -102,92 +97,84 @@ const StaffSalesReport = () => {
 
         <label>
           Start Date:
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </label>
 
         <label>
           End Date:
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </label>
 
         <button onClick={fetchReport}>Filter</button>
       </div>
 
-      {loading && <div className="status-text">Loading report...</div>}
-      {error && <div className="error-text">{error}</div>}
+      {loading && <p className="status-text">Loading report...</p>}
+      {error && <p className="error-text">{error}</p>}
 
-      {/* ================= Table ================= */}
-      <div className="table-wrapper">
-        <table className="sales-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Invoice No</th>
-              <th>Staff</th>
-              <th>Customer</th>
-              <th>Phone</th>
-              <th>Ref</th>
-              <th>Product</th>
-              <th>Qty</th>
-              <th>Price</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {sales.length === 0 && !loading && (
+      {/* ================= TABLE ================= */}
+      {!loading && !error && (
+        <div className="table-wrapper">
+          <table className="sales-table">
+            <thead>
               <tr>
-                <td colSpan="10" className="empty-row">
-                  No sales found
-                </td>
+                <th>Date</th>
+                <th>Invoice</th>
+                <th>Staff</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Ref</th>
+                <th>Product</th>
+                <th className="text-right">Qty</th>
+                <th className="text-right">Price</th>
+                <th className="text-right">Gross</th>
+                <th className="text-right">Discount</th>
+                <th className="text-right">Net</th>
               </tr>
-            )}
+            </thead>
 
-            {sales.map((sale) =>
-              sale.items.map((item, index) => (
-                <tr key={`${sale.id}-${item.id}`}>
-                  {index === 0 && (
-                    <>
-                      <td rowSpan={sale.items.length}>
-                        {new Date(sale.sold_at).toLocaleString()}
-                      </td>
-                      <td rowSpan={sale.items.length}>{sale.invoice_no}</td>
-                      <td rowSpan={sale.items.length}>
-                        {sale.staff_name || "-"}
-                      </td>
-                      <td rowSpan={sale.items.length}>{sale.customer_name}</td>
-                      <td rowSpan={sale.items.length}>
-                        {sale.customer_phone || "-"}
-                      </td>
-                      <td rowSpan={sale.items.length}>{sale.ref_no || "-"}</td>
-                    </>
-                  )}
-
-                  <td>{item.product_name}</td>
-                  <td>{item.quantity}</td>
-                  <td>{formatAmount(item.selling_price)}</td>
-                  <td>{formatAmount(item.total_amount)}</td>
+            <tbody>
+              {sales.length === 0 && (
+                <tr>
+                  <td colSpan="12" className="empty-row">No sales found</td>
                 </tr>
-              ))
-            )}
+              )}
 
-            {sales.length > 0 && (
-              <tr className="sales-total-row">
-                <td colSpan="9">TOTAL SALES</td>
-                <td>{formatAmount(totalSalesAmount)}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              {sales.map((sale) =>
+                (sale.items || []).map((item, index) => (
+                  <tr key={`${sale.id}-${item.id}`}>
+                    {index === 0 && (
+                      <>
+                        <td rowSpan={sale.items.length}>
+                          {new Date(sale.sold_at).toLocaleString()}
+                        </td>
+                        <td rowSpan={sale.items.length}>{sale.invoice_no}</td>
+                        <td rowSpan={sale.items.length}>{sale.staff_name || "-"}</td>
+                        <td rowSpan={sale.items.length}>{sale.customer_name || "-"}</td>
+                        <td rowSpan={sale.items.length}>{sale.customer_phone || "-"}</td>
+                        <td rowSpan={sale.items.length}>{sale.ref_no || "-"}</td>
+                      </>
+                    )}
+
+                    <td>{item.product_name}</td>
+                    <td className="text-right">{item.quantity}</td>
+                    <td className="text-right">{formatAmount(item.selling_price)}</td>
+                    <td className="text-right">{formatAmount(item.gross_amount)}</td>
+                    <td className="text-right">{formatAmount(item.discount)}</td>
+                    <td className="text-right">{formatAmount(item.net_amount)}</td>
+                  </tr>
+                ))
+              )}
+
+              {sales.length > 0 && (
+                <tr className="sales-total-row">
+                  <td colSpan="11">TOTAL NET SALES</td>
+                  <td className="text-right">{formatAmount(totalNetSales)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

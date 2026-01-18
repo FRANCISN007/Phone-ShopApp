@@ -18,6 +18,10 @@ const ListSales = () => {
 
   const [show, setShow] = useState(true); // NEW: controls visibility
 
+  const getSaleDiscountTotal = (items = []) =>
+  items.reduce((sum, item) => sum + Number(item.discount || 0), 0);
+
+
   const fetchSales = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -115,6 +119,7 @@ const ListSales = () => {
                 <th>Phone No</th>
                 <th>Reference No</th>
                 <th>Product Name</th>
+                <th className="text-right">Discount</th> {/* ✅ NEW */}
                 <th className="text-right">Total Amount</th>
                 <th className="text-right">Total Paid</th>
                 <th className="text-right">Balance Due</th>
@@ -143,6 +148,9 @@ const ListSales = () => {
                         ? sale.items.map((item) => item.product_name).join(", ")
                         : "-"}
                     </td>
+                    <td className="text-right">
+                      {formatAmount(getSaleDiscountTotal(sale.items))}
+                    </td>
                     <td className="text-right">{formatAmount(sale.total_amount)}</td>
                     <td className="text-right">{formatAmount(sale.total_paid)}</td>
                     <td className="text-right">{formatAmount(sale.balance_due)}</td>
@@ -160,14 +168,34 @@ const ListSales = () => {
             {/* Totals Row */}
             {sales.length > 0 && (
               <tfoot>
-                <tr className="sales-total-row">
-                  <td colSpan="6">TOTAL</td>
-                  <td className="text-right">{formatAmount(summary.total_sales)}</td>
-                  <td className="text-right">{formatAmount(summary.total_paid)}</td>
-                  <td className="text-right">{formatAmount(summary.total_balance)}</td>
-                  <td colSpan="2"></td>
-                </tr>
-              </tfoot>
+              <tr className="sales-total-row">
+                <td colSpan="6">TOTAL</td>
+
+                <td className="text-right">
+                  {formatAmount(
+                    sales.reduce(
+                      (sum, sale) => sum + getSaleDiscountTotal(sale.items),
+                      0
+                    )
+                  )}
+                </td>
+
+                <td className="text-right">
+                  {formatAmount(summary.total_sales)}
+                </td>
+
+                <td className="text-right">
+                  {formatAmount(summary.total_paid)}
+                </td>
+
+                <td className="text-right">
+                  {formatAmount(summary.total_balance)}
+                </td>
+
+                <td colSpan="2"></td>
+              </tr>
+            </tfoot>
+
             )}
           </table>
         </div>

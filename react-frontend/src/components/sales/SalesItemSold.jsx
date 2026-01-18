@@ -41,7 +41,8 @@ const SalesItemSold = () => {
     customer_phone: "",
     ref_no: "",
     quantity: "",
-    selling_price: ""
+    selling_price: "",
+    discount: "" // ✅ ADD
   });
 
   const axiosInstance = useMemo(() => axiosWithAuth(), []);
@@ -90,13 +91,19 @@ const SalesItemSold = () => {
             customer_name: sale.customer_name || "-",
             customer_phone: sale.customer_phone || "-",
             ref_no: sale.ref_no || "-",
+
             product_id: item.product_id,
             product_name: item.product_name || "-",
+
             quantity: item.quantity,
             selling_price: item.selling_price,
-            total_amount: item.total_amount,
+
+            gross_amount: item.gross_amount,
+            discount: item.discount,
+            total_amount: item.net_amount // ✅ USE THIS EVERYWHERE
           }))
         ) || [];
+
 
       setItems(flattenedItems);
     } catch (err) {
@@ -166,12 +173,14 @@ const SalesItemSold = () => {
   const openEdit = (item) => {
     setEditItem(item);
     setEditData({
+      old_product_id: item.product_id, // ✅ ADD THIS
       product_id: item.product_id,
       customer_name: item.customer_name === "-" ? "" : item.customer_name,
       customer_phone: item.customer_phone === "-" ? "" : item.customer_phone,
       ref_no: item.ref_no === "-" ? "" : item.ref_no,
       quantity: item.quantity,
-      selling_price: item.selling_price
+      selling_price: item.selling_price,
+      discount: item.discount || 0 // ✅ ADD
     });
   };
 
@@ -191,9 +200,11 @@ const SalesItemSold = () => {
 
       // ================= ITEM UPDATE =================
       const itemPayload = {
+        old_product_id: editData.old_product_id, // ✅ IMPORTANT
         product_id: editData.product_id,
         quantity: parseInt(editData.quantity, 10),
-        selling_price: parseFloat(editData.selling_price)
+        selling_price: parseFloat(editData.selling_price),
+        discount: parseFloat(editData.discount || 0) // ✅ ADD
       };
 
       await axiosInstance.put(`/sales/${editItem.invoice_no}/items`, itemPayload);
@@ -325,6 +336,8 @@ const SalesItemSold = () => {
                 <th>Product</th>
                 <th className="text-right">Qty</th>
                 <th className="text-right">Selling Price</th>
+                <th className="text-right">Discount</th>
+
                 <th className="text-right">Total</th>
                 <th>Action</th>
               </tr>
@@ -344,6 +357,8 @@ const SalesItemSold = () => {
                     <td>{item.product_name}</td>
                     <td className="text-right">{item.quantity}</td>
                     <td className="text-right">{formatAmount(item.selling_price)}</td>
+                    <td className="text-right">{formatAmount(item.discount)}</td>
+
                     <td className="text-right">{formatAmount(item.total_amount)}</td>
                     <td className="action-cell">
                       <button className="btn-print" onClick={() => handleReprint(item.invoice_no)}>🖨️</button>
@@ -358,7 +373,7 @@ const SalesItemSold = () => {
             {items.length > 0 && (
               <tfoot>
                 <tr className="total-row">
-                  <td colSpan="6">TOTAL</td>
+                  <td colSpan="7">TOTAL</td>
                   <td className="text-right">{totals.totalQty}</td>
                   <td></td>
                   <td className="text-right">{formatAmount(totals.totalAmount)}</td>
@@ -421,6 +436,15 @@ const SalesItemSold = () => {
             <input type="text" value={editData.ref_no} onChange={e=>setEditData({...editData, ref_no:e.target.value})} placeholder="Reference No" />
             <input type="number" value={editData.quantity} onChange={e=>setEditData({...editData, quantity:e.target.value})} placeholder="Quantity" />
             <input type="number" value={editData.selling_price} onChange={e=>setEditData({...editData, selling_price:e.target.value})} placeholder="Selling Price" />
+
+            <input
+                type="number"
+                value={editData.discount}
+                onChange={e =>
+                  setEditData({ ...editData, discount: e.target.value })
+                }
+                placeholder="Discount"
+              />
 
             <div className="modal-actions">
               <button onClick={saveEdit}>Save</button>

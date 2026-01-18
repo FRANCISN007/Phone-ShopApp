@@ -17,7 +17,7 @@ const PosSales = ({ onClose }) => {
   const [products, setProducts] = useState([]);
   const [banks, setBanks] = useState([]);
   const [saleItems, setSaleItems] = useState([
-    { productId: "", quantity: 1, sellingPrice: 0 }
+    { productId: "", quantity: 1, sellingPrice: 0, discount: 0 }
   ]);
 
   const [customerName, setCustomerName] = useState("");
@@ -32,6 +32,9 @@ const PosSales = ({ onClose }) => {
 
   const [receiptFormat, setReceiptFormat] = useState("80mm"); // default
 
+  const getGrossAmount = (item) => (item.quantity ?? 0) * (item.sellingPrice ?? 0);
+
+  const getNetAmount = (item) => getGrossAmount(item) - (item.discount ?? 0);
 
   
 
@@ -47,8 +50,8 @@ const PosSales = ({ onClose }) => {
   
   
 
-  const parseNumber = (value) =>
-  Number(value.replace(/,/g, "")) || 0;
+  const parseNumber = (value) => Number(value?.toString().replace(/,/g, "")) || 0;
+
 
 
 
@@ -131,7 +134,7 @@ const PosSales = ({ onClose }) => {
   const addItem = () => {
     setSaleItems([
       ...saleItems,
-      { productId: "", quantity: 1, sellingPrice: 0 },
+      { productId: "", quantity: 1, sellingPrice: 0, discount: 0 },
     ]);
   };
 
@@ -162,11 +165,24 @@ const PosSales = ({ onClose }) => {
   /* ===============================
      Total
   ================================ */
-  const totalAmount = saleItems.reduce(
-    (acc, item) => acc + item.quantity * item.sellingPrice,
+  const grossTotal = saleItems.reduce(
+    (acc, item) => acc + getGrossAmount(item),
     0
   );
 
+  const totalDiscount = saleItems.reduce(
+    (acc, item) => acc + (item.discount || 0),
+    0
+  );
+
+  const netTotal = saleItems.reduce(
+    (acc, item) => acc + getNetAmount(item),
+    0
+  );
+
+
+
+  
   
     
 
@@ -257,20 +273,29 @@ const PosSales = ({ onClose }) => {
       refNo,
       paymentMethod,
       amountPaid,
-      totalAmount,
-      balance: totalAmount - amountPaid,
+
+      grossTotal,
+      totalDiscount,
+      netTotal,
+
+      balance: netTotal - amountPaid,
+
       items: saleItems.map(item => {
         const product = products.find(p => p.id === Number(item.productId));
         return {
-          name: product?.name || "",
+          product_name: product?.name || "",
           quantity: item.quantity,
           selling_price: item.sellingPrice,
-          total_amount: item.quantity * item.sellingPrice
+          gross_amount: getGrossAmount(item),
+          discount: item.discount || 0,
+          net_amount: getNetAmount(item),
         };
       }),
-      amountInWords: numberToWords(totalAmount),
+
+      amountInWords: numberToWords(netTotal),
       formatCurrency
     };
+
 
     // ✅ Use the selected format dynamically
     printReceipt(receiptFormat, receiptData);
@@ -279,8 +304,7 @@ const PosSales = ({ onClose }) => {
 
 
 const validateSale = () => {
-
-    if (!saleItems.length) {
+  if (!saleItems.length) {
     alert("Add at least one product");
     return false;
   }
@@ -288,26 +312,45 @@ const validateSale = () => {
   for (let i = 0; i < saleItems.length; i++) {
     const item = saleItems[i];
 
+    // ✅ Product
     if (!item.productId) {
       alert(`Product not selected on row ${i + 1}`);
       return false;
     }
 
-    if (!item.quantity || item.quantity <= 0) {
+    // ✅ Quantity
+    if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
       alert(`Invalid quantity on row ${i + 1}`);
       return false;
     }
 
-    if (!item.sellingPrice || item.sellingPrice <= 0) {
+    // ✅ Selling price
+    if (!Number.isFinite(item.sellingPrice) || item.sellingPrice <= 0) {
       alert(`Invalid selling price on row ${i + 1}`);
+      return false;
+    }
+
+    // ✅ Discount
+    const discount = Number(item.discount) || 0;
+    const gross = item.quantity * item.sellingPrice;
+
+    if (discount < 0) {
+      alert(`Discount cannot be negative on row ${i + 1}`);
+      return false;
+    }
+
+    if (discount > gross) {
+      alert(`Discount exceeds item total on row ${i + 1}`);
       return false;
     }
   }
 
-  if (totalAmount <= 0) {
-    alert("Total amount must be greater than zero");
+  // ✅ Net total must be positive
+  if (!Number.isFinite(netTotal) || netTotal <= 0) {
+    alert("Net total must be greater than zero");
     return false;
   }
+
 
   return true;
 };
@@ -336,6 +379,7 @@ const handleSubmit = async () => {
         product_id: item.productId,
         quantity: item.quantity,
         selling_price: item.sellingPrice,
+        discount: item.discount || 0,
       })),
     };
 
@@ -411,15 +455,30 @@ const handleSubmit = async () => {
   {/* Header */}
   <div className="pos-header">
     <h2 className="pos-heading">POS Sales Entry</h2>
-    <button
-      type="button"
-      className="pos-close-btn"
-      onClick={() => window.close()}
 
-    >
-      ✕
-    </button>
+    <div className="pos-header-actions">
+      {/* Receipt format selector */}
+      <select
+        className="receipt-format-select"
+        value={receiptFormat}
+        onChange={(e) => setReceiptFormat(e.target.value)}
+        title="Receipt Format"
+      >
+        <option value="80mm">80mm Print</option>
+        <option value="A4">A4 Print</option>
+      </select>
+
+      {/* Close button */}
+      <button
+        type="button"
+        className="pos-close-btn"
+        onClick={() => window.close()}
+      >
+        ✕
+      </button>
+    </div>
   </div>
+
 
 
 
@@ -457,8 +516,11 @@ const handleSubmit = async () => {
           <th>Product</th>
           <th>Qty</th>
           <th>Price</th>
-          <th>Total</th>
+          <th>Gross</th>
+          <th>Discount</th>
+          <th>Net</th>
           <th>Action</th>
+
         </tr>
       </thead>
       <tbody>
@@ -578,7 +640,7 @@ const handleSubmit = async () => {
               <input
                 type="text"
                 inputMode="numeric"
-                value={item.sellingPrice.toLocaleString("en-NG")} // display formatted
+                value={(item.sellingPrice ?? 0).toLocaleString("en-NG")}
                 onChange={(e) => {
                   const raw = parseNumber(e.target.value); // remove commas
                   updateItem(index, "sellingPrice", raw);  // update state with raw number
@@ -589,100 +651,148 @@ const handleSubmit = async () => {
               />
 
             </td>
+            <td>{formatCurrency(getGrossAmount(item))}</td>
+
+            <td>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={(item.discount ?? 0).toLocaleString("en-NG")}
+                onChange={(e) => {
+                  const raw = parseNumber(e.target.value);
+                  updateItem(index, "discount", raw);
+                }}
+                onFocus={(e) => e.target.select()}
+              />
+            </td>
+            <td className="net-amount">
+              {formatCurrency(getNetAmount(item))}
+            </td>
 
 
-            <td>{formatCurrency(item.quantity * item.sellingPrice)}</td>
             <td>
               <button className="remove-btn" onClick={() => removeItem(index)}>Remove</button>
             </td>
           </tr>
         ))}
-        <tr>
-          <td colSpan="5" className="add-product-row">
-            <button className="add-btn" onClick={addItem}>+ Add Product</button>
-          </td>
-        </tr>
+       <tr className="add-product-summary-row">
+        {/* Add product button — stays at the beginning */}
+        <td className="add-product-row">
+          <button className="add-btn" onClick={addItem}>
+            + Add Product
+          </button>
+        </td>
+
+        {/* Empty cells */}
+        <td colSpan="4"></td>
+
+        {/* 🔢 NET TOTAL — Net column */}
+        <td className="gross-total-cell">
+          <span className="gross-total-inline">
+            Net Total {formatCurrency(netTotal)}
+          </span>
+        </td>
+
+        {/* 💳 PAY NOW — Action column */}
+        <td className="action-pay-cell">
+          {!showPayment && (
+            <button
+              className="pay-now-btn inline-pay"
+              onClick={() => {
+                setShowPayment(true);
+                setAmountPaid(netTotal);
+              }}
+            >
+              Pay Now
+            </button>
+          )}
+        </td>
+      </tr>
+
+
+
       </tbody>
     </table>
 
-    <div className="input-group">
-      <label>Receipt Format</label>
-      <select value={receiptFormat} onChange={(e) => setReceiptFormat(e.target.value)}>
-        <option value="80mm">80mm Thermal</option>
-        <option value="A4">A4 Paper</option>
-      </select>
-    </div>
+    
 
-
-    {/* Grand Total & Payment Section */}
-    <div className="grand-total-container">
-      <span className="gt-label">Grand Total</span>
-      <span className="gt-amount">{formatCurrency(totalAmount)}</span>
-
+    
+    
+    
+      {/* Pay Now, Payment & Balance */}
       <div className="pay-area">
-        <button className="pay-now-btn" onClick={() => { setShowPayment(true); setAmountPaid(totalAmount); }}>
-          Pay Now
-        </button>
+        <div className="pay-balance-container">
+          <div className="pay-now-wrapper">
+            {showPayment && (
+              <div className="payment-card">
+                <div className="payment-title">Payment</div>
 
-        {showPayment && (
-          <div className="payment-card">
-            <div className="payment-title">Payment</div>
+                <div className="payment-row compact">
+                  <label>Amount</label>
+                  <input
+                    type="text"
+                    value={amountPaid.toLocaleString("en-NG")}
+                    onChange={(e) => {
+                      const value = Number(e.target.value.replace(/,/g, ""));
+                      setAmountPaid(value);
+                    }}
+                  />
+                </div>
 
-            <div className="payment-row compact">
-              <label>Amount</label>
-              <input type="number" value={amountPaid} onChange={(e) => setAmountPaid(Number(e.target.value))} />
-            </div>
+                <div className="payment-row compact">
+                  <label>Method</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => {
+                      const method = e.target.value;
+                      setPaymentMethod(method);
+                      setShowBankDropdown(method !== "cash");
+                      if (method === "cash") setBankId("");
+                    }}
+                  >
+                    <option value="">-- Select --</option>
+                    <option value="cash">Cash</option>
+                    <option value="transfer">Transfer</option>
+                    <option value="pos">POS</option>
+                  </select>
+                </div>
 
-            <div className="payment-row compact">
-              <label>Method</label>
-              <select value={paymentMethod} onChange={(e) => {
-                const method = e.target.value;
-                setPaymentMethod(method);
-                setShowBankDropdown(method !== "cash");
-                if (method === "cash") setBankId("");
-              }}>
-                <option value="">-- Select Method --</option>
-                <option value="cash">Cash</option>
-                <option value="transfer">Transfer</option>
-                <option value="pos">POS</option>
-              </select>
-            </div>
+                {showBankDropdown && (
+                  <div className="payment-row compact">
+                    <label>Bank</label>
+                    <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
+                      <option value="">-- Bank --</option>
+                      {banks.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-            {showBankDropdown && (
-              <div className="payment-row compact">
-                <label>Bank</label>
-                <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
-                  <option value="">-- Bank --</option>
-                  {banks.map((b) => (<option key={b.id} value={b.id}>{b.name}</option>))}
-                </select>
+                <div className="complete-sale-container payment-complete">
+                  <button className="preview-btn" onClick={handlePrintPreview}>
+                    Print Preview
+                  </button>
+                  <button className="submit-btn" onClick={handleSubmit}>
+                    Complete Sale
+                  </button>
+                </div>
               </div>
             )}
           </div>
-        )}
+
+          {/* Balance */}
+          {showPayment && (
+            <div className="balance-wrapper">
+              <label>Balance</label>
+              <strong>{formatCurrency(netTotal - amountPaid)}</strong>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="payment-row compact balance-row">
-        <label>Balance</label>
-        <strong>{formatCurrency(totalAmount - amountPaid)}</strong>
-      </div>
-
+      </div> {/* End scrollable content */}
     </div>
-
-    {/* Complete Sale Button inside scrollable form */}
-    <div className="complete-sale-container">
-      <button className="preview-btn" onClick={handlePrintPreview}>
-        Print Preview
-      </button>
-
-      <button className="submit-btn" onClick={handleSubmit}>
-        Complete Sale
-      </button>
-    </div>
-
-  </div> {/* End pos-scrollable-content */}
-</div>
-
-    
   );
 };
 

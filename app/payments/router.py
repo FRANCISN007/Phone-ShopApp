@@ -65,6 +65,25 @@ def list_payments_by_sale(
 ):
     return service.list_payments_by_sale(db, invoice_no)
 
+
+
+
+@router.put("/{payment_id}", response_model=schemas.PaymentOut)
+def update_payment(
+    payment_id: int,
+    payment_update: schemas.PaymentUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(get_current_user),
+):
+    return service.update_payment(
+        db=db,
+        payment_id=payment_id,
+        payment_update=payment_update,
+        user_id=current_user.id
+    )
+
+
+
 # -------------------------
 # Delete a payment
 # -------------------------

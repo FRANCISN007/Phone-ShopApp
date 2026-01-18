@@ -9,13 +9,16 @@ class SaleItemData(BaseModel):
     product_id: int
     quantity: int
     selling_price: float
+    discount: float = 0
+
+
 
 class SaleItemCreate(BaseModel):
     sale_invoice_no: int
     product_id: int
     quantity: int
     selling_price: float
-
+    discount: float = 0
 
 
 class SaleItemOut(BaseModel):
@@ -25,8 +28,9 @@ class SaleItemOut(BaseModel):
     product_name: Optional[str] = None
     quantity: int
     selling_price: float
-    total_amount: float
-
+    gross_amount: float
+    discount: float
+    net_amount: float
     
 
     class Config:
@@ -40,7 +44,9 @@ class SaleItemOut2(BaseModel):
     product_name: Optional[str] = None
     quantity: int
     selling_price: float
-    total_amount: float
+    gross_amount: float
+    discount: float
+    net_amount: float
 
 
     class Config:
@@ -96,6 +102,9 @@ class SaleOut2(BaseModel):
     payment_status: str
     sold_at: datetime
     items: List[SaleItemOut2] = []
+
+
+
 
 
 class SaleOutStaff(BaseModel):
@@ -154,11 +163,12 @@ class SaleUpdate(BaseModel):
 
 
 class SaleItemUpdate(BaseModel):
-    old_product_id: Optional[int] = None  # optional, only needed if invoice has multiple items
+    old_product_id: Optional[int] = None  # needed if invoice has multiple items
     product_id: Optional[int] = None
     quantity: Optional[int] = None
     selling_price: Optional[float] = None
-    
+    discount: Optional[float] = 0.0  # 👈 NEW: discount can be entered manually
+
     class Config:
         extra = "forbid"
 
@@ -182,7 +192,10 @@ class OutstandingSaleItem(BaseModel):
     product_name: Optional[str] = None
     quantity: int
     selling_price: float
-    total_amount: float
+
+    gross_amount: float
+    discount: float
+    net_amount: float
 
     class Config:
         from_attributes = True

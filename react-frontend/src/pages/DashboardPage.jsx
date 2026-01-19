@@ -45,7 +45,7 @@ const DashboardPage = () => {
   ================================ */
   const salesSubMenu = [
     { label: "Sales Ledger", action: "listSales", icon: "📄" },
-    { label: "List Item Sold", action: "itemsold", icon: "🧾" },
+    { label: "Item Sold/Edit Sales", action: "itemsold", icon: "🧾" },
     { label: "Sales Analysis Report", action: "analysis", icon: "📊" },
     { label: "Staff Sales Report", action: "staff", icon: "👨‍💼" },
     { label: "Debtors Report", action: "debtor", icon: "⚠️" },

@@ -704,6 +704,7 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
     items = []
     total_sales = 0.0
     total_margin = 0.0
+    total_discount_sum = 0.0  # ✅ NEW
 
     for row in results:
         cost_price = row.cost_price or 0.0
@@ -711,14 +712,18 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
         quantity = int(row.quantity_sold or 0)
         total_discount = float(row.total_discount or 0.0)
 
-        # 🔹 Compute net sales after discount
-        product_total_sales = (selling_price * quantity) - total_discount
+        # 🔹 Gross sales BEFORE discount
+        gross_sales = selling_price * quantity
 
-        # 🔹 Compute margin considering discount
-        product_margin = product_total_sales - (cost_price * quantity)
+        # 🔹 Net sales AFTER discount
+        net_sales = gross_sales - total_discount
 
-        total_sales += product_total_sales
+        # 🔹 Margin AFTER discount
+        product_margin = net_sales - (cost_price * quantity)
+
+        total_sales += net_sales
         total_margin += product_margin
+        total_discount_sum += total_discount
 
         items.append({
             "product_id": row.product_id,
@@ -726,13 +731,17 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
             "quantity_sold": quantity,
             "cost_price": cost_price,
             "selling_price": selling_price,
-            "total_sales": product_total_sales,
+            "gross_sales": gross_sales,      # ✅ optional but recommended
+            "discount": total_discount,      # ✅ NEW
+            "net_sales": net_sales,
             "margin": product_margin
         })
+
 
     return {
         "items": items,
         "total_sales": total_sales,
+        "total_discount": total_discount_sum, # ✅ NEW
         "total_margin": total_margin
     }
 

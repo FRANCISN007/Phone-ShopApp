@@ -33,7 +33,7 @@ router = APIRouter()
 def create_sale_endpoint(
     sale_data: SaleFullCreate,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
+    current_user: UserDisplaySchema = Depends(role_required(["user", "manager", "admin"]))
 ):
     """
     Create a sale + all items in a single transaction.
@@ -45,7 +45,7 @@ def create_sale_endpoint(
 def create_sale_item(
     item: schemas.SaleItemCreate,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["staff", "manager", "admin"]))
+    current_user: UserDisplaySchema = Depends(role_required(["user", "manager", "admin"]))
 ):
     return service.create_sale_item(db, item)
 
@@ -60,7 +60,7 @@ def list_sales(
     end_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["staff", "manager", "admin"])
+        role_required(["user", "manager", "admin"])
     )
 ):
     return service.list_sales(
@@ -156,7 +156,7 @@ def list_item_sold(
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["staff", "manager", "admin"])
+        role_required(["user", "manager", "admin"])
     )
 ):
     return service.list_item_sold(
@@ -178,7 +178,7 @@ def update_sale_header(
     sale_update: schemas.SaleUpdate,
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["staff", "manager", "admin"])
+        role_required(["user", "manager", "admin"])
     )
 ):
     """
@@ -215,7 +215,7 @@ def update_sale_item(
     item_update: schemas.SaleItemUpdate,  # contains product_id, quantity, price, etc.
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["staff", "manager", "admin"])
+        role_required(["user", "manager", "admin"])
     )
 ):
     return service.update_sale_item(

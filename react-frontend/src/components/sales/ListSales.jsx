@@ -21,6 +21,10 @@ const ListSales = () => {
   const getSaleDiscountTotal = (items = []) =>
   items.reduce((sum, item) => sum + Number(item.discount || 0), 0);
 
+  const getSaleGrossTotal = (items = []) =>
+  items.reduce((sum, item) => sum + Number(item.gross_amount || 0), 0);
+
+
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -119,6 +123,7 @@ const ListSales = () => {
                 <th>Phone No</th>
                 <th>Reference No</th>
                 <th>Product Name</th>
+                <th className="text-right">Gross Amount</th>
                 <th className="text-right">Discount</th> {/* ✅ NEW */}
                 <th className="text-right">Total Amount</th>
                 <th className="text-right">Total Paid</th>
@@ -148,6 +153,12 @@ const ListSales = () => {
                         ? sale.items.map((item) => item.product_name).join(", ")
                         : "-"}
                     </td>
+
+                    <td className="text-right">
+                      {formatAmount(getSaleGrossTotal(sale.items))}
+                    </td>
+
+                    
                     <td className="text-right">
                       {formatAmount(getSaleDiscountTotal(sale.items))}
                     </td>
@@ -171,6 +182,17 @@ const ListSales = () => {
               <tr className="sales-total-row">
                 <td colSpan="6">TOTAL</td>
 
+                {/* Gross Amount TOTAL */}
+                <td className="text-right">
+                  {formatAmount(
+                    sales.reduce(
+                      (sum, sale) => sum + getSaleGrossTotal(sale.items),
+                      0
+                    )
+                  )}
+                </td>
+
+                {/* Discount TOTAL */}
                 <td className="text-right">
                   {formatAmount(
                     sales.reduce(
@@ -180,6 +202,7 @@ const ListSales = () => {
                   )}
                 </td>
 
+                {/* Net / Total Amount */}
                 <td className="text-right">
                   {formatAmount(summary.total_sales)}
                 </td>
@@ -195,6 +218,7 @@ const ListSales = () => {
                 <td colSpan="2"></td>
               </tr>
             </tfoot>
+
 
             )}
           </table>

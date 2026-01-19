@@ -143,12 +143,15 @@ class SaleAnalysisItem(BaseModel):
     quantity_sold: int
     cost_price: float
     selling_price: float
-    total_sales: float
+    gross_sales: float      # ✅ NEW (optional but clear)
+    discount: float         # ✅ NEW
+    net_sales: float        # renamed for clarity
     margin: float
 
 class SaleAnalysisOut(BaseModel):
     items: List[SaleAnalysisItem]
-    total_sales: float
+    total_sales: float          # NET
+    total_discount: float       # ✅ NEW
     total_margin: float
 
 

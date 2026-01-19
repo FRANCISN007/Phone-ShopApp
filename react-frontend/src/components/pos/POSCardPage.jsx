@@ -1,7 +1,114 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+
 import { useNavigate } from "react-router-dom";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./POSCardPage.css";
+
+import { printReceipt } from "../../components/pos/printReceipt";
+import { SHOP_NAME } from "../../config/constants";
+
+
+const Calculator = () => {
+  const [display, setDisplay] = React.useState("");
+
+  const handleClick = (value) => {
+    if (value === "C") {
+      setDisplay(""); // Clear display
+      return;
+    }
+
+    if (value === "<") {
+      setDisplay((prev) => prev.slice(0, -1)); // Backspace
+      return;
+    }
+
+    if (value === "=") {
+      try {
+        // Evaluate display string
+        // eslint-disable-next-line no-eval
+        setDisplay(eval(display).toString());
+      } catch {
+        setDisplay("Error");
+      }
+      return;
+    }
+
+    // Append numbers/operators
+    setDisplay((prev) => prev + value);
+  };
+
+  // Buttons layout
+  const buttons = [
+    "C", "<", "/", "*",     // Top row: clear, backspace, divide, multiply
+    "7", "8", "9", "+",     
+    "4", "5", "6", "-",     
+    "1", "2", "3", "=",     
+    "0", "00", "%", "."     // Bottom row
+  ];
+
+  return (
+    <div
+      className="calculator"
+      style={{
+        width: 360,
+        height: 300,
+        display: "flex",
+        flexDirection: "column",
+        padding: "2px",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Display */}
+      <input
+        className="calc-display"
+        type="text"
+        value={display}
+        readOnly
+        style={{
+          width: "100%",
+          height: "60px",
+          fontSize: "28px",
+          fontWeight: "bold",
+          textAlign: "right",
+          marginBottom: "10px",
+          paddingRight: "10px",
+          boxSizing: "border-box",
+          borderRadius: "6px",
+          border: "1px solid #ccc",
+        }}
+      />
+
+      {/* Buttons */}
+      <div
+        className="calc-buttons"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gridGap: "10px",
+          flexGrow: 1,
+        }}
+      >
+        {buttons.map((b, index) => (
+          <button
+            key={index}
+            onClick={() => handleClick(b)}
+            className={b === "=" ? "equal-btn" : ""}
+            style={{
+              fontSize: "28px",
+              fontWeight: "bold",
+              borderRadius: "6px",
+              cursor: "pointer",
+              padding: "5px",
+            }}
+          >
+            {b}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 
 const POSCardPage = () => {
   const navigate = useNavigate();
@@ -22,16 +129,20 @@ const POSCardPage = () => {
   const [customerPhone, setCustomerPhone] = useState("");
   const [refNo, setRefNo] = useState("");
 
+  const [receiptFormat, setReceiptFormat] = useState("80mm");
+  const paymentInitializedRef = useRef(false);
 
-  const handlePrintPreview = () => {
-    alert("Preview not implemented yet");
-  };
 
 
   const EMPTY_ROWS = 10;
 
+  const handlePrintPreview = () => {
+    handlePrintReceipt("PREVIEW");
+  };
+
+
   // =========================
-  // Fetch categories & products
+  // FETCH DATA
   // =========================
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -106,87 +217,191 @@ const POSCardPage = () => {
     (sum, i) => sum + i.qty * i.selling_price,
     0
   );
-  const totalDiscount = cartItems.reduce((sum, i) => sum + (i.discount || 0), 0);
+  const totalDiscount = cartItems.reduce(
+    (sum, i) => sum + (i.discount || 0),
+    0
+  );
   const netTotal = grossTotal - totalDiscount;
 
   const filteredProducts = activeCategory
     ? products.filter((p) => p.category_name === activeCategory.name)
     : [];
 
-
-
   // =========================
-  // SYNC PAYMENT WITH NET TOTAL
+  // SYNC PAYMENT WITH NET
   // =========================
   useEffect(() => {
-    if (showPayment) {
+    if (showPayment && !paymentInitializedRef.current) {
       setAmountPaid(netTotal);
+      paymentInitializedRef.current = true;
     }
-  }, [netTotal, showPayment]);
+
+    if (!showPayment) {
+      paymentInitializedRef.current = false;
+    }
+  }, [showPayment, netTotal]);
 
 
-  // =========================
-  // Payment / Submit Sale
-  // =========================
-  const formatCurrency = (amount) =>
-    `₦${Number(amount || 0).toLocaleString("en-NG")}`;
+  const handlePrintReceipt = (invoiceNo) => {
+    const receiptData = {
+      SHOP_NAME,
+      invoice: invoiceNo,
+      invoiceDate: new Date().toISOString().split("T")[0],
+      customerName,
+      customerPhone,
+      refNo,
+      paymentMethod,
+      amountPaid,
 
-  const handleSubmit = () => {
-    if (!cartItems.length) return alert("Cart is empty");
-    if (!amountPaid || amountPaid <= 0) return alert("Enter valid amount");
+      grossTotal,
+      totalDiscount,
+      netTotal,
+      balance: netTotal - amountPaid,
 
-    // TODO: Call your backend to create sale & payment
-    alert(
-      `Sale submitted\nNet: ${formatCurrency(netTotal)}\nPaid: ${formatCurrency(
-        amountPaid
-      )}\nBalance: ${formatCurrency(netTotal - amountPaid)}`
-    );
+      items: cartItems.map((i) => ({
+        product_name: i.name,
+        quantity: i.qty,
+        selling_price: i.selling_price,
+        gross_amount: i.qty * i.selling_price,
+        discount: i.discount || 0,
+        net_amount: i.qty * i.selling_price - (i.discount || 0),
+      })),
 
-    setCartItems([]);
-    setShowPayment(false);
-    setAmountPaid(0);
-    setPaymentMethod("");
-    setBankId("");
-    setShowBankDropdown(false);
+      formatCurrency: (amount) =>
+        `₦${Number(amount || 0).toLocaleString("en-NG")}`,
+    };
+
+    printReceipt(receiptFormat, receiptData);
   };
 
-  
+
+  // =========================
+  // SUBMIT SALE (BACKEND)
+  // =========================
+  const handleSubmit = async () => {
+    if (!cartItems.length) return alert("Cart is empty");
+    if (!paymentMethod) return alert("Select payment method");
+    if (amountPaid <= 0) return alert("Invalid amount");
+
+    if (paymentMethod !== "cash" && !bankId) {
+      return alert("Please select a bank");
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      /* ===============================
+        1️⃣ CREATE SALE
+      ================================ */
+      const salePayload = {
+        invoice_date: new Date().toISOString().split("T")[0],
+        customer_name: customerName || "Walk-in",
+        customer_phone: customerPhone || null,
+        ref_no: refNo || null,
+        items: cartItems.map((i) => ({
+          product_id: i.id,
+          quantity: i.qty,
+          selling_price: i.selling_price,
+          discount: i.discount || 0,
+        })),
+      };
+
+      const saleRes = await axiosWithAuth(token).post(
+        "/sales/",
+        salePayload
+      );
+
+      const invoiceNo = saleRes.data.invoice_no;
+
+      /* ===============================
+        2️⃣ CREATE PAYMENT
+      ================================ */
+      const paymentPayload = {
+        amount_paid: amountPaid,
+        payment_method: paymentMethod,
+      };
+
+      if (paymentMethod !== "cash") {
+        paymentPayload.bank_id = bankId;
+      }
+
+      await axiosWithAuth(token).post(
+        `/payments/sale/${invoiceNo}`,
+        paymentPayload
+      );
+
+      handlePrintReceipt(invoiceNo);
+
+
+      alert("Sale completed successfully");
+
+      /* ===============================
+        RESET UI
+      ================================ */
+      setCartItems([]);
+      setShowPayment(false);
+      setAmountPaid(0);
+      setPaymentMethod("");
+      setBankId("");
+      setShowBankDropdown(false);
+      setCustomerName("");
+      setCustomerPhone("");
+      setRefNo("");
+
+    } catch (err) {
+      console.error(err);
+      const detail = err?.response?.data?.detail;
+
+      if (Array.isArray(detail)) {
+        alert(detail.map((d) => d.msg).join("\n"));
+      } else {
+        alert(detail || "Transaction failed");
+      }
+    }
+  };
+
 
   return (
     <div className="poscard-container">
       {/* ================= TOP ================= */}
       <div className="poscard-top">
-        {/* ===== SALES GRID ===== */}
         <div className="poscard-cart">
           <div className="cart-header">
-          <div className="sales-header-left">
-            <h2>Sales</h2>
+            <div className="sales-header-left">
+              <h2>Sales</h2>
 
-            <input
-              type="text"
-              placeholder="Customer"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-            />
+              <input
+                type="text"
+                placeholder="Customer"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Phone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Ref No"
+                value={refNo}
+                onChange={(e) => setRefNo(e.target.value)}
+              />
+            </div>
 
-            <input
-              type="text"
-              placeholder="Phone"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-            />
+            <select
+              className="receipt-format-select"
+              value={receiptFormat}
+              onChange={(e) => setReceiptFormat(e.target.value)}
+            >
+              <option value="80mm">80mm Print</option>
+              <option value="A4">A4 Print</option>
+            </select>
 
-            <input
-              type="text"
-              placeholder="Ref No"
-              value={refNo}
-              onChange={(e) => setRefNo(e.target.value)}
-            />
+
+            <button onClick={() => navigate("/dashboard")}>Exit</button>
           </div>
-
-          <button onClick={() => navigate("/dashboard")}>Exit</button>
-        </div>
-
 
           <div className="cart-grid header extended">
             <div>Item</div>
@@ -205,11 +420,9 @@ const POSCardPage = () => {
                 const gross = item ? item.qty * item.selling_price : 0;
                 const net = item ? gross - (item.discount || 0) : 0;
 
-          
-
                 return (
                   <div
-                    key={item ? item.id : `empty-${index}`}
+                    key={item ? item.id : index}
                     className={`cart-grid row ${
                       index % 2 === 0 ? "even" : "odd"
                     }`}
@@ -258,7 +471,9 @@ const POSCardPage = () => {
                     </div>
                     <div className="cell net-cell">{net.toLocaleString()}</div>
                     <div className="cell action-cell">
-                      {item && <button onClick={() => removeItem(item.id)}>X</button>}
+                      {item && (
+                        <button onClick={() => removeItem(item.id)}>X</button>
+                      )}
                     </div>
                   </div>
                 );
@@ -277,20 +492,19 @@ const POSCardPage = () => {
           </div>
         </div>
 
-        <div className="poscard-right-placeholder">
-          {!showPayment ? (
+        <div className="poscard-right-wrapper" style={{ display: "flex", gap: "10px" }}>
+        {/* ================= MIDDLE-RIGHT: Pay Now / Payment Form ================= */}
+        <div className="poscard-right-placeholder" style={{ width: "250px" }}>
+          {!showPayment && cartItems.length > 0 ? (
             <button
               className="pay-now-btn1"
-              onClick={() => {
-                setShowPayment(true);
-                setAmountPaid(netTotal);
-              }}
-              disabled={!cartItems.length}
+              onClick={() => setShowPayment(true)}
+              style={{ marginTop: "10px", width: "100%" }}
             >
               Pay Now
             </button>
-          ) : (
-            <div className="payment-card1">
+          ) : showPayment ? (
+            <div className="payment-card1" style={{ marginTop: "10px" }}>
               <div className="payment-title1">Payment</div>
 
               <div className="payment-row amount compact">
@@ -298,10 +512,9 @@ const POSCardPage = () => {
                 <input
                   type="text"
                   value={amountPaid.toLocaleString()}
-                  onChange={(e) => {
-                    const value = Number(e.target.value.replace(/,/g, ""));
-                    setAmountPaid(value);
-                  }}
+                  onChange={(e) =>
+                    setAmountPaid(Number(e.target.value.replace(/,/g, "")))
+                  }
                 />
               </div>
 
@@ -310,10 +523,10 @@ const POSCardPage = () => {
                 <select
                   value={paymentMethod}
                   onChange={(e) => {
-                    const method = e.target.value;
-                    setPaymentMethod(method);
-                    setShowBankDropdown(method !== "cash");
-                    if (method === "cash") setBankId("");
+                    const m = e.target.value;
+                    setPaymentMethod(m);
+                    setShowBankDropdown(m !== "cash");
+                    if (m === "cash") setBankId("");
                   }}
                 >
                   <option value="">-- Select --</option>
@@ -345,7 +558,6 @@ const POSCardPage = () => {
                 <strong>{(netTotal - amountPaid).toLocaleString()}</strong>
               </div>
 
-              {/* ===== ACTION BUTTONS ===== */}
               <div className="payment-actions">
                 <button className="preview-btn1" onClick={handlePrintPreview}>
                   Preview
@@ -354,14 +566,23 @@ const POSCardPage = () => {
                   Complete Sale
                 </button>
               </div>
-
             </div>
+          ) : (
+            <p style={{ marginTop: "10px" }}>Select products to enable payment</p>
           )}
         </div>
 
+        {/* ================= FAR-RIGHT: Permanent Calculator ================= */}
+        <div className="poscard-calculator" style={{ width: "360px" }}>
+          <Calculator />
+        </div>
       </div>
 
-      {/* ================= BOTTOM: CATEGORY + PRODUCT GRID ================= */}
+
+
+      </div>
+
+      {/* ================= BOTTOM ================= */}
       <div className="poscard-items">
         <div className="category-bar">
           {categories.map((cat) => (

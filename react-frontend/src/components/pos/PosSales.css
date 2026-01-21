@@ -299,7 +299,7 @@
 .payment-row.compact label { font-size: 14px; white-space: nowrap; color: #101113; }
 .payment-row.compact strong { font-weight: 700; color: #d32f2f; }
 .payment-row.compact input,
-.payment-row.compact select { width: 120px; height: 24px; padding: 2px 6px; font-size: 11px; border-radius: 4px; border: 1px solid #d1d5db; }
+.payment-row.compact select { width: 120px; height: 24px; padding: 2px 6px; font-size: 16px; border-radius: 4px; border: 1px solid #d1d5db; }
 
 .pay-area { position: relative; display: inline-flex; flex-direction: column; align-items: flex-end; margin-left: 12px; }
 
@@ -459,13 +459,13 @@
 /* Net Total Badge */
 .gross-total-inline {
   display: inline-block;
-  padding: 6px 12px;
+  padding: 10px 12px;
   font-size: 16px;                /* clear but not oversized */
   font-weight: 700;
   color: #09ff00;                 /* dark green (money tone) */
   background: #000000;            /* soft green background */
   border: 1px solid #10b981;      /* green border */
   border-radius: 6px;
-  letter-spacing: 0.1px;
+  
 }
 

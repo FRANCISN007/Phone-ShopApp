@@ -1,233 +1,619 @@
-/* =====================================================
-   ROOT CONTAINER
-===================================================== */
-.poscard-container {
-  max-width: 1370px;
-  margin: 0 auto;
-  padding: 12px;
-  background: #e2e2e6;
-  border: 2px solid #0e3cd3;
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 2px #dbeafe;
-  font-family: "Segoe UI", Tahoma, sans-serif;
-  height: 75vh;
-  display: flex;
-  flex-direction: column;
-}
+import React, { useState, useEffect, useRef } from "react";
 
-/* =====================================================
-   TOP SECTION
-===================================================== */
-.poscard-top {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 12px;
-  flex: 1;
-  overflow: hidden;
-}
+import { useNavigate } from "react-router-dom";
+import axiosWithAuth from "../../utils/axiosWithAuth";
+import "./POSCardPage.css";
 
-/* =====================================================
-   CART / SALES AREA
-===================================================== */
-.poscard-cart {
-  background: #fff;
-  border: 1px solid #3966af;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+import { printReceipt } from "../../components/pos/printReceipt";
+import { SHOP_NAME } from "../../config/constants";
 
-/* Header */
-.cart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
-  background: #f1f5f9;
-  border-bottom: 1px solid #3966af;
-}
 
-.cart-header h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0c39b6;
-}
+const Calculator = () => {
+  const [display, setDisplay] = React.useState("");
 
-.cart-header button {
-  border: 2px solid red;
-  background: transparent;
-  color: red;
-  font-size: 14px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-}
+  const handleClick = (value) => {
+    if (value === "C") {
+      setDisplay(""); // Clear display
+      return;
+    }
 
-/* =====================================================
-   CART GRID (MATCHES OLD TABLE LOOK)
-===================================================== */
-.cart-grid {
-  display: grid;
-  grid-template-columns: 35% 10% 15% 15% 10% 15% 5%;
-  font-size: 13px;
-}
+    if (value === "<") {
+      setDisplay((prev) => prev.slice(0, -1)); // Backspace
+      return;
+    }
 
-.cart-grid.header {
-  background: #f1f5f9;
-  font-weight: 700;
-  border-bottom: 1px solid #3966af;
-}
+    if (value === "=") {
+      try {
+        // Evaluate display string
+        // eslint-disable-next-line no-eval
+        setDisplay(eval(display).toString());
+      } catch {
+        setDisplay("Error");
+      }
+      return;
+    }
 
-.cart-grid > div {
-  padding: 4px 6px;
-  border-right: 1px solid #3966af;
-}
+    // Append numbers/operators
+    setDisplay((prev) => prev + value);
+  };
 
-.cart-grid > div:last-child {
-  border-right: none;
-}
+  // Buttons layout
+  const buttons = [
+    "C", "<", "/", "*",     // Top row: clear, backspace, divide, multiply
+    "7", "8", "9", "+",     
+    "4", "5", "6", "-",     
+    "1", "2", "3", "=",     
+    "0", "00", "%", "."     // Bottom row
+  ];
 
-/* Rows */
-.cart-items {
-  flex: 1;
-  overflow-y: auto;
-}
+  return (
+    <div
+      className="calculator"
+      style={{
+        width: 360,
+        height: 300,
+        display: "flex",
+        flexDirection: "column",
+        padding: "2px",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Display */}
+      <input
+        className="calc-display"
+        type="text"
+        value={display}
+        readOnly
+        style={{
+          width: "100%",
+          height: "60px",
+          fontSize: "28px",
+          fontWeight: "bold",
+          textAlign: "right",
+          marginBottom: "10px",
+          paddingRight: "10px",
+          boxSizing: "border-box",
+          borderRadius: "6px",
+          border: "1px solid #ccc",
+        }}
+      />
 
-.cart-grid.row {
-  border-bottom: 1px solid #d1d5db;
-}
+      {/* Buttons */}
+      <div
+        className="calc-buttons"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gridGap: "10px",
+          flexGrow: 1,
+        }}
+      >
+        {buttons.map((b, index) => (
+          <button
+            key={index}
+            onClick={() => handleClick(b)}
+            className={b === "=" ? "equal-btn" : ""}
+            style={{
+              fontSize: "28px",
+              fontWeight: "bold",
+              borderRadius: "6px",
+              cursor: "pointer",
+              padding: "5px",
+            }}
+          >
+            {b}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-.cart-grid.row:nth-child(odd) {
-  background: #f9fafb;
-}
 
-.cart-grid.row:nth-child(even) {
-  background: #e3f0e2;
-}
+const POSCardPage = () => {
+  const navigate = useNavigate();
 
-.cart-grid.row:hover {
-  background: #e0ecff;
-}
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [cartItems, setCartItems] = useState([]);
 
-/* Cells */
-.cell {
-  display: flex;
-  align-items: center;
-}
+  const [showPayment, setShowPayment] = useState(false);
+  const [amountPaid, setAmountPaid] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [bankId, setBankId] = useState("");
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  const [banks, setBanks] = useState([]);
 
-.item-name {
-  font-weight: 600;
-}
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [refNo, setRefNo] = useState("");
 
-/* Inputs */
-.cart-grid input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  font-size: 13px;
-  text-align: right;
-}
+  const [receiptFormat, setReceiptFormat] = useState("80mm");
+  const paymentInitializedRef = useRef(false);
 
-.cart-grid input:focus {
-  outline: none;
-  background: #f8fafc;
-}
 
-/* Net highlight */
-.net-cell {
-  font-weight: 700;
-  color: #111827;
-}
 
-/* Action */
-.action-cell button {
-  background: #f87171;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 700;
-}
+  const EMPTY_ROWS = 10;
 
-/* =====================================================
-   TOTAL ROW
-===================================================== */
-.total-row {
-  background: #f9fafb;
-  border-top: 2px solid #111827;
-  font-weight: 800;
-}
+  const handlePrintPreview = () => {
+    handlePrintReceipt("PREVIEW");
+  };
 
-/* =====================================================
-   RIGHT PANEL
-===================================================== */
-.poscard-right-placeholder {
-  background: #fff;
-  border: 1px solid #3966af;
-  border-radius: 8px;
-  padding: 8px;
-  font-size: 13px;
-}
 
-/* =====================================================
-   BOTTOM SECTION
-===================================================== */
-.poscard-items {
-  margin-top: 10px;
-}
+  // =========================
+  // FETCH DATA
+  // =========================
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
-/* =====================================================
-   CATEGORY BAR (POS STYLE)
-===================================================== */
-.category-bar {
-  display: flex;
-  gap: 6px;
-  padding: 6px;
-  background: #f1f5f9;
-  border: 1px solid #3966af;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  overflow-x: auto;
-}
+    axiosWithAuth(token)
+      .get("/stock/category/simple")
+      .then((res) => setCategories(res.data))
+      .catch(() => alert("Failed to load categories"));
 
-.category-tab {
-  padding: 6px 12px;
-  background: #e5e7eb;
-  border-radius: 6px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
+    axiosWithAuth(token)
+      .get("/stock/products/simple-pos")
+      .then((res) => setProducts(res.data))
+      .catch(() => alert("Failed to load products"));
 
-.category-tab.active {
-  background: #2563eb;
-  color: #fff;
-}
+    axiosWithAuth(token)
+      .get("/bank/simple")
+      .then((res) => setBanks(res.data))
+      .catch(() => setBanks([]));
+  }, []);
 
-/* =====================================================
-   PRODUCT GRID
-===================================================== */
-.item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
-}
+  // =========================
+  // CART LOGIC
+  // =========================
+  const addItemToCart = (item) => {
+    setCartItems((prev) => {
+      const found = prev.find((i) => i.id === item.id);
+      if (found) {
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + 1 } : i
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: item.id,
+          name: item.name,
+          selling_price: item.selling_price,
+          qty: 1,
+          discount: 0,
+        },
+      ];
+    });
+  };
 
-.item-card {
-  background: #fff;
-  border: 1px solid #9ca3af;
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
+  const updateQty = (id, qty) => {
+    if (qty <= 0) return;
+    setCartItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, qty } : i))
+    );
+  };
 
-.item-card:hover {
-  background: #2563eb;
-  color: #fff;
-  transform: scale(1.03);
-}
+  const updatePrice = (id, price) => {
+    setCartItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, selling_price: price } : i))
+    );
+  };
+
+  const updateDiscount = (id, discount) => {
+    setCartItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, discount } : i))
+    );
+  };
+
+  const removeItem = (id) => {
+    setCartItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  // =========================
+  // TOTALS
+  // =========================
+  const grossTotal = cartItems.reduce(
+    (sum, i) => sum + i.qty * i.selling_price,
+    0
+  );
+  const totalDiscount = cartItems.reduce(
+    (sum, i) => sum + (i.discount || 0),
+    0
+  );
+  const netTotal = grossTotal - totalDiscount;
+
+  const filteredProducts = activeCategory
+    ? products.filter((p) => p.category_name === activeCategory.name)
+    : [];
+
+  // =========================
+  // SYNC PAYMENT WITH NET
+  // =========================
+  useEffect(() => {
+    if (showPayment && !paymentInitializedRef.current) {
+      setAmountPaid(netTotal);
+      paymentInitializedRef.current = true;
+    }
+
+    if (!showPayment) {
+      paymentInitializedRef.current = false;
+    }
+  }, [showPayment, netTotal]);
+
+
+  const handlePrintReceipt = (invoiceNo) => {
+    const receiptData = {
+      SHOP_NAME,
+      invoice: invoiceNo,
+      invoiceDate: new Date().toISOString().split("T")[0],
+      customerName,
+      customerPhone,
+      refNo,
+      paymentMethod,
+      amountPaid,
+
+      grossTotal,
+      totalDiscount,
+      netTotal,
+      balance: netTotal - amountPaid,
+
+      items: cartItems.map((i) => ({
+        product_name: i.name,
+        quantity: i.qty,
+        selling_price: i.selling_price,
+        gross_amount: i.qty * i.selling_price,
+        discount: i.discount || 0,
+        net_amount: i.qty * i.selling_price - (i.discount || 0),
+      })),
+
+      formatCurrency: (amount) =>
+        `₦${Number(amount || 0).toLocaleString("en-NG")}`,
+    };
+
+    printReceipt(receiptFormat, receiptData);
+  };
+
+
+  // =========================
+  // SUBMIT SALE (BACKEND)
+  // =========================
+  const handleSubmit = async () => {
+    if (!cartItems.length) return alert("Cart is empty");
+    if (!paymentMethod) return alert("Select payment method");
+    if (amountPaid <= 0) return alert("Invalid amount");
+
+    if (paymentMethod !== "cash" && !bankId) {
+      return alert("Please select a bank");
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      /* ===============================
+        1️⃣ CREATE SALE
+      ================================ */
+      const salePayload = {
+        invoice_date: new Date().toISOString().split("T")[0],
+        customer_name: customerName || "Walk-in",
+        customer_phone: customerPhone || null,
+        ref_no: refNo || null,
+        items: cartItems.map((i) => ({
+          product_id: i.id,
+          quantity: i.qty,
+          selling_price: i.selling_price,
+          discount: i.discount || 0,
+        })),
+      };
+
+      const saleRes = await axiosWithAuth(token).post(
+        "/sales/",
+        salePayload
+      );
+
+      const invoiceNo = saleRes.data.invoice_no;
+
+      /* ===============================
+        2️⃣ CREATE PAYMENT
+      ================================ */
+      const paymentPayload = {
+        amount_paid: amountPaid,
+        payment_method: paymentMethod,
+      };
+
+      if (paymentMethod !== "cash") {
+        paymentPayload.bank_id = bankId;
+      }
+
+      await axiosWithAuth(token).post(
+        `/payments/sale/${invoiceNo}`,
+        paymentPayload
+      );
+
+      handlePrintReceipt(invoiceNo);
+
+
+      alert("Sale completed successfully");
+
+      /* ===============================
+        RESET UI
+      ================================ */
+      setCartItems([]);
+      setShowPayment(false);
+      setAmountPaid(0);
+      setPaymentMethod("");
+      setBankId("");
+      setShowBankDropdown(false);
+      setCustomerName("");
+      setCustomerPhone("");
+      setRefNo("");
+
+    } catch (err) {
+      console.error(err);
+      const detail = err?.response?.data?.detail;
+
+      if (Array.isArray(detail)) {
+        alert(detail.map((d) => d.msg).join("\n"));
+      } else {
+        alert(detail || "Transaction failed");
+      }
+    }
+  };
+
+
+  return (
+    <div className="poscard-container">
+      {/* ================= TOP ================= */}
+      <div className="poscard-top">
+        <div className="poscard-cart">
+          <div className="cart-header">
+            <div className="sales-header-left">
+              <h2>Sales</h2>
+
+              <input
+                type="text"
+                placeholder="Customer"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Phone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Ref No"
+                value={refNo}
+                onChange={(e) => setRefNo(e.target.value)}
+              />
+            </div>
+
+            <select
+              className="receipt-format-select"
+              value={receiptFormat}
+              onChange={(e) => setReceiptFormat(e.target.value)}
+            >
+              <option value="80mm">80mm Print</option>
+              <option value="A4">A4 Print</option>
+            </select>
+
+
+            <button onClick={() => navigate("/dashboard")}>Exit</button>
+          </div>
+
+          <div className="cart-grid header extended">
+            <div>Item</div>
+            <div>Qty</div>
+            <div>Price</div>
+            <div>Gross</div>
+            <div>Discount</div>
+            <div>Net</div>
+            <div>X</div>
+          </div>
+
+          <div className="cart-items">
+            {Array.from({ length: Math.max(EMPTY_ROWS, cartItems.length) }).map(
+              (_, index) => {
+                const item = cartItems[index];
+                const gross = item ? item.qty * item.selling_price : 0;
+                const net = item ? gross - (item.discount || 0) : 0;
+
+                return (
+                  <div
+                    key={item ? item.id : index}
+                    className={`cart-grid row ${
+                      index % 2 === 0 ? "even" : "odd"
+                    }`}
+                  >
+                    <div className="cell item-name">{item?.name || ""}</div>
+                    <div className="cell">
+                      {item && (
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.qty}
+                          onChange={(e) =>
+                            updateQty(item.id, Number(e.target.value))
+                          }
+                        />
+                      )}
+                    </div>
+                    <div className="cell">
+                      {item && (
+                        <input
+                          type="text"
+                          value={item.selling_price.toLocaleString()}
+                          onChange={(e) =>
+                            updatePrice(
+                              item.id,
+                              Number(e.target.value.replace(/,/g, ""))
+                            )
+                          }
+                        />
+                      )}
+                    </div>
+                    <div className="cell">{gross.toLocaleString()}</div>
+                    <div className="cell">
+                      {item && (
+                        <input
+                          type="text"
+                          value={(item.discount || 0).toLocaleString()}
+                          onChange={(e) =>
+                            updateDiscount(
+                              item.id,
+                              Number(e.target.value.replace(/,/g, ""))
+                            )
+                          }
+                        />
+                      )}
+                    </div>
+                    <div className="cell net-cell">{net.toLocaleString()}</div>
+                    <div className="cell action-cell">
+                      {item && (
+                        <button onClick={() => removeItem(item.id)}>X</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+            )}
+          </div>
+
+          <div className="cart-grid total-row extended">
+            <div>Total</div>
+            <div></div>
+            <div></div>
+            <div>{grossTotal.toLocaleString()}</div>
+            <div>{totalDiscount.toLocaleString()}</div>
+            <div>{netTotal.toLocaleString()}</div>
+            <div></div>
+          </div>
+        </div>
+
+        <div className="poscard-right-wrapper" style={{ display: "flex", gap: "10px" }}>
+        {/* ================= MIDDLE-RIGHT: Pay Now / Payment Form ================= */}
+        <div className="poscard-right-placeholder" style={{ width: "250px" }}>
+          {!showPayment && cartItems.length > 0 ? (
+            <button
+              className="pay-now-btn1"
+              onClick={() => setShowPayment(true)}
+              style={{ marginTop: "10px", width: "100%" }}
+            >
+              Pay Now
+            </button>
+          ) : showPayment ? (
+            <div className="payment-card1" style={{ marginTop: "10px" }}>
+              <div className="payment-title1">Payment</div>
+
+              <div className="payment-row amount compact">
+                <label>Amount</label>
+                <input
+                  type="text"
+                  value={amountPaid.toLocaleString()}
+                  onChange={(e) =>
+                    setAmountPaid(Number(e.target.value.replace(/,/g, "")))
+                  }
+                />
+              </div>
+
+              <div className="payment-row compact1">
+                <label>Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => {
+                    const m = e.target.value;
+                    setPaymentMethod(m);
+                    setShowBankDropdown(m !== "cash");
+                    if (m === "cash") setBankId("");
+                  }}
+                >
+                  <option value="">-- Select --</option>
+                  <option value="cash">Cash</option>
+                  <option value="transfer">Transfer</option>
+                  <option value="pos">POS</option>
+                </select>
+              </div>
+
+              {showBankDropdown && (
+                <div className="payment-row compact1">
+                  <label>Bank</label>
+                  <select
+                    value={bankId}
+                    onChange={(e) => setBankId(e.target.value)}
+                  >
+                    <option value="">-- Bank --</option>
+                    {banks.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="payment-row compact1">
+                <label>Balance</label>
+                <strong>{(netTotal - amountPaid).toLocaleString()}</strong>
+              </div>
+
+              <div className="payment-actions">
+                <button className="preview-btn1" onClick={handlePrintPreview}>
+                  Preview
+                </button>
+                <button className="complete-btn1" onClick={handleSubmit}>
+                  Complete Sale
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p style={{ marginTop: "10px" }}>Select products to enable payment</p>
+          )}
+        </div>
+
+        {/* ================= FAR-RIGHT: Permanent Calculator ================= */}
+        <div className="poscard-calculator" style={{ width: "360px" }}>
+          <Calculator />
+        </div>
+      </div>
+
+
+
+      </div>
+
+      {/* ================= BOTTOM ================= */}
+      <div className="poscard-items">
+        <div className="category-bar">
+          {categories.map((cat) => (
+            <div
+              key={cat.id}
+              className={`category-tab ${
+                activeCategory?.id === cat.id ? "active" : ""
+              }`}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {cat.name}
+            </div>
+          ))}
+        </div>
+
+        <div className="item-grid1">
+          {activeCategory &&
+            filteredProducts.map((item) => (
+              <div
+                key={item.id}
+                className="item-card1"
+                onClick={() => addItemToCart(item)}
+              >
+                <div>{item.name}</div>
+                <div>{item.selling_price.toLocaleString()}</div>
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default POSCardPage;

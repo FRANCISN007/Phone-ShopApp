@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+
 import { useNavigate } from "react-router-dom";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./POSCardPage.css";
@@ -71,8 +72,10 @@ const POSCardPage = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [cartItems, setCartItems] = useState([]);
 
-  const [showPayment, setShowPayment] = useState(false);
+  
   const [amountPaid, setAmountPaid] = useState(0);
+  const [amountEdited, setAmountEdited] = useState(false);
+
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [bankId, setBankId] = useState("");
   const [showBankDropdown, setShowBankDropdown] = useState(false);
@@ -83,7 +86,7 @@ const POSCardPage = () => {
   const [refNo, setRefNo] = useState("");
 
   const [receiptFormat, setReceiptFormat] = useState("80mm");
-  const paymentInitializedRef = useRef(false);
+  
 
   const EMPTY_ROWS = 10;
 
@@ -115,10 +118,21 @@ const POSCardPage = () => {
   const addItemToCart = (item) => {
     setCartItems((prev) => {
       const found = prev.find((i) => i.id === item.id);
-      if (found) return prev.map((i) => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { id: item.id, name: item.name, selling_price: item.selling_price, qty: 1, discount: 0 }];
+      if (found) {
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + 1 } : i
+        );
+      }
+      return [
+        ...prev,
+        { id: item.id, name: item.name, selling_price: item.selling_price, qty: 1, discount: 0 },
+      ];
     });
+
+    // ✅ AUTO OPEN PAYMENT SESSION
+    
   };
+
 
   const updateQty = (id, qty) => {
     if (qty <= 0) return;
@@ -143,12 +157,20 @@ const POSCardPage = () => {
   // SYNC PAYMENT
   // =========================
   useEffect(() => {
-    if (showPayment && !paymentInitializedRef.current) {
+    if (cartItems.length > 0 && !amountEdited) {
       setAmountPaid(netTotal);
-      paymentInitializedRef.current = true;
     }
-    if (!showPayment) paymentInitializedRef.current = false;
-  }, [showPayment, netTotal]);
+
+    if (cartItems.length === 0) {
+      setAmountPaid(0);       // ✅ clear payment amount
+      setAmountEdited(false); // reset for next sale
+    }
+  }, [netTotal, cartItems.length, amountEdited]);
+
+
+
+
+
 
   const handlePrintReceipt = (invoiceNo) => {
     const receiptData = {
@@ -219,16 +241,10 @@ const POSCardPage = () => {
 
       // ✅ RESET EVERYTHING
       setCartItems([]);
-      setShowPayment(false);
       setAmountPaid(0);
-      setPaymentMethod("cash");
-      setBankId("");
-      setShowBankDropdown(false);
-      setCustomerName("");
-      setCustomerPhone("");
-      setRefNo("");
-      paymentInitializedRef.current = false;
+      setAmountEdited(false);
 
+      
     } catch (err) {
       console.error(err);
       const detail = err?.response?.data?.detail;
@@ -300,54 +316,102 @@ const POSCardPage = () => {
         {/* PAYMENT & CALCULATOR */}
         <div className="poscard-right-wrapper" style={{ display: "flex", gap: "10px" }}>
           <div className="poscard-right-placeholder" style={{ width: "250px" }}>
-            {!showPayment && cartItems.length > 0 ? (
-              <button className="pay-now-btn1" onClick={() => { setShowPayment(true); setPaymentMethod("cash"); setShowBankDropdown(false); setBankId(""); }} style={{ marginTop: "10px", width: "100%" }}>Pay Now</button>
-            ) : showPayment ? (
-              <div className="payment-card1" style={{ marginTop: "10px" }}>
-                <div className="payment-title1">Payment</div>
-                <div className="payment-row amount compact">
-                  <label>Amount</label>
-                  <input type="text" value={amountPaid.toLocaleString()} onChange={(e) => setAmountPaid(Number(e.target.value.replace(/,/g, "")))} />
-                </div>
-                <div className="payment-row compact1">
-                  <label>Method</label>
-                  <select value={paymentMethod} onChange={(e) => {
+            <div className="payment-card1" style={{ marginTop: "10px" }}>
+              <div className="payment-title1">Payment</div>
+
+              {/* AMOUNT */}
+              <div className="payment-row amount compact">
+                <label>Amount</label>
+                <input
+                  type="text"
+                  value={amountPaid.toLocaleString()}
+                  onChange={(e) => {
+                    setAmountEdited(true);
+                    setAmountPaid(Number(e.target.value.replace(/,/g, "")));
+                  }}
+
+                  disabled={cartItems.length === 0}
+                />
+              </div>
+
+              {/* METHOD */}
+              <div className="payment-row compact1">
+                <label>Method</label>
+                <select
+                  value={paymentMethod}
+                  disabled={cartItems.length === 0}
+                  onChange={(e) => {
                     const m = e.target.value;
                     setPaymentMethod(m);
-                    if (m === "cash") { setShowBankDropdown(false); setBankId(""); } 
-                    else { setShowBankDropdown(true); if(banks.length>0) setBankId(banks[0].id);}
-                  }}>
-                    <option value="cash">Cash</option>
-                    <option value="transfer">Transfer</option>
-                    <option value="pos">POS</option>
+
+                    if (m === "cash") {
+                      setShowBankDropdown(false);
+                      setBankId("");
+                    } else {
+                      setShowBankDropdown(true);
+                      if (banks.length > 0) setBankId(banks[0].id);
+                    }
+                  }}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="transfer">Transfer</option>
+                  <option value="pos">POS</option>
+                </select>
+              </div>
+
+              {/* BANK */}
+              {showBankDropdown && (
+                <div className="payment-row compact1">
+                  <label>Bank</label>
+                  <select
+                    value={bankId}
+                    disabled={cartItems.length === 0}
+                    onChange={(e) => setBankId(e.target.value)}
+                  >
+                    {banks.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                {showBankDropdown && (
-                  <div className="payment-row compact1">
-                    <label>Bank</label>
-                    <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
-                      {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                <div className="payment-row compact1">
-                  <label>Balance</label>
-                  <strong>{(netTotal - amountPaid).toLocaleString()}</strong>
-                </div>
-                <div className="payment-actions">
-                  <button className="preview-btn1" onClick={() => handlePrintReceipt("PREVIEW")}>Preview</button>
-                  <button className="complete-btn1" onClick={handleSubmit}>Complete Sale</button>
-                </div>
+              )}
+
+              {/* BALANCE */}
+              <div className="payment-row compact1">
+                <label>Balance</label>
+                <strong>
+                  {(cartItems.length > 0 ? netTotal - amountPaid : 0).toLocaleString()}
+                </strong>
               </div>
-            ) : (
-              <p style={{ marginTop: "10px" }}>Select products to enable payment</p>
-            )}
+
+              {/* ACTIONS */}
+              <div className="payment-actions">
+                <button
+                  className="preview-btn1"
+                  disabled={cartItems.length === 0}
+                  onClick={() => handlePrintReceipt("PREVIEW")}
+                >
+                  Preview
+                </button>
+
+                <button
+                  className="complete-btn1"
+                  disabled={cartItems.length === 0}
+                  onClick={handleSubmit}
+                >
+                  Complete Sale
+                </button>
+              </div>
+            </div>
           </div>
 
+          {/* CALCULATOR */}
           <div className="poscard-calculator" style={{ width: "360px" }}>
             <Calculator />
           </div>
         </div>
+
       </div>
 
       {/* BOTTOM */}

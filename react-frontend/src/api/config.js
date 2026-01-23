@@ -1,14 +1,16 @@
-// src/api/config.js
 const getBaseUrl = () => {
-  // 1. Try CRA environment variable
-  const envUrl = process.env.REACT_APP_API_BASE_URL;
+  let envUrl = "";
 
-  if (envUrl && envUrl.trim() !== "") {
-    return envUrl; // <-- No import.meta at all
+  if (typeof process !== "undefined") {
+    envUrl = process.env.REACT_APP_API_BASE_URL || "";
   }
 
-  // 2. Default to local backend root
-  return `${window.location.protocol}//localhost:8000`;
+  if (!envUrl || envUrl.trim() === "") {
+    const hostname = window.location.hostname;
+    envUrl = `${window.location.protocol}//${hostname}:8000`;
+  }
+
+  return envUrl;
 };
 
 export default getBaseUrl;

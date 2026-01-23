@@ -48,6 +48,10 @@ class ProductOut(BaseModel):
 
 
 
+class ProductStatusUpdate(BaseModel):
+    is_active: bool
+
+
 
 
 
@@ -61,6 +65,7 @@ class ProductOut(BaseModel):
     type: Optional[str] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
+    is_active: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)  # ✅ REQUIRED

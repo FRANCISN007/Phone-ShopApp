@@ -178,7 +178,7 @@ def update_sale_header(
     sale_update: schemas.SaleUpdate,
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["user", "manager", "admin"])
+        role_required(["manager", "admin"])
     )
 ):
     """
@@ -215,7 +215,7 @@ def update_sale_item(
     item_update: schemas.SaleItemUpdate,  # contains product_id, quantity, price, etc.
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
-        role_required(["user", "manager", "admin"])
+        role_required(["manager", "admin"])
     )
 ):
     return service.update_sale_item(

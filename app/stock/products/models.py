@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -19,6 +19,11 @@ class Product(Base):
     type = Column(String, nullable=True)
     cost_price = Column(Float, nullable=True)
     selling_price = Column(Float, nullable=True)
+
+    # 🔥 NEW VISIBILITY FLAG
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
     category = relationship("Category", back_populates="products")

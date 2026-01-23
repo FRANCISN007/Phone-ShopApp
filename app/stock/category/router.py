@@ -5,6 +5,9 @@ from typing import List
 from app.database import get_db
 from . import schemas, service
 from app.stock.category import models as category_models
+from app.users.permissions import role_required
+from app.users.schemas import UserDisplaySchema
+
 
 router = APIRouter()
 
@@ -59,6 +62,8 @@ def update_category(
 )
 def delete_category(
     category_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["admin","manager"]))
+    
 ):
     return service.delete_category(db, category_id)

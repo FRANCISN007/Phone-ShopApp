@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.vendor import schemas, service
 
+from app.users.permissions import role_required
+from app.users.schemas import UserDisplaySchema
+
 router = APIRouter()
 
 @router.post("/", response_model=schemas.VendorOut)
@@ -41,7 +44,11 @@ def update_vendor(vendor_id: int, vendor_update: schemas.VendorUpdate, db: Sessi
     return vendor
 
 @router.delete("/{vendor_id}")
-def delete_vendor(vendor_id: int, db: Session = Depends(get_db)):
+def delete_vendor(vendor_id: int, 
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["admin","manager"]))
+    
+):
     result = service.delete_vendor(db, vendor_id)
     if not result:
         raise HTTPException(status_code=404, detail="Vendor not found")

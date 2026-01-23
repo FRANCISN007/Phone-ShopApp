@@ -85,37 +85,31 @@ def create_product(db: Session, product: schemas.ProductCreate):
 
 def get_products(
     db: Session,
-    category: str | None = None,
-    name: str | None = None,
+    category: Optional[str] = None,
+    name: Optional[str] = None,
+    active_only: bool = False,  # 🔹 default to False
 ):
-    query = (
-        db.query(models.Product)
-        .options(joinedload(models.Product.category))
-    )
+    query = db.query(models.Product).options(joinedload(models.Product.category))
 
-    # -----------------------------
-    # Filter by category name
-    # -----------------------------
+    if active_only:  # still allows active-only filter if explicitly requested
+        query = query.filter(models.Product.is_active.is_(True))
+
     if category:
         query = query.join(models.Product.category).filter(
-            func.lower(category_models.Category.name)
-            == category.lower().strip()
+            func.lower(models.Category.name) == category.lower().strip()
         )
 
-    # -----------------------------
-    # Filter by product name (search)
-    # -----------------------------
     if name:
         query = query.filter(
-            func.lower(models.Product.name)
-            .contains(name.lower().strip())
+            func.lower(models.Product.name).contains(name.lower().strip())
         )
 
-    return (
-        query
-        .order_by(models.Product.created_at.desc())
-        .all()
-    )
+    return query.order_by(models.Product.created_at.desc()).all()
+
+
+
+
+
 
 def get_products_simple(db: Session):
     return (
@@ -444,3 +438,22 @@ def import_products_from_excel(
             status_code=500,
             detail=f"Import failed: {str(e)}"
         )
+    
+
+def update_product_status(
+    db: Session,
+    product_id: int,
+    is_active: bool
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+
+    if not product:
+        return None
+
+    product.is_active = is_active
+    db.commit()
+    db.refresh(product)
+
+    return product
+
+

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
 from . import models, schemas
-from app.sales import models as sales_models
+from app.payments import models as payment_models
 
 
 def create_bank(db: Session, bank: schemas.BankCreate):
@@ -43,8 +43,8 @@ def delete_bank(db: Session, bank_id: int):
         return None
 
     # check if bank is used in payments
-    usage_count = db.query(sales_models.Sales).filter(
-        sales_models.Sales.bank_id == bank_id
+    usage_count = db.query(payment_models.Payment).filter(
+        payment_models.Payment.bank_id == bank_id
     ).count()
 
     if usage_count > 0:

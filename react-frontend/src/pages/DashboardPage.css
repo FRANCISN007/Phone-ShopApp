@@ -225,7 +225,7 @@
 
 
 
-/* Grid layout 3x2 */
+/* Grid layout 3x3 */
 .sales-submenu.grid-3x3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -233,6 +233,18 @@
   gap: 20px;
   width: 90%;
 }
+
+
+/* Grid layout 3x2 */
+.sales-submenu.gridA-2x3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 80px);
+  gap: 20px;
+  width: 90%;
+}
+
+
 
 /* Cards */
 .submenu-card {
@@ -315,6 +327,11 @@
 }
 
 
+.sales-frame {
+  width: 700px !important;
+  height: 420px !important;
+}
+
 
 .purchase-frame {
   width: 500px !important;
@@ -322,7 +339,7 @@
 }
 
 .accounts-frame {
-  width: 500px !important;
+  width: 700px !important;
   height: 350px !important;
 }
 

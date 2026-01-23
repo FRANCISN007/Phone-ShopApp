@@ -77,6 +77,9 @@ const DashboardPage = () => {
     { label: "List Expenses", action: "list", icon: "📋" },
     { label: "Create Revenue Item", action: "revenueitem", icon: "➕" },
     { label: "Profit and Loss", action: "profitloss", icon: "🧾" },
+    { label: "Create Bank", action: "bankmanagement", icon: "🏦" },
+    { label: "", action: "", icon: "" },
+
   ];
 
 
@@ -261,6 +264,9 @@ const handleAccountsAction = action => {
       case "profitloss":
         navigate("/dashboard/accounts/profitloss");
         break;
+      case "bankmanagement":
+        navigate("/dashboard/accounts/bankmanagement");
+        break;
       default:
         break;
     }
@@ -312,7 +318,7 @@ const handleAccountsAction = action => {
       <main className="main-content">
         <section className="content-area">
           {activeSubMenu === "Sales" ? (
-            <div className="submenu-frame center-frame">
+            <div className="submenu-frame center-frame sales-frame">
               <div className="submenu-header">
                 <h2 className="submenu-heading">Sales Menu</h2>
                 <button className="close-btn" onClick={() => setActiveSubMenu(null)}>✖</button>
@@ -370,7 +376,7 @@ const handleAccountsAction = action => {
                   <h2 className="submenu-heading">Accounts Menu</h2>
                   <button className="close-btn" onClick={() => setActiveSubMenu(null)}>✖</button>
                 </div>
-                <div className="sales-submenu grid-2x2">
+                <div className="sales-submenu gridA-2x3">
                   {accountsSubMenu.map((sub, idx) => (
                     <div
                       key={sub.label}

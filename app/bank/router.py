@@ -18,7 +18,7 @@ router = APIRouter()
 def create_bank(
     bank: schemas.BankCreate,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["admin"]))
+    current_user: UserDisplaySchema = Depends(role_required(["manager", "admin"]))
 ):
     return service.create_bank(db, bank)
 
@@ -52,7 +52,7 @@ def update_bank(
     bank_id: int,
     bank: schemas.BankUpdate,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["admin"]))
+    current_user: UserDisplaySchema = Depends(role_required(["manager", "admin"]))
 ):
     updated = service.update_bank(db, bank_id, bank)
     if not updated:

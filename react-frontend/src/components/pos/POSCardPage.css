@@ -238,9 +238,11 @@
 ========================= */
 .cart-grid.total-row.extended {
   border-top: 3px double #000;
-  background: #f0f0f0;
+  background: #141414;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
+   color: #ffffff;
+  
 }
 
 .cart-grid.total-row.extended > div {
@@ -314,8 +316,8 @@
 
 /* Active */
 .category-tab.active {
-  background: #2d3436;
-  color: #fff;
+  background: #acacc5;
+  color: #030303;
   border-color: #101213;
 }
 
@@ -333,7 +335,7 @@
 }
 
 .item-card1 {
-  background: #b6b6c7;
+  background: #acacc5;
   padding: 1px 2px;
   border-radius: 6px;
   border: 1px solid #1607f1;
@@ -351,7 +353,7 @@
 }
 
 .item-card1:hover {
-  background: #418f58;
+  background: #48b86a;
   color: #fff;
 }
 

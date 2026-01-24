@@ -11,16 +11,13 @@ class Expense(Base):
     ref_no = Column(String(100), unique=True, index=True, nullable=False)
 
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
-
     account_type = Column(String, nullable=False)
-
     description = Column(String, nullable=True)
-
     amount = Column(Float, nullable=False)
 
     payment_method = Column(String, nullable=False)
     bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)
-   
+
     expense_date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -30,7 +27,14 @@ class Expense(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     vendor = relationship("Vendor")
-    creator = relationship("User", foreign_keys=[created_by])
-    bank = relationship("Bank") 
+    bank = relationship("Bank")
 
-    created_by_user = relationship("User", backref="expenses", foreign_keys=[created_by])
+    # ✅ SINGLE relationship
+    creator = relationship(
+        "User",
+        back_populates="expenses",
+        foreign_keys=[created_by]
+    )
+
+
+print("🔥 LOADED Expense model from:", __file__)

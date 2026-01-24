@@ -43,7 +43,7 @@ const LoginPage = () => {
         </p>
 
         <ul className="app-features">
-          <li>Sales </li>
+          <li>POS Sales Point </li>
           <li>Purchases</li>
           <li>Payments & Receipts</li>
           <li>Secured Database Integration</li>

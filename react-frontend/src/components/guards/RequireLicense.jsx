@@ -1,18 +1,30 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const RequireLicense = () => {
-  const location = useLocation();
-  const isLicenseVerified =
-    localStorage.getItem("license_verified") === "true";
+  const [status, setStatus] = useState("loading");
 
-  if (!isLicenseVerified) {
+  useEffect(() => {
+    // Read persisted license state
+    const licenseValid = localStorage.getItem("license_valid");
+
+    if (licenseValid === "true") {
+      setStatus("valid");
+    } else {
+      setStatus("invalid");
+    }
+  }, []);
+
+  if (status === "loading") {
     return (
-      <Navigate
-        to="/license"
-        replace
-        state={{ from: location }}
-      />
+      <div style={{ textAlign: "center", marginTop: "40vh" }}>
+        Checking license…
+      </div>
     );
+  }
+
+  if (status === "invalid") {
+    return <Navigate to="/license" replace />;
   }
 
   return <Outlet />;

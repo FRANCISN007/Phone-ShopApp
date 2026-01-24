@@ -73,10 +73,10 @@ const HomePage = () => {
 
         <div className="home-card">
           <div className="hems-text">
-            <span className="hems-letter">H</span>
-            <span className="hems-letter">E</span>
+            <span className="hems-letter">SH</span>
+            <span className="hems-letter">op</span>
             <span className="hems-letter">M</span>
-            <span className="hems-letter">S</span>
+            <span className="hems-letter">an</span>
           </div>
 
           

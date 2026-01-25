@@ -1,5 +1,5 @@
 export const numberToWords = (num) => {
-  if (num === null || num === undefined) return "";
+  if (num === null || num === undefined || isNaN(num)) return "";
 
   const a = [
     "", "One", "Two", "Three", "Four", "Five", "Six",
@@ -14,6 +14,7 @@ export const numberToWords = (num) => {
   ];
 
   const inWords = (n) => {
+    if (n === 0) return "";
     if (n < 20) return a[n];
     if (n < 100)
       return b[Math.floor(n / 10)] + (n % 10 ? " " + a[n % 10] : "");
@@ -29,7 +30,16 @@ export const numberToWords = (num) => {
         " Thousand" +
         (n % 1000 ? " " + inWords(n % 1000) : "")
       );
-    return n.toString();
+
+    // ✅ ADD THIS BLOCK
+    if (n < 1000000000)
+      return (
+        inWords(Math.floor(n / 1000000)) +
+        " Million" +
+        (n % 1000000 ? " " + inWords(n % 1000000) : "")
+      );
+
+    return n.toString(); // fallback
   };
 
   const whole = Math.floor(num);
@@ -41,5 +51,5 @@ export const numberToWords = (num) => {
     words += " and " + inWords(fraction) + " Kobo";
   }
 
-  return words + " Only";
+  return words.trim() + " Only";
 };

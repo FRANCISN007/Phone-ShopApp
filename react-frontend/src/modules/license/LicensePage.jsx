@@ -13,6 +13,14 @@ const LicensePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    const verified = localStorage.getItem("license_verified");
+    if (verified === "true") {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
+
+
   // Reset state on location change
   useEffect(() => {
     if (location.pathname === "/license") {
@@ -103,7 +111,7 @@ const LicensePage = () => {
 
   return (
     <div className="license-page">
-      <div className="hems-logo">H&nbsp;E&nbsp;M&nbsp;S</div>
+      <div className="hems-logo">SH&nbsp;op&nbsp;M&nbsp;an</div>
       <div className="hems-subtitle">Phone Shop App</div>
 
       <div className="license-container">

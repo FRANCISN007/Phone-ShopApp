@@ -5,10 +5,9 @@ const RequireLicense = () => {
   const [status, setStatus] = useState("loading");
 
   useEffect(() => {
-    // Read persisted license state
-    const licenseValid = localStorage.getItem("license_valid");
+    const licenseVerified = localStorage.getItem("license_verified");
 
-    if (licenseValid === "true") {
+    if (licenseVerified === "true") {
       setStatus("valid");
     } else {
       setStatus("invalid");

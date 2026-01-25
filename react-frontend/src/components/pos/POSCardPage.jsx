@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./POSCardPage.css";
+import { numberToWords } from "../../utils/numberToWords";
+
 
 import { printReceipt } from "../../components/pos/printReceipt";
 import { SHOP_NAME } from "../../config/constants";
@@ -186,6 +188,7 @@ const POSCardPage = () => {
       totalDiscount,
       netTotal,
       balance: netTotal - amountPaid,
+
       items: cartItems.map((i) => ({
         product_name: i.name,
         quantity: i.qty,
@@ -194,10 +197,17 @@ const POSCardPage = () => {
         discount: i.discount || 0,
         net_amount: i.qty * i.selling_price - (i.discount || 0),
       })),
-      formatCurrency: (amount) => `₦${Number(amount || 0).toLocaleString("en-NG")}`,
+
+      formatCurrency: (amount) =>
+        `₦${Number(amount || 0).toLocaleString("en-NG")}`,
+
+      // ✅ ADD THIS
+      amountInWords: numberToWords(netTotal),
     };
+
     printReceipt(receiptFormat, receiptData);
   };
+
 
   // =========================
   // SUBMIT SALE

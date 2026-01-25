@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./PosSales.css";
+import { numberToWords } from "../../utils/numberToWords";
 
 import { SHOP_NAME } from "../../config/constants";
 
@@ -201,64 +202,7 @@ const PosSales = ({ onClose }) => {
   };
 
 
-  /* ===============================
-    Amount to Words (Naira)
-  ================================ */
-  const numberToWords = (num) => {
-    if (!num || num === 0) return "Zero Naira Only";
-
-    const ones = [
-      "", "One", "Two", "Three", "Four", "Five",
-      "Six", "Seven", "Eight", "Nine", "Ten",
-      "Eleven", "Twelve", "Thirteen", "Fourteen",
-      "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"
-    ];
-
-    const tens = [
-      "", "", "Twenty", "Thirty", "Forty",
-      "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"
-    ];
-
-    const convertHundreds = (n) => {
-      let word = "";
-
-      if (n > 99) {
-        word += ones[Math.floor(n / 100)] + " Hundred ";
-        n %= 100;
-      }
-
-      if (n > 19) {
-        word += tens[Math.floor(n / 10)] + " ";
-        n %= 10;
-      }
-
-      if (n > 0) {
-        word += ones[n] + " ";
-      }
-
-      return word.trim();
-    };
-
-    let words = "";
-    let remainder = Math.floor(num);
-
-    if (remainder >= 1_000_000) {
-      words += convertHundreds(Math.floor(remainder / 1_000_000)) + " Million ";
-      remainder %= 1_000_000;
-    }
-
-    if (remainder >= 1_000) {
-      words += convertHundreds(Math.floor(remainder / 1_000)) + " Thousand ";
-      remainder %= 1_000;
-    }
-
-    if (remainder > 0) {
-      words += convertHundreds(remainder);
-    }
-
-    return `${words.trim()} Naira Only`;
-  };
-
+  
 
   /* ===============================
      Print Receipt

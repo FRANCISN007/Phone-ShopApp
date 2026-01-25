@@ -127,7 +127,7 @@ const App = () => {
               </Route>
 
               {/* USERS */}
-              <Route path="modules/users" element={<UserManagement />} />
+              <Route path="users" element={<UserManagement />} />
 
             </Route>
           </Route>

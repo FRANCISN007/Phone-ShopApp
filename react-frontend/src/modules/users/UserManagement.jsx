@@ -9,7 +9,9 @@ const API_BASE_URL = getBaseUrl();
 
 const roleOptions = ["user", "admin", "manager"];
 
-const UserManagement = ({ token }) => {
+const UserManagement = () => {
+  const token = localStorage.getItem("token");
+
   const navigate = useNavigate(); // ✅ Move hook to top
 
   const [users, setUsers] = useState([]);
@@ -266,12 +268,17 @@ const UserManagement = ({ token }) => {
               {selectedAction === "list" && (
                 <button
                   className="close-main-button"
-                  onClick={() => navigate(-1)}
-
+                  onClick={() => {
+                    console.log("Close clicked");
+                    setSelectedAction("list"); // reset view
+                    // Navigate only within React Router (frontend)
+                    navigate("/dashboard", { replace: true });
+                  }}
                 >
                   ❌
                 </button>
               )}
+
             </div>
           </div>
 

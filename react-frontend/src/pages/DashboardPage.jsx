@@ -27,12 +27,13 @@ const DashboardPage = () => {
   const mainMenu = useMemo(
     () => [
       { label: "POS", icon: "🛒", path: "/dashboard/pos" },
-      { label: "POS-Card", icon: "💳", path: "/dashboard/pos-card" }, // <-- open full screen
+      { label: "POS-Card", icon: "🛒", path: "/dashboard/pos-card" }, // <-- open full screen
       { label: "Sales", icon: "💰", submenu: true },
       { label: "Stock", icon: "📦", submenu: true },
       { label: "Purchase", icon: "🧾", submenu: true },
       { label: "Accounts", icon: "📈", submenu: true },
-      { label: "Maintenance", icon: "🛠", path: "/dashboard/users" },
+      { label: "Maintenance", icon: "🛠", action: "maintenance" },
+
       { label: "Export", icon: "📤", action: "export" },
       { label: "Print", icon: "🖨️", action: "print" },
       { label: "Exit", icon: "⎋", path: "/exit", danger: true },
@@ -129,30 +130,59 @@ const DashboardPage = () => {
   ================================ */
   const handleMenuAction = useCallback(
     item => {
-      if (item.action === "export") return exportToExcel();
-      if (item.action === "print") return printContent();
+      // ALWAYS close any open submenu
+      setActiveSubMenu(null);
 
-      // Open full screen POS-Card
+      // Special actions
+      if (item.action === "export") {
+        exportToExcel();
+        return;
+      }
+
+      if (item.action === "print") {
+        printContent();
+        return;
+      }
+
+      if (item.action === "maintenance") {
+        navigate("/dashboard/users");
+        return;
+      }
+
+      // Open POS in full screen
       if (item.label === "POS") {
-        window.open(`${window.location.origin}/dashboard/pos`, "_blank", "noopener,noreferrer");
-        return;
-      }
-      if (item.label === "POS-Card") {
-        window.open(`${window.location.origin}/dashboard/pos-card`, "_blank", "noopener,noreferrer");
+        window.open(
+          `${window.location.origin}/dashboard/pos`,
+          "_blank",
+          "noopener,noreferrer"
+        );
         return;
       }
 
-      if (item.submenu) {
-        setActiveSubMenu(activeSubMenu === item.label ? null : item.label);
+      if (item.label === "POS-Card") {
+        window.open(
+          `${window.location.origin}/dashboard/pos-card`,
+          "_blank",
+          "noopener,noreferrer"
+        );
         return;
       }
+
+      // Submenus
+      if (item.submenu) {
+        setActiveSubMenu(item.label);
+        return;
+      }
+
+      // Normal navigation
       if (item.path) {
-        setActiveSubMenu(null);
         navigate(item.path);
       }
     },
-    [navigate, exportToExcel, printContent, activeSubMenu]
+    [navigate, exportToExcel, printContent]
   );
+
+
 
 
   /* ===============================

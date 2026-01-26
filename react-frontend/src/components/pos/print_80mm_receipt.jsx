@@ -37,7 +37,7 @@ export const print80mmReceipt = ({
   printWindow.document.write(`
     <html>
       <head>
-        <title>Receipt</title>
+        <title>Receipt-80mm</title>
         <style>
           body {
             font-family: monospace;

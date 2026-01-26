@@ -47,6 +47,41 @@ const SalesItemSold = () => {
 
   const axiosInstance = useMemo(() => axiosWithAuth(), []);
 
+
+  const normalizeSaleForPrint = (sale) => ({
+    SHOP_NAME,
+    invoice: sale.invoice_no,
+    invoiceDate: sale.invoice_date,
+    customerName: sale.customer_name || "-",
+    customerPhone: sale.customer_phone || "-",
+    refNo: sale.ref_no || "-",
+    paymentMethod: sale.payment_status || "-",
+
+    amountPaid: Number(sale.total_paid || 0),
+    grossTotal: Number(sale.gross_total || sale.total_amount || 0),
+    totalDiscount: Number(sale.total_discount || 0),
+    netTotal: Number(sale.total_amount || 0),
+    balance: Number(sale.balance_due || 0),
+
+    items: sale.items.map(i => {
+      const qty = Number(i.quantity || 0);
+      const price = Number(i.selling_price || 0);
+      const discount = Number(i.discount || 0);
+      const gross = qty * price;
+
+      return {
+        product_name: i.product_name || i.product?.name || "Unknown",
+        quantity: qty,
+        selling_price: price,
+        gross_amount: gross,
+        discount,
+        net_amount: gross - discount
+      };
+    })
+  });
+
+
+
   // ================= LOAD PRODUCTS =================
   useEffect(() => {
     axiosInstance
@@ -140,35 +175,24 @@ const SalesItemSold = () => {
     });
 
   const handleReprint = async (invoiceNo) => {
-    try {
-      const res = await axiosInstance.get(`/sales/receipt/${invoiceNo}`);
-      const sale = res.data;
+  try {
+    const res = await axiosInstance.get(`/sales/receipt/${invoiceNo}`);
+    const sale = res.data;
 
-      printReceipt("80mm", {
-        SHOP_NAME,
-        invoice: sale.invoice_no,
-        invoiceDate: sale.invoice_date,
-        customerName: sale.customer_name,
-        customerPhone: sale.customer_phone,
-        refNo: sale.ref_no,
-        paymentMethod: sale.payment_status,
-        amountPaid: sale.total_paid,
-        totalAmount: sale.total_amount,
-        balance: sale.balance_due,
-        items: sale.items.map(i => ({
-          name: i.product_name,
-          quantity: i.quantity,
-          selling_price: i.selling_price,
-          total_amount: i.total_amount
-        })),
-        amountInWords: numberToWords(sale.total_amount),
-        formatCurrency: v => `₦${Number(v).toLocaleString()}`
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to reprint receipt");
-    }
-  };
+    const receiptData = normalizeSaleForPrint(sale);
+
+    printReceipt("80mm", {
+      ...receiptData,
+      amountInWords: numberToWords(receiptData.netTotal),
+
+      formatCurrency: v => `₦${Number(v).toLocaleString()}`
+    });
+  } catch (err) {
+    console.error(err);
+    alert("Failed to reprint receipt");
+  }
+};
+
 
   const openEdit = (item) => {
     setEditItem(item);

@@ -36,7 +36,7 @@ export const printA4Receipt = ({
   printWindow.document.write(`
     <html>
       <head>
-        <title>Receipt</title>
+        <title>Receipt-A4</title>
         <style>
           body {
             font-family: monospace;

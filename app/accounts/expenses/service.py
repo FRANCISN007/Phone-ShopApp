@@ -55,7 +55,6 @@ def serialize_expense(expense: models.Expense):
         "amount": expense.amount,
         "payment_method": expense.payment_method,
 
-        # ✅ BANK INFO
         "bank_id": expense.bank_id,
         "bank_name": expense.bank.name if expense.bank else None,
 
@@ -64,10 +63,15 @@ def serialize_expense(expense: models.Expense):
         "is_active": expense.is_active,
         "created_at": expense.created_at,
         "created_by": expense.created_by,
-        "created_by_username": getattr(
-            expense.created_by_user, "username", None
+
+        # ✅ FIXED
+        "created_by_username": (
+            expense.creator.username
+            if expense.creator
+            else None
         ),
     }
+
 
 
 

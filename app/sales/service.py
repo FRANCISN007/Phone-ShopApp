@@ -272,6 +272,82 @@ def list_item_sold(
         }
     }
 
+def get_all_invoice_numbers(db: Session):
+    return [
+        i[0]
+        for i in db.query(models.Sale.invoice_no)
+        .order_by(models.Sale.invoice_no)
+        .all()
+    ]
+
+
+
+def get_sale_by_invoice_no(db: Session, invoice_no: int):
+    sale = (
+        db.query(models.Sale)
+        .options(
+            joinedload(models.Sale.items).joinedload(models.SaleItem.product),
+            joinedload(models.Sale.payments)
+        )
+        .filter(models.Sale.invoice_no == invoice_no)
+        .first()
+    )
+
+    if not sale:
+        return None
+
+    # =========================
+    # PAYMENT CALCULATION
+    # =========================
+    total_paid = sum(p.amount_paid for p in sale.payments)
+    balance_due = sale.total_amount - total_paid
+
+    # Last payment (for receipt display)
+    last_payment = sale.payments[-1] if sale.payments else None
+
+    return {
+        "id": sale.id,
+        "invoice_no": sale.invoice_no,
+        "invoice_date": sale.invoice_date,
+        "customer_name": sale.customer_name,
+        "customer_phone": sale.customer_phone,
+        "ref_no": sale.ref_no,
+
+        # 🔹 totals
+        "total_amount": sale.total_amount,
+        "amount_paid": total_paid,
+        "balance_due": balance_due,
+
+        # 🔹 payment info (USED BY FRONTEND)
+        "payment_method": last_payment.payment_method if last_payment else "cash",
+        "bank_id": last_payment.bank_id if last_payment else None,
+
+        "payment_status": (
+            "paid" if balance_due <= 0 else
+            "partial" if total_paid > 0 else
+            "unpaid"
+        ),
+
+        "sold_at": sale.sold_at,
+
+        # 🔹 items
+        "items": [
+            {
+                "product_id": i.product_id,
+                "product_name": i.product.name,
+                "quantity": i.quantity,
+                "selling_price": i.selling_price,
+                "discount": i.discount or 0,
+                "gross_amount": i.quantity * i.selling_price,
+                "net_amount": (i.quantity * i.selling_price) - (i.discount or 0),
+            }
+            for i in sale.items
+        ]
+    }
+
+
+
+
 
 def list_sales(
     db: Session,

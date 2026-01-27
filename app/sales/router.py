@@ -72,6 +72,24 @@ def list_sales(
     )
 
 
+@router.get("/invoices", response_model=list[int])
+def list_invoice_numbers(
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["user", "manager", "admin"]))
+):
+    return service.get_all_invoice_numbers(db)
+
+
+
+@router.get("/invoice/{invoice_no}", response_model=schemas.SaleReprintOut)
+def get_sale_by_invoice(
+    invoice_no: int,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["user", "manager", "admin"]))
+):
+    return service.get_sale_by_invoice_no(db, invoice_no)
+
+
 @router.get(
     "/report/staff",
     response_model=List[schemas.SaleOutStaff]
@@ -169,6 +187,8 @@ def list_item_sold(
         skip=skip,
         limit=limit
     )
+
+
 
 
 

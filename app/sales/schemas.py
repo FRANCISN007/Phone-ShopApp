@@ -105,6 +105,47 @@ class SaleOut2(BaseModel):
 
 
 
+class SaleReprintItem(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    selling_price: float
+    discount: float
+    gross_amount: float
+    net_amount: float
+
+
+# schemas/sales.py (or similar)
+
+class SaleReprintItemOut(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    selling_price: float
+    discount: float
+    gross_amount: float
+    net_amount: float
+
+
+
+class SaleReprintOut(BaseModel):
+    invoice_no: int
+    invoice_date: date
+
+    customer_name: str | None
+    customer_phone: str | None
+    ref_no: str | None
+
+    total_amount: float
+    amount_paid: float
+    balance_due: float
+
+    payment_method: str
+    bank_id: int | None
+    payment_status: str
+
+    items: list[SaleReprintItemOut]
+
 
 
 class SaleOutStaff(BaseModel):

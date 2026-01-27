@@ -459,43 +459,55 @@ const handleLoadInvoice = async (invoiceNo) => {
       {/* TOP */}
       <div className="poscard-top">
         <div className="poscard-cart">
+
+          {/* HEADER */}
           <div className="cart-header">
-            <div className="sales-header-left">
+            <div
+              className={`sales-header-left ${
+                reprintMode ? "reprint-header" : ""
+              }`}
+            >
               <button
-                title="Reprint receipts"
+                title="Reprint"
                 onClick={() => {
                   if (!invoiceList.length) {
                     alert("No invoices available");
                     return;
                   }
-                  const lastInvoiceNo = invoiceList[invoiceList.length - 1];
-                  handleLoadInvoice(lastInvoiceNo); // pass invoiceNo directly
-                }}
-                style={{
-                  marginRight: "10px",
-                  padding: "4px 8px",
-                  cursor: "pointer",
-                  fontWeight: "bold"
+                  const lastInvoiceNo =
+                    invoiceList[invoiceList.length - 1];
+                  handleLoadInvoice(lastInvoiceNo);
                 }}
               >
                 ⟷
               </button>
 
-
-              <h2>{reprintMode ? "Reprint Receipt" : "Sales"}</h2>
+              <h2>{reprintMode ? "Reprint" : "Sales"}</h2>
 
               {reprintMode && (
                 <div className="invoice-nav">
-                  <button onClick={loadPrevInvoice}>◀</button>
+                  <button
+                    onClick={loadPrevInvoice}
+                    disabled={currentInvoiceIndex === 0}
+                  >
+                    ◀
+                  </button>
 
-                  <span style={{ fontWeight: "bold" }}>
+                  <span className="reprint-invoice">
                     Invoice #{currentInvoice}
                   </span>
 
-                  <button onClick={loadNextInvoice}>▶</button>
+                  <button
+                    onClick={loadNextInvoice}
+                    disabled={
+                      currentInvoiceIndex === invoiceList.length - 1
+                    }
+                  >
+                    ▶
+                  </button>
 
                   <button
-                    style={{ marginLeft: "10px" }}
+                    className="exit-reprint"
                     onClick={exitReprintMode}
                   >
                     ✖ Exit
@@ -503,160 +515,179 @@ const handleLoadInvoice = async (invoiceNo) => {
                 </div>
               )}
 
+              {/* PRINT FORMAT — ALWAYS ENABLED */}
+              <div className="print-format-inline">
+                <label>Print</label>
+                <select
+                  value={receiptFormat}
+                  onChange={(e) => setReceiptFormat(e.target.value)}
+                >
+                  <option value="80mm">80mm</option>
+                  <option value="A4">A4</option>
+                </select>
+              </div>
 
-              <input type="text" placeholder="Customer" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-              <input type="text" placeholder="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-              <input type="text" placeholder="Ref No" value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+              <input
+                type="text"
+                placeholder="Customer"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                disabled={reprintMode}
+              />
+
+              <input
+                type="text"
+                placeholder="Phone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                disabled={reprintMode}
+              />
+
+              <input
+                type="text"
+                placeholder="Ref No"
+                value={refNo}
+                onChange={(e) => setRefNo(e.target.value)}
+                disabled={reprintMode}
+              />
             </div>
-            <select className="receipt-format-select" value={receiptFormat} onChange={(e) => setReceiptFormat(e.target.value)}>
-              <option value="80mm">80mm Print</option>
-              <option value="A4">A4 Print</option>
-            </select>
-            <button onClick={() => navigate("/dashboard")}>Exit</button>
+
+            <button onClick={() => navigate("/dashboard")}>
+              Exit
+            </button>
           </div>
 
+
+
+          {/* TABLE HEADER */}
           <div className="cart-grid header extended">
-            <div>Item</div><div>Qty</div><div>Price</div><div>Gross</div><div>Discount</div><div>Net</div><div>X</div>
+            <div>Item</div>
+            <div>Qty</div>
+            <div>Price</div>
+            <div>Gross</div>
+            <div>Discount</div>
+            <div>Net</div>
+            <div>X</div>
           </div>
 
+          {/* CART ITEMS */}
           <div className="cart-items">
-              {cartItems.length > 0 ? (
-                cartItems.map((item, index) => {
-                  const gross = (item.qty || 0) * (item.selling_price || 0);
-                  const net = gross - (item.discount || 0);
-                  return (
-                    <div key={item.id} className={`cart-grid row ${index % 2 === 0 ? "even" : "odd"}`}>
-                      <div className="cell item-name">{item.name}</div>
+            {cartItems.length > 0 ? (
+              cartItems.map((item, index) => {
+                const gross = (item.qty || 0) * (item.selling_price || 0);
+                const net = gross - (item.discount || 0);
 
-                      <div className="cell">
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.qty}
-                          onChange={(e) => updateQty(item.id, Number(e.target.value))}
-                          disabled={reprintMode}
-                        />
-                      </div>
+                return (
+                  <div
+                    key={item.id}
+                    className={`cart-grid row ${index % 2 === 0 ? "even" : "odd"}`}
+                  >
+                    <div className="cell item-name">{item.name}</div>
 
-                      <div className="cell">
-                        <input
-                          type="text"
-                          value={(item.selling_price || 0).toLocaleString()}
-                          onChange={(e) =>
-                            updatePrice(item.id, Number(e.target.value.replace(/,/g, "")))
-                          }
-                          disabled={reprintMode}
-                        />
-                      </div>
-
-                      <div className="cell">{gross.toLocaleString()}</div>
-
-                      <div className="cell">
-                        <input
-                          type="text"
-                          value={(item.discount || 0).toLocaleString()}
-                          onChange={(e) =>
-                            updateDiscount(item.id, Number(e.target.value.replace(/,/g, "")))
-                          }
-                          disabled={reprintMode}
-                        />
-                      </div>
-
-                      <div className="cell net-cell">{net.toLocaleString()}</div>
-
-                      <div className="cell action-cell">
-                        {!reprintMode && <button onClick={() => removeItem(item.id)}>X</button>}
-                      </div>
+                    <div className="cell">
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.qty}
+                        disabled={reprintMode}
+                        onChange={(e) =>
+                          updateQty(item.id, Number(e.target.value))
+                        }
+                      />
                     </div>
-                  );
-                })
-              ) : (
-                Array.from({ length: EMPTY_ROWS }).map((_, i) => (
-                  <div key={i} className={`cart-grid row ${i % 2 === 0 ? "even" : "odd"}`}>
-                    <div className="cell item-name"></div>
-                    <div className="cell"></div>
-                    <div className="cell"></div>
-                    <div className="cell"></div>
-                    <div className="cell"></div>
-                    <div className="cell net-cell"></div>
-                    <div className="cell action-cell"></div>
+
+                    <div className="cell">
+                      <input
+                        type="text"
+                        value={(item.selling_price || 0).toLocaleString()}
+                        disabled={reprintMode}
+                        onChange={(e) =>
+                          updatePrice(
+                            item.id,
+                            Number(e.target.value.replace(/,/g, ""))
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cell">{gross.toLocaleString()}</div>
+
+                    <div className="cell">
+                      <input
+                        type="text"
+                        value={(item.discount || 0).toLocaleString()}
+                        disabled={reprintMode}
+                        onChange={(e) =>
+                          updateDiscount(
+                            item.id,
+                            Number(e.target.value.replace(/,/g, ""))
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="cell net-cell">
+                      {net.toLocaleString()}
+                    </div>
+
+                    <div className="cell action-cell">
+                      {!reprintMode && (
+                        <button onClick={() => removeItem(item.id)}>X</button>
+                      )}
+                    </div>
                   </div>
-                ))
-              )}
-            </div>
-
-
-          <div className="cart-grid total-row extended">
-            <div>Total</div><div></div><div></div><div>{(grossTotal || 0).toLocaleString()}</div>
-            <div>{(totalDiscount || 0).toLocaleString()}</div>
-            <div>{(netTotal || 0).toLocaleString()}</div>
+                );
+              })
+            ) : (
+              Array.from({ length: EMPTY_ROWS }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`cart-grid row ${i % 2 === 0 ? "even" : "odd"}`}
+                >
+                  <div className="cell item-name"></div>
+                  <div className="cell"></div>
+                  <div className="cell"></div>
+                  <div className="cell"></div>
+                  <div className="cell"></div>
+                  <div className="cell net-cell"></div>
+                  <div className="cell action-cell"></div>
+                </div>
+              ))
+            )}
           </div>
+
+          {/* TOTALS */}
+          <div className="cart-grid total-row extended">
+            <div>Total</div>
+            <div></div>
+            <div></div>
+            <div>{grossTotal.toLocaleString()}</div>
+            <div>{totalDiscount.toLocaleString()}</div>
+            <div>{netTotal.toLocaleString()}</div>
+          </div>
+
         </div>
 
-        {/* PAYMENT & CALCULATOR */}
+        {/* PAYMENT + CALCULATOR */}
         <div className="poscard-right-wrapper" style={{ display: "flex", gap: "10px" }}>
           <div className="poscard-right-placeholder" style={{ width: "250px" }}>
             <div className="payment-card1" style={{ marginTop: "10px" }}>
+
               <div className="payment-title1">Payment</div>
 
-              {/* AMOUNT */}
               <div className="payment-row amount compact">
                 <label>Amount</label>
                 <input
                   type="text"
                   value={(amountPaid || 0).toLocaleString()}
+                  disabled={reprintMode || cartItems.length === 0}
                   onChange={(e) => {
                     setAmountEdited(true);
                     setAmountPaid(Number(e.target.value.replace(/,/g, "")));
                   }}
-                  disabled={cartItems.length === 0 || reprintMode}
                 />
               </div>
 
-              {/* METHOD */}
-              <div className="payment-row compact1">
-                <label>Method</label>
-                <select
-                  value={paymentMethod}
-                  disabled={cartItems.length === 0 || reprintMode}
-                  onChange={(e) => {
-                    const m = e.target.value;
-                    setPaymentMethod(m);
-
-                    if (m === "cash") {
-                      setShowBankDropdown(false);
-                      setBankId("");
-                    } else {
-                      setShowBankDropdown(true);
-                      if (banks.length > 0) setBankId(banks[0].id);
-                    }
-                  }}
-                >
-                  <option value="cash">Cash</option>
-                  <option value="transfer">Transfer</option>
-                  <option value="pos">POS</option>
-                </select>
-              </div>
-
-              {/* BANK */}
-              {showBankDropdown && (
-                <div className="payment-row compact1">
-                  <label>Bank</label>
-                  <select
-                    value={bankId}
-                    disabled={cartItems.length === 0 || reprintMode}
-                    onChange={(e) => setBankId(e.target.value)}
-                  >
-                    {banks.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* BALANCE */}
               <div className="payment-row compact1">
                 <label>Balance</label>
                 <strong>
@@ -664,21 +695,20 @@ const handleLoadInvoice = async (invoiceNo) => {
                     ? balanceDue.toLocaleString()
                     : (netTotal - amountPaid).toLocaleString()}
                 </strong>
-
               </div>
 
-              {/* ACTIONS */}
               <div className="payment-actions">
                 <button
                   className={`preview-btn ${reprintMode ? "reprint-mode" : ""}`}
-                  disabled={cartItems.length === 0 && !reprintMode} // ✅ allow reprint even if cart is empty
+                  disabled={cartItems.length === 0 && !reprintMode}
                   onClick={() =>
-                    handlePrintReceipt(reprintMode ? currentInvoice : "PREVIEW")
+                    handlePrintReceipt(
+                      reprintMode ? currentInvoice : "PREVIEW"
+                    )
                   }
                 >
                   {reprintMode ? "Reprint" : "Preview"}
                 </button>
-
 
                 <button
                   className="complete-btn1"
@@ -688,36 +718,49 @@ const handleLoadInvoice = async (invoiceNo) => {
                   Complete Sale
                 </button>
               </div>
+
             </div>
           </div>
 
-          {/* CALCULATOR */}
           <div className="poscard-calculator" style={{ width: "360px" }}>
             <Calculator />
           </div>
         </div>
-
-
       </div>
 
       {/* BOTTOM */}
       <div className="poscard-items">
         <div className="category-bar">
-          {categories.map(cat => (
-            <div key={cat.id} className={`category-tab ${activeCategory?.id === cat.id ? "active" : ""}`} onClick={() => !reprintMode && setActiveCategory(cat)}>{cat.name}</div>
-          ))}
-        </div>
-        <div className="item-grid1">
-          {activeCategory && filteredProducts.map(item => (
-            <div key={item.id} className="item-card1" onClick={() => addItemToCart(item)}>
-              <div>{item.name}</div>
-              <div>{(item.selling_price || 0).toLocaleString()}</div>
+          {categories.map((cat) => (
+            <div
+              key={cat.id}
+              className={`category-tab ${
+                activeCategory?.id === cat.id ? "active" : ""
+              }`}
+              onClick={() => !reprintMode && setActiveCategory(cat)}
+            >
+              {cat.name}
             </div>
           ))}
+        </div>
+
+        <div className="item-grid1">
+          {activeCategory &&
+            filteredProducts.map((item) => (
+              <div
+                key={item.id}
+                className="item-card1"
+                onClick={() => addItemToCart(item)}
+              >
+                <div>{item.name}</div>
+                <div>{item.selling_price.toLocaleString()}</div>
+              </div>
+            ))}
         </div>
       </div>
     </div>
   );
+
 };
 
 export default POSCardPage;

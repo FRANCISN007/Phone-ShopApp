@@ -638,3 +638,79 @@
 }
 
 
+/* ===== REPRINT HEADER ===== */
+.reprint-header {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #1e1e1e;
+  color: #fff;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.reprint-badge {
+  background: #c0392b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.reprint-invoice {
+  font-weight: bold;
+  font-size: 0.9rem;
+  min-width: 110px;
+  text-align: center;
+}
+
+.reprint-header button {
+  background: #34495e;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reprint-header button:hover {
+  background: #2c3e50;
+}
+
+.exit-reprint {
+  background: #e74c3c !important;
+}
+
+
+.invoice-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+
+.print-format-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+}
+
+.print-format-inline label {
+  font-size: 0.75rem;
+  font-weight: bold;
+  opacity: 0.8;
+}
+
+.print-format-inline select {
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+
+.reprint-header .print-format-inline {
+  background: #2c2c2c;
+  padding: 2px 6px;
+  border-radius: 6px;
+}

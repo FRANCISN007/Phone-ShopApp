@@ -25,12 +25,10 @@ const CreatePurchase = ({ onClose }) => {
   const [rows, setRows] = useState([{ ...emptyRow }]);
   const [vendorId, setVendorId] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceNo, setInvoiceNo] = useState(""); // ✅ renamed
   const [message, setMessage] = useState("");
+  const [visible, setVisible] = useState(true);
 
-  const [visible, setVisible] = useState(true); // visibility fallback
-
-  // ===== Hooks (must always run at top) =====
   useEffect(() => {
     fetchVendors();
     setPurchaseDate(new Date().toISOString().split("T")[0]);
@@ -56,9 +54,7 @@ const CreatePurchase = ({ onClose }) => {
       const updated = [...rows];
       updated[index].products = Array.isArray(res.data) ? res.data : [];
       setRows(updated);
-    } catch {
-      /* silent */
-    }
+    } catch {}
   };
 
   const handleRowChange = (index, field, value) => {
@@ -85,17 +81,20 @@ const CreatePurchase = ({ onClose }) => {
     setRows(updated);
   };
 
-  const addRow = () => {
-    setRows([...rows, { ...emptyRow }]);
-  };
+  const addRow = () => setRows([...rows, { ...emptyRow }]);
+  const removeRow = (index) => setRows(rows.filter((_, i) => i !== index));
 
-  const removeRow = (index) => {
-    setRows(rows.filter((_, i) => i !== index));
-  };
-
+  /* ===========================
+     SUBMIT
+  ============================ */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+
+    if (!invoiceNo) {
+      setMessage("❌ Invoice number is required");
+      return;
+    }
 
     try {
       const axios = axiosWithAuth();
@@ -104,19 +103,19 @@ const CreatePurchase = ({ onClose }) => {
         if (!row.productId || !row.quantity || !row.unitPrice) continue;
 
         await axios.post("/purchase/", {
+          invoice_no: invoiceNo,                 // ✅ FIX
           product_id: Number(row.productId),
           quantity: Number(row.quantity),
           cost_price: Number(row.unitPrice),
-          vendor_id: Number(vendorId),
+          vendor_id: vendorId ? Number(vendorId) : null,
           purchase_date: purchaseDate,
-          invoice_number: invoiceNumber,
         });
       }
 
       setMessage("✅ Purchase saved successfully");
       setRows([{ ...emptyRow }]);
       setVendorId("");
-      setInvoiceNumber("");
+      setInvoiceNo("");
       setPurchaseDate(new Date().toISOString().split("T")[0]);
     } catch (err) {
       setMessage(err.response?.data?.detail || "❌ Failed to save purchase");
@@ -128,7 +127,6 @@ const CreatePurchase = ({ onClose }) => {
     0
   );
 
-  // ===== Conditional render for visibility =====
   if (!visible) return null;
 
   const handleClose = () => {
@@ -138,7 +136,6 @@ const CreatePurchase = ({ onClose }) => {
 
   return (
     <div className="create-purchase-container">
-      {/* Close Button */}
       <button className="close-btn" onClick={handleClose}>✖</button>
 
       <h2>Add New Purchase</h2>
@@ -151,7 +148,6 @@ const CreatePurchase = ({ onClose }) => {
             <select
               value={vendorId}
               onChange={(e) => setVendorId(e.target.value)}
-              required
             >
               <option value="">Select Vendor</option>
               {vendors.map((v) => (
@@ -176,14 +172,14 @@ const CreatePurchase = ({ onClose }) => {
             <label>Invoice Number</label>
             <input
               type="text"
-              value={invoiceNumber}
-              onChange={(e) => setInvoiceNumber(e.target.value)}
+              value={invoiceNo}
+              onChange={(e) => setInvoiceNo(e.target.value)}
               required
             />
           </div>
         </div>
 
-        {/* ===== TABLE ===== */}
+        {/* ===== ITEMS TABLE ===== */}
         <div className="purchase-items-table">
           <div className="table-header">
             <span>Product</span>
@@ -236,15 +232,10 @@ const CreatePurchase = ({ onClose }) => {
                 onChange={(e) =>
                   handleRowChange(index, "unitPrice", e.target.value)
                 }
-                inputMode="numeric"
                 required
               />
 
-              <input
-                type="text"
-                value={formatNumber(row.total)}
-                readOnly
-              />
+              <input type="text" value={formatNumber(row.total)} readOnly />
 
               <button
                 type="button"

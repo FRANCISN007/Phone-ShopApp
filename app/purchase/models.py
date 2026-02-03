@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -8,6 +8,13 @@ class Purchase(Base):
     __tablename__ = "purchases"
 
     id = Column(Integer, primary_key=True, index=True)
+
+    invoice_no = Column(
+        String(50),
+        unique=True,
+        index=True,
+        nullable=False
+    )
 
     product_id = Column(
         Integer,

@@ -4,6 +4,7 @@ from typing import Optional
 
 
 class PurchaseBase(BaseModel):
+    invoice_no: str 
     product_id: int
     vendor_id: Optional[int] = None
     quantity: int
@@ -15,6 +16,7 @@ class PurchaseCreate(PurchaseBase):
 
 
 class PurchaseUpdate(BaseModel):
+    invoice_no: str
     product_id: Optional[int] = None   # ✅ THIS is what we update with
     quantity: Optional[int] = None
     cost_price: Optional[float] = None
@@ -23,6 +25,7 @@ class PurchaseUpdate(BaseModel):
 
 class PurchaseOut(BaseModel):
     id: int
+    invoice_no: str  
     product_id: int
     product_name: Optional[str] = None      # ✅ New field
     vendor_id: Optional[int]

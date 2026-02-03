@@ -23,6 +23,8 @@ const SalesItemSold = () => {
   const [invoiceNo, setInvoiceNo] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+
 
   // ================= DATA STATE =================
   const [items, setItems] = useState([]);
@@ -292,32 +294,40 @@ const SalesItemSold = () => {
           <input
             type="text"
             placeholder="Search product..."
-            value={productSearch}
+            value={selectedProduct ? selectedProduct.name : productSearch}
             onChange={e => {
               setProductSearch(e.target.value);
               setSelectedProduct(null);
+              setShowProductDropdown(true);
               setHighlightedIndex(-1);
             }}
             onKeyDown={e => {
               if (!filteredProducts.length) return;
+
               if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setHighlightedIndex(prev => (prev < filteredProducts.length - 1 ? prev + 1 : 0));
+                setHighlightedIndex(i => (i + 1) % filteredProducts.length);
               }
+
               if (e.key === "ArrowUp") {
                 e.preventDefault();
-                setHighlightedIndex(prev => (prev > 0 ? prev - 1 : filteredProducts.length - 1));
+                setHighlightedIndex(i =>
+                  i <= 0 ? filteredProducts.length - 1 : i - 1
+                );
               }
+
               if (e.key === "Enter" && highlightedIndex >= 0) {
                 e.preventDefault();
-                const selected = filteredProducts[highlightedIndex];
-                setSelectedProduct(selected);
-                
+                const p = filteredProducts[highlightedIndex];
+                setSelectedProduct(p);
+                setProductSearch("");
+                setShowProductDropdown(false);
                 setHighlightedIndex(-1);
               }
             }}
           />
-          {productSearch !== "" && filteredProducts.length > 0 && (
+
+          {showProductDropdown && filteredProducts.length > 0 && (
             <div className="product-search-dropdown">
               {filteredProducts.map((p, i) => (
                 <div
@@ -326,8 +336,8 @@ const SalesItemSold = () => {
                   onMouseEnter={() => setHighlightedIndex(i)}
                   onClick={() => {
                     setSelectedProduct(p);
-                
-                    setProductSearch(p.name);
+                    setProductSearch("");
+                    setShowProductDropdown(false);
                     setHighlightedIndex(-1);
                   }}
                 >
@@ -337,6 +347,7 @@ const SalesItemSold = () => {
             </div>
           )}
         </div>
+
 
         <button onClick={fetchItemsSold}>Search</button>
       </div>
@@ -424,8 +435,17 @@ const SalesItemSold = () => {
               <input
                 type="text"
                 placeholder="Search product..."
-                value={productSearch !== "" ? productSearch : products.find(p => p.id === editData.product_id)?.name || ""}
-                onChange={e => { setProductSearch(e.target.value); setHighlightedIndex(-1); }}
+                value={selectedProduct ? selectedProduct.name : productSearch}
+
+
+                onChange={e => {
+                  setProductSearch(e.target.value);
+                  setSelectedProduct(null);
+                  setShowProductDropdown(true);
+                  setHighlightedIndex(-1);
+                }}
+
+
                 onKeyDown={e => {
                   if (!filteredProducts.length) return;
                   if (e.key === "ArrowDown") { e.preventDefault(); setHighlightedIndex(prev => prev < filteredProducts.length-1 ? prev+1 : 0); }
@@ -439,14 +459,21 @@ const SalesItemSold = () => {
                   }
                 }}
               />
-              {productSearch!=="" && filteredProducts.length>0 && (
+              {showProductDropdown && filteredProducts.length > 0 && (
+
                 <div className="product-search-dropdown">
                   {filteredProducts.map((p,i)=>(
                     <div
                       key={p.id}
                       className={`product-search-item ${i===highlightedIndex?"active":""}`}
                       onMouseEnter={()=>setHighlightedIndex(i)}
-                      onClick={()=>{ setEditData({...editData, product_id: p.id}); setProductSearch(""); setHighlightedIndex(-1); }}
+                      onClick={() => {
+                        setSelectedProduct(p);
+                        setProductSearch("");          // clear search
+                        setShowProductDropdown(false); // 🔥 CLOSE DROPDOWN
+                        setHighlightedIndex(-1);
+                      }}
+
                     >
                       {p.name}
                     </div>

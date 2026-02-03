@@ -79,7 +79,7 @@ const DashboardPage = () => {
     { label: "Create Revenue Item", action: "revenueitem", icon: "➕" },
     { label: "Profit and Loss", action: "profitloss", icon: "🧾" },
     { label: "Create Bank", action: "bankmanagement", icon: "🏦" },
-    { label: "", action: "", icon: "" },
+    { label: "Backup", action: "backup", icon: "💾" },
 
   ];
 
@@ -297,6 +297,11 @@ const handleAccountsAction = action => {
       case "bankmanagement":
         navigate("/dashboard/accounts/bankmanagement");
         break;
+
+      case "backup":
+        navigate("/dashboard/accounts/backup");
+        break;
+
       default:
         break;
     }

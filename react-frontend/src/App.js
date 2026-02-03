@@ -53,6 +53,8 @@ import ListExpenses from "./components/accounts/ListExpenses";
 import RevenueItem from "./components/accounts/RevenueItem";
 import ProfitLoss from "./components/accounts/ProfitLoss";
 import CreateBank from "./components/accounts/CreateBank";
+import Backup from "./components/accounts/Backup";
+
 
 // ================= USERS =================
 import UserManagement from "./modules/users/UserManagement";
@@ -124,6 +126,7 @@ const App = () => {
                 <Route path="revenueitem" element={<RevenueItem />} />
                 <Route path="profitloss" element={<ProfitLoss />} />
                 <Route path="bankmanagement" element={<CreateBank />} />
+                <Route path="backup" element={<Backup />} />
               </Route>
 
               {/* USERS */}

@@ -14,6 +14,7 @@ def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
 
     # 1️⃣ Create purchase record
     db_purchase = purchase_models.Purchase(
+        invoice_no=purchase.invoice_no, 
         product_id=purchase.product_id,
         vendor_id=purchase.vendor_id,
         quantity=purchase.quantity,
@@ -49,16 +50,27 @@ def create_purchase(db: Session, purchase: purchase_schemas.PurchaseCreate):
     return db_purchase
 
 
+from datetime import datetime, timedelta
+
 def list_purchases(
     db: Session,
     skip: int = 0,
     limit: int = 100,
+    invoice_no: str | None = None,   # ✅ NEW
     product_id: int | None = None,
     vendor_id: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
 ):
     query = db.query(purchase_models.Purchase)
+
+    # ===============================
+    # INVOICE NUMBER FILTER
+    # ===============================
+    if invoice_no:
+        query = query.filter(
+            purchase_models.Purchase.invoice_no.ilike(f"%{invoice_no}%")
+        )
 
     # ===============================
     # PRODUCT FILTER
@@ -86,8 +98,10 @@ def list_purchases(
         )
 
     if end_date:
-        # move to next day 00:00 to include full end date
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+        end_dt = (
+            datetime.strptime(end_date, "%Y-%m-%d")
+            + timedelta(days=1)
+        )
         query = query.filter(
             purchase_models.Purchase.purchase_date < end_dt
         )
@@ -99,6 +113,9 @@ def list_purchases(
         .limit(limit)
         .all()
     )
+
+
+
 
 def get_purchase(db: Session, purchase_id: int):
     return db.query(purchase_models.Purchase).filter(
@@ -121,6 +138,10 @@ def update_purchase(
     # ===============================
     # UPDATE PURCHASE FIELDS
     # ===============================
+
+    if update_data.invoice_no is not None:
+        purchase.invoice_no = update_data.invoice_no
+
     if update_data.product_id is not None:
         purchase.product_id = update_data.product_id
 

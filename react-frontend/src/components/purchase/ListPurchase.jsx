@@ -12,8 +12,8 @@ const ListPurchase = () => {
      ========================= */
   const [vendorId, setVendorId] = useState("");
   const [productId, setProductId] = useState("");
-  
-  // Default startDate = 1st of current month, endDate = today
+  const [invoiceNo, setInvoiceNo] = useState(""); // ✅ NEW
+
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
   const formatDate = (d) => d.toISOString().split("T")[0];
@@ -22,7 +22,7 @@ const ListPurchase = () => {
   const [endDate, setEndDate] = useState(formatDate(today));
 
   /* =========================
-     PRODUCT SEARCH (FILTER + EDIT)
+     PRODUCT SEARCH
      ========================= */
   const [products, setProducts] = useState([]);
   const [productQuery, setProductQuery] = useState("");
@@ -34,6 +34,7 @@ const ListPurchase = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [editData, setEditData] = useState({
     id: null,
+    invoice_no: "",          // ✅ NEW
     product_id: "",
     product_name: "",
     quantity: "",
@@ -50,11 +51,12 @@ const ListPurchase = () => {
   );
 
   /* =========================
-     FETCH PURCHASES (FILTERED)
+     FETCH PURCHASES
      ========================= */
   const fetchPurchases = useCallback(async () => {
     try {
       const params = {};
+      if (invoiceNo) params.invoice_no = invoiceNo; // ✅ NEW
       if (productId) params.product_id = productId;
       if (vendorId) params.vendor_id = vendorId;
       if (startDate) params.start_date = startDate;
@@ -65,7 +67,7 @@ const ListPurchase = () => {
     } catch {
       console.error("Failed to load purchases");
     }
-  }, [productId, vendorId, startDate, endDate]);
+  }, [invoiceNo, productId, vendorId, startDate, endDate]);
 
   const fetchVendors = async () => {
     try {
@@ -112,6 +114,7 @@ const ListPurchase = () => {
   const applyFilters = () => fetchPurchases();
 
   const resetFilters = () => {
+    setInvoiceNo("");
     setVendorId("");
     setProductId("");
     setProductQuery("");
@@ -140,6 +143,7 @@ const ListPurchase = () => {
   const handleEditOpen = (p) => {
     setEditData({
       id: p.id,
+      invoice_no: p.invoice_no,   // ✅ NEW
       product_id: p.product_id,
       product_name: p.product_name,
       quantity: Number(p.quantity),
@@ -168,10 +172,11 @@ const ListPurchase = () => {
 
     try {
       await axiosWithAuth().put(`/purchase/${editData.id}`, {
+        invoice_no: editData.invoice_no,   // ✅ NEW
         product_id: Number(editData.product_id),
         quantity: Number(editData.quantity),
         cost_price: Number(editData.cost_price),
-        vendor_id: Number(editData.vendor_id),
+        vendor_id: editData.vendor_id ? Number(editData.vendor_id) : null,
       });
       setShowEdit(false);
       fetchPurchases();
@@ -189,6 +194,13 @@ const ListPurchase = () => {
 
       {/* ================= FILTER BAR ================= */}
       <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="Invoice No..."
+          value={invoiceNo}
+          onChange={(e) => setInvoiceNo(e.target.value)}
+        />
+
         <input
           type="text"
           placeholder="Search product..."
@@ -233,6 +245,7 @@ const ListPurchase = () => {
         <thead>
           <tr>
             <th>ID</th>
+            <th>Invoice</th> {/* ✅ NEW */}
             <th>Date</th>
             <th>Product</th>
             <th>Vendor</th>
@@ -247,6 +260,7 @@ const ListPurchase = () => {
           {purchases.map((p) => (
             <tr key={p.id}>
               <td>{p.id}</td>
+              <td>{p.invoice_no}</td>
               <td>{p.purchase_date}</td>
               <td>{p.product_name}</td>
               <td>{p.vendor_name}</td>
@@ -262,7 +276,7 @@ const ListPurchase = () => {
           ))}
 
           <tr className="purchase-grand-total-row">
-            <td colSpan="5">GRAND TOTAL</td>
+            <td colSpan="6">GRAND TOTAL</td>
             <td colSpan="4">₦{grandTotal.toLocaleString("en-NG")}</td>
           </tr>
         </tbody>
@@ -276,39 +290,26 @@ const ListPurchase = () => {
 
             <form onSubmit={handleEditSubmit}>
               <label>
+                Invoice Number
+                <input
+                  type="text"
+                  name="invoice_no"
+                  value={editData.invoice_no}
+                  onChange={handleEditChange}
+                  required
+                />
+              </label>
+
+              <label>
                 Product
                 <input
                   type="text"
-                  placeholder="Search product..."
                   value={productQuery}
                   onChange={(e) => {
                     setProductQuery(e.target.value);
                     searchProducts(e.target.value);
                   }}
                 />
-
-                {loadingProducts && <div className="dropdown-loading">Searching...</div>}
-
-                {products.length > 0 && (
-                  <ul className="dropdown-list">
-                    {products.map((p) => (
-                      <li
-                        key={p.id}
-                        onClick={() => {
-                          setEditData({
-                            ...editData,
-                            product_id: p.id,
-                            product_name: p.name,
-                          });
-                          setProductQuery(p.name);
-                          setProducts([]);
-                        }}
-                      >
-                        {p.name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </label>
 
               <label>
@@ -339,7 +340,6 @@ const ListPurchase = () => {
                   name="vendor_id"
                   value={editData.vendor_id}
                   onChange={handleEditChange}
-                  required
                 >
                   <option value="">-- Select Vendor --</option>
                   {vendors.map((v) => (
@@ -351,9 +351,7 @@ const ListPurchase = () => {
               </label>
 
               <div className="modal-actions">
-                <button type="submit" className="save-btn">
-                  Update
-                </button>
+                <button type="submit" className="save-btn">Update</button>
                 <button
                   type="button"
                   className="cancel-btn"

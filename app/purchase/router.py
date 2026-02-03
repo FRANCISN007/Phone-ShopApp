@@ -34,6 +34,7 @@ def create_purchase(purchase: schemas.PurchaseCreate, db: Session = Depends(get_
 def list_purchases_route(
     skip: int = 0,
     limit: int = 100,
+    invoice_no: Optional[str] = Query(None, description="Invoice number search"),
     product_id: Optional[int] = Query(None),
     vendor_id: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
@@ -44,6 +45,7 @@ def list_purchases_route(
         db=db,
         skip=skip,
         limit=limit,
+        invoice_no=invoice_no,      # ✅ NEW
         product_id=product_id,
         vendor_id=vendor_id,
         start_date=start_date,
@@ -53,7 +55,9 @@ def list_purchases_route(
     result = []
 
     for p in purchases:
-        stock_entry = inventory_service.get_inventory_orm_by_product(db, p.product_id)
+        stock_entry = inventory_service.get_inventory_orm_by_product(
+            db, p.product_id
+        )
         current_stock = stock_entry.current_stock if stock_entry else 0
 
         product = (

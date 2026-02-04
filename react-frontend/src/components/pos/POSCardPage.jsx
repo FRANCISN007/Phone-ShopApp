@@ -406,7 +406,7 @@ const handleLoadInvoice = async (invoiceNo) => {
   const handleSubmit = async () => {
     if (!cartItems.length) return alert("Cart is empty");
     if (!paymentMethod) return alert("Select payment method");
-    if (amountPaid <= 0) return alert("Invalid amount");
+    if (amountPaid < 0) return alert("amount cannot be negative");
     if (paymentMethod !== "cash" && !bankId) return alert("Please select a bank");
 
     const token = localStorage.getItem("token");

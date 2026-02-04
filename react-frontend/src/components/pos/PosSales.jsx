@@ -320,7 +320,7 @@ const handleSubmit = async () => {
       customer_phone: customerPhone.trim() || null,
       ref_no: refNo.trim() || null,
       items: saleItems.map(item => ({
-        product_id: item.productId,
+        product_id: Number(item.productId),
         quantity: item.quantity,
         selling_price: item.sellingPrice,
         discount: item.discount || 0,

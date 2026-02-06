@@ -13,13 +13,19 @@ class StockAdjustmentCreate(StockAdjustmentBase):
     pass
 
 
-class StockAdjustmentOut(StockAdjustmentBase):
+class StockAdjustmentOut(BaseModel):
     id: int
+    product_id: int
     inventory_id: int
+    quantity: float
+    reason: str
     adjusted_by: Optional[int]
-    adjusted_by_name: Optional[str]  # <-- new field for user name
     adjusted_at: datetime
-    product_name: str  # <-- new field
 
     class Config:
         from_attributes = True
+
+
+class StockAdjustmentListOut(StockAdjustmentOut):
+    product_name: Optional[str] = None
+    adjusted_by_name: Optional[str] = None

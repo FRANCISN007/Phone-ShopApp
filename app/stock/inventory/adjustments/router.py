@@ -29,7 +29,7 @@ def create_adjustment(
 
 
 
-@router.get("/", response_model=List[schemas.StockAdjustmentOut])
+@router.get("/", response_model=List[schemas.StockAdjustmentListOut])
 def list_adjustments(
     skip: int = 0,
     limit: int = 100,

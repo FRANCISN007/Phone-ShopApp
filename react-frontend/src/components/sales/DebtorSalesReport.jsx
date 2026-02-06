@@ -39,8 +39,32 @@ const OutstandingSales = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // =========================
+  // HELPERS
+  // =========================
   const getInvoiceDiscount = (items = []) =>
     items.reduce((sum, i) => sum + (i.discount || 0), 0);
+
+  const getDebtAgeDays = (invoiceDate) => {
+    if (!invoiceDate) return 0;
+
+    const today = new Date();
+    const invoice = new Date(invoiceDate);
+
+    today.setHours(0, 0, 0, 0);
+    invoice.setHours(0, 0, 0, 0);
+
+    const diffTime = today - invoice;
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const money = (v) =>
+    Number(v || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+
+  const formatDate = (dt) => (dt ? dt.substring(0, 10) : "-");
 
   // =========================
   // FETCH DATA
@@ -58,10 +82,10 @@ const OutstandingSales = () => {
         },
       });
 
-      setSales(res.data?.sales ?? []);
+      const salesData = res.data?.sales ?? [];
+      setSales(salesData);
 
-      // Compute total discount for grand total
-      const discount_sum = (res.data?.sales ?? []).reduce(
+      const discount_sum = salesData.reduce(
         (sum, sale) => sum + getInvoiceDiscount(sale.items),
         0
       );
@@ -83,17 +107,6 @@ const OutstandingSales = () => {
   useEffect(() => {
     fetchOutstandingSales();
   }, [fetchOutstandingSales]);
-
-  // =========================
-  // HELPERS
-  // =========================
-  const money = (v) =>
-    Number(v || 0).toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-
-  const formatDate = (dt) => (dt ? dt.substring(0, 10) : "-");
 
   if (!show) return null;
 
@@ -155,13 +168,13 @@ const OutstandingSales = () => {
               <th>#</th>
               <th>Invoice No</th>
               <th>Date</th>
+              <th>Debt Age (Days)</th>
               <th>Customer</th>
               <th>Product</th>
               <th>Qty</th>
               <th>Price</th>
               <th>Discount</th>
               <th>Invoice Total</th>
-              
               <th>Total Paid</th>
               <th>Balance Due</th>
             </tr>
@@ -170,7 +183,7 @@ const OutstandingSales = () => {
           <tbody>
             {sales.length === 0 && !loading && (
               <tr>
-                <td colSpan="11" className="empty-row">
+                <td colSpan="12" className="empty-row">
                   No outstanding sales found
                 </td>
               </tr>
@@ -184,9 +197,26 @@ const OutstandingSales = () => {
                     <td>{sale.invoice_no}</td>
                     <td>{formatDate(sale.invoice_date)}</td>
 
+                    {itemIndex === 0 && (
+                      <td
+                        rowSpan={sale.items.length}
+                        className={
+                          getDebtAgeDays(sale.invoice_date) > 7
+                            ? "debt-age overdue"
+                            : "debt-age"
+                        }
+                      >
+                        {getDebtAgeDays(sale.invoice_date)} days
+                      </td>
+                    )}
+
                     <td>
-                      <strong>{sale.customer_name?.trim() || "Walk-in"}</strong>
-                      <div className="sub-text">{sale.customer_phone || "-"}</div>
+                      <strong>
+                        {sale.customer_name?.trim() || "Walk-in"}
+                      </strong>
+                      <div className="sub-text">
+                        {sale.customer_phone || "-"}
+                      </div>
                     </td>
 
                     <td>{item.product_name}</td>
@@ -195,11 +225,19 @@ const OutstandingSales = () => {
 
                     {itemIndex === 0 && (
                       <>
-                        <td rowSpan={sale.items.length}>{money(getInvoiceDiscount(sale.items))}</td>
-                        <td rowSpan={sale.items.length}>{money(sale.total_amount)}</td>
-                        
-                        <td rowSpan={sale.items.length}>{money(sale.total_paid)}</td>
-                        <td rowSpan={sale.items.length} className="balance-cell">
+                        <td rowSpan={sale.items.length}>
+                          {money(getInvoiceDiscount(sale.items))}
+                        </td>
+                        <td rowSpan={sale.items.length}>
+                          {money(sale.total_amount)}
+                        </td>
+                        <td rowSpan={sale.items.length}>
+                          {money(sale.total_paid)}
+                        </td>
+                        <td
+                          rowSpan={sale.items.length}
+                          className="balance-cell"
+                        >
                           {money(sale.balance_due)}
                         </td>
                       </>
@@ -209,13 +247,12 @@ const OutstandingSales = () => {
               </React.Fragment>
             ))}
 
-            {/* GRAND TOTAL */}
+            {/* ========================= GRAND TOTAL ========================= */}
             {sales.length > 0 && (
               <tr className="sales-total-row">
-                <td colSpan="7">GRAND TOTAL</td>
+                <td colSpan="8">GRAND TOTAL</td>
                 <td>{money(summary.discount_sum)}</td>
                 <td>{money(summary.sales_sum)}</td>
-                
                 <td>{money(summary.paid_sum)}</td>
                 <td>{money(summary.balance_sum)}</td>
               </tr>

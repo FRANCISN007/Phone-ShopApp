@@ -198,7 +198,7 @@ const OutstandingSales = () => {
                     <td>{formatDate(sale.invoice_date)}</td>
 
                     {itemIndex === 0 && (
-                      <td
+                     <td
                         rowSpan={sale.items.length}
                         className={
                           getDebtAgeDays(sale.invoice_date) > 7
@@ -206,8 +206,10 @@ const OutstandingSales = () => {
                             : "debt-age"
                         }
                       >
-                        {getDebtAgeDays(sale.invoice_date)} days
+                        {getDebtAgeDays(sale.invoice_date)}{" "}
+                        {getDebtAgeDays(sale.invoice_date) === 1 ? "day" : "days"}
                       </td>
+
                     )}
 
                     <td>

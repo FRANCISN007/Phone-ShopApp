@@ -70,6 +70,11 @@ class SaleItem(Base):
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     quantity = Column(Integer, nullable=False)
     selling_price = Column(Float, nullable=False)
+
+    # ✅ NEW — historical cost at time of sale
+    cost_price = Column(Float, nullable=False, default=0)
+
+
     total_amount = Column(Float, nullable=False)
 
     gross_amount = Column(Float, nullable=False)

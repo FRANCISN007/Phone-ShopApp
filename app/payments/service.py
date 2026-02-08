@@ -101,12 +101,13 @@ def list_payments(
     start_date: date | None = None,
     end_date: date | None = None,
     status: str | None = None,
-    bank_id: int | None = None
+    bank_id: int | None = None,
+    payment_method: str | None = None,
 ):
     query = db.query(models.Payment).options(
         joinedload(models.Payment.sale),
         joinedload(models.Payment.user),
-        joinedload(models.Payment.bank)
+        joinedload(models.Payment.bank),
     )
 
     # ----------------- Invoice Filter -----------------
@@ -131,6 +132,12 @@ def list_payments(
     # ----------------- Bank Filter -----------------
     if bank_id:
         query = query.filter(models.Payment.bank_id == bank_id)
+
+    # ----------------- Payment Method Filter -----------------
+    if payment_method:
+        query = query.filter(
+            models.Payment.payment_method.ilike(payment_method.lower())
+        )
 
     payments = query.order_by(models.Payment.created_at.desc()).all()
 

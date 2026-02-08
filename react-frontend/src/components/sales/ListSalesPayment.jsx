@@ -17,6 +17,8 @@ const ListSalesPayment = () => {
 
   const [banks, setBanks] = useState([]);
   const [show, setShow] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState("");
+
 
   // ----- Edit Modal State -----
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -51,6 +53,7 @@ const ListSalesPayment = () => {
       if (status) params.status = status;
       if (bankId) params.bank_id = bankId;
       if (invoiceNo) params.invoice_no = invoiceNo;
+      if (paymentMethod) params.payment_method = paymentMethod;   // ✅ NEW
 
       const res = await axiosWithAuth().get("/payments/", { params });
       setPayments(res.data || []);
@@ -61,7 +64,8 @@ const ListSalesPayment = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, status, bankId, invoiceNo]);
+  }, [startDate, endDate, status, bankId, invoiceNo, paymentMethod]);
+
 
   useEffect(() => {
     fetchBanks();
@@ -197,7 +201,7 @@ const ListSalesPayment = () => {
           <option value="">All</option>
           <option value="completed">Completed</option>
           <option value="part_paid">Part Paid</option>
-          <option value="unpaid">Unpaid</option>
+          <option value="pending">Pending</option>
         </select>
 
         <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
@@ -208,6 +212,17 @@ const ListSalesPayment = () => {
             </option>
           ))}
         </select>
+
+        <select
+          value={paymentMethod}
+          onChange={(e) => setPaymentMethod(e.target.value)}
+        >
+          <option value="">All Methods</option>
+          <option value="cash">Cash</option>
+          <option value="pos">POS</option>
+          <option value="transfer">Transfer</option>
+        </select>
+
 
         <button onClick={fetchPayments}>Filter</button>
       </div>

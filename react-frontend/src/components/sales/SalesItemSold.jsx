@@ -21,9 +21,10 @@ const SalesItemSold = () => {
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [invoiceNo, setInvoiceNo] = useState("");
-  const [productSearch, setProductSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  
+
+  const [filterProductId, setFilterProductId] = useState("");
+
 
 
   // ================= DATA STATE =================
@@ -33,8 +34,7 @@ const SalesItemSold = () => {
   // ================= UI STATE =================
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-
+ 
   // ================= EDIT STATE =================
   const [editItem, setEditItem] = useState(null);
   const [editData, setEditData] = useState({
@@ -93,12 +93,7 @@ const SalesItemSold = () => {
   }, [axiosInstance]);
 
   // ================= PRODUCT FILTER =================
-  const filteredProducts = useMemo(() => {
-    if (!productSearch.trim()) return [];
-    return products.filter(p =>
-      p.name.toLowerCase().includes(productSearch.toLowerCase())
-    );
-  }, [productSearch, products]);
+  
 
   // ================= FETCH ITEMS SOLD =================
   const fetchItemsSold = useCallback(async () => {
@@ -115,7 +110,8 @@ const SalesItemSold = () => {
         start_date: startDate,
         end_date: endDate,
         invoice_no: invoiceNo || undefined,
-        product_id: selectedProduct?.id || undefined,
+        product_id: filterProductId || undefined,
+
       };
 
       const response = await axiosInstance.get("/sales/item-sold", { params });
@@ -150,7 +146,8 @@ const SalesItemSold = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, invoiceNo, selectedProduct, axiosInstance]);
+  }, [startDate, endDate, invoiceNo, filterProductId, axiosInstance]);
+
 
   // ✅ Auto-load today
   useEffect(() => {
@@ -290,63 +287,22 @@ const SalesItemSold = () => {
         </label>
 
         {/* PRODUCT DROPDOWN FILTER */}
-        <div className="product-search-wrapper">
-          <input
-            type="text"
-            placeholder="Search product..."
-            value={selectedProduct ? selectedProduct.name : productSearch}
-            onChange={e => {
-              setProductSearch(e.target.value);
-              setSelectedProduct(null);
-              setShowProductDropdown(true);
-              setHighlightedIndex(-1);
-            }}
-            onKeyDown={e => {
-              if (!filteredProducts.length) return;
+        <label>
+          Product
+          <select
+            value={filterProductId}
+            onChange={e => setFilterProductId(e.target.value)}
+          >
+            <option value="">All Products</option>
+            {products.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setHighlightedIndex(i => (i + 1) % filteredProducts.length);
-              }
 
-              if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setHighlightedIndex(i =>
-                  i <= 0 ? filteredProducts.length - 1 : i - 1
-                );
-              }
-
-              if (e.key === "Enter" && highlightedIndex >= 0) {
-                e.preventDefault();
-                const p = filteredProducts[highlightedIndex];
-                setSelectedProduct(p);
-                setProductSearch("");
-                setShowProductDropdown(false);
-                setHighlightedIndex(-1);
-              }
-            }}
-          />
-
-          {showProductDropdown && filteredProducts.length > 0 && (
-            <div className="product-search-dropdown">
-              {filteredProducts.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`product-search-item ${i === highlightedIndex ? "active" : ""}`}
-                  onMouseEnter={() => setHighlightedIndex(i)}
-                  onClick={() => {
-                    setSelectedProduct(p);
-                    setProductSearch("");
-                    setShowProductDropdown(false);
-                    setHighlightedIndex(-1);
-                  }}
-                >
-                  {p.name}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
 
         <button onClick={fetchItemsSold}>Search</button>
@@ -431,56 +387,23 @@ const SalesItemSold = () => {
             <input value={editItem.invoice_date?.slice(0,10)} disabled />
 
             {/* Product dropdown for editing */}
-            <div className="product-search-wrapper">
-              <input
-                type="text"
-                placeholder="Search product..."
-                value={selectedProduct ? selectedProduct.name : productSearch}
+            <label>
+              Product
+              <select
+                value={editData.product_id}
+                onChange={e =>
+                  setEditData({ ...editData, product_id: Number(e.target.value) })
+                }
+              >
+                <option value="">-- Select Product --</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-
-                onChange={e => {
-                  setProductSearch(e.target.value);
-                  setSelectedProduct(null);
-                  setShowProductDropdown(true);
-                  setHighlightedIndex(-1);
-                }}
-
-
-                onKeyDown={e => {
-                  if (!filteredProducts.length) return;
-                  if (e.key === "ArrowDown") { e.preventDefault(); setHighlightedIndex(prev => prev < filteredProducts.length-1 ? prev+1 : 0); }
-                  if (e.key === "ArrowUp") { e.preventDefault(); setHighlightedIndex(prev => prev>0?prev-1:filteredProducts.length-1); }
-                  if (e.key==="Enter" && highlightedIndex>=0) {
-                    e.preventDefault();
-                    const selected = filteredProducts[highlightedIndex];
-                    setEditData({...editData, product_id: selected.id});
-                    setProductSearch("");
-                    setHighlightedIndex(-1);
-                  }
-                }}
-              />
-              {showProductDropdown && filteredProducts.length > 0 && (
-
-                <div className="product-search-dropdown">
-                  {filteredProducts.map((p,i)=>(
-                    <div
-                      key={p.id}
-                      className={`product-search-item ${i===highlightedIndex?"active":""}`}
-                      onMouseEnter={()=>setHighlightedIndex(i)}
-                      onClick={() => {
-                        setSelectedProduct(p);
-                        setProductSearch("");          // clear search
-                        setShowProductDropdown(false); // 🔥 CLOSE DROPDOWN
-                        setHighlightedIndex(-1);
-                      }}
-
-                    >
-                      {p.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             <input type="text" value={editData.customer_name} onChange={e=>setEditData({...editData, customer_name:e.target.value})} placeholder="Customer Name" />
             <input type="text" value={editData.customer_phone} onChange={e=>setEditData({...editData, customer_phone:e.target.value})} placeholder="Phone Number" />

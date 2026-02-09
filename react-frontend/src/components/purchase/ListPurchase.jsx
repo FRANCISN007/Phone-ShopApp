@@ -5,14 +5,13 @@ import "./ListPurchase.css";
 const ListPurchase = () => {
   const [purchases, setPurchases] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [show, setShow] = useState(true);
 
-  /* =========================
-     FILTER STATES
-     ========================= */
+  /* ================= FILTER STATES ================= */
   const [vendorId, setVendorId] = useState("");
   const [productId, setProductId] = useState("");
-  const [invoiceNo, setInvoiceNo] = useState(""); // ✅ NEW
+  const [invoiceNo, setInvoiceNo] = useState("");
 
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -21,42 +20,28 @@ const ListPurchase = () => {
   const [startDate, setStartDate] = useState(formatDate(firstDay));
   const [endDate, setEndDate] = useState(formatDate(today));
 
-  /* =========================
-     PRODUCT SEARCH
-     ========================= */
-  const [products, setProducts] = useState([]);
-  const [productQuery, setProductQuery] = useState("");
-  const [loadingProducts, setLoadingProducts] = useState(false);
-
-  /* =========================
-     EDIT MODAL
-     ========================= */
+  /* ================= EDIT MODAL ================= */
   const [showEdit, setShowEdit] = useState(false);
   const [editData, setEditData] = useState({
     id: null,
-    invoice_no: "",          // ✅ NEW
+    invoice_no: "",
     product_id: "",
-    product_name: "",
     quantity: "",
     cost_price: "",
     vendor_id: "",
   });
 
-  /* =========================
-     COMPUTED
-     ========================= */
+  /* ================= COMPUTED ================= */
   const grandTotal = purchases.reduce(
     (acc, p) => acc + Number(p.total_cost || 0),
     0
   );
 
-  /* =========================
-     FETCH PURCHASES
-     ========================= */
+  /* ================= FETCH DATA ================= */
   const fetchPurchases = useCallback(async () => {
     try {
       const params = {};
-      if (invoiceNo) params.invoice_no = invoiceNo; // ✅ NEW
+      if (invoiceNo) params.invoice_no = invoiceNo;
       if (productId) params.product_id = productId;
       if (vendorId) params.vendor_id = vendorId;
       if (startDate) params.start_date = startDate;
@@ -78,54 +63,34 @@ const ListPurchase = () => {
     }
   };
 
-  useEffect(() => {
-    fetchPurchases();
-    fetchVendors();
-  }, [fetchPurchases]);
-
-  /* =========================
-     PRODUCT SEARCH
-     ========================= */
-  const searchProducts = async (query) => {
-    setProductQuery(query);
-
-    if (!query) {
-      setProducts([]);
-      setProductId("");
-      return;
-    }
-
+  const fetchProductsSimple = async () => {
     try {
-      setLoadingProducts(true);
-      const res = await axiosWithAuth().get(
-        `/stock/products/search?query=${query}`
-      );
-      setProducts(res.data);
+      const res = await axiosWithAuth().get("/stock/products/simple");
+      setAllProducts(res.data);
     } catch {
-      console.error("Product search failed");
-    } finally {
-      setLoadingProducts(false);
+      console.error("Failed to load products");
     }
   };
 
-  /* =========================
-     FILTER ACTIONS
-     ========================= */
+  useEffect(() => {
+    fetchPurchases();
+    fetchVendors();
+    fetchProductsSimple();
+  }, [fetchPurchases]);
+
+  /* ================= FILTER ACTIONS ================= */
   const applyFilters = () => fetchPurchases();
 
   const resetFilters = () => {
     setInvoiceNo("");
     setVendorId("");
     setProductId("");
-    setProductQuery("");
     setStartDate(formatDate(firstDay));
     setEndDate(formatDate(today));
     fetchPurchases();
   };
 
-  /* =========================
-     DELETE
-     ========================= */
+  /* ================= DELETE ================= */
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this purchase?")) return;
 
@@ -137,20 +102,16 @@ const ListPurchase = () => {
     }
   };
 
-  /* =========================
-     EDIT
-     ========================= */
+  /* ================= EDIT ================= */
   const handleEditOpen = (p) => {
     setEditData({
       id: p.id,
-      invoice_no: p.invoice_no,   // ✅ NEW
+      invoice_no: p.invoice_no,
       product_id: p.product_id,
-      product_name: p.product_name,
       quantity: Number(p.quantity),
       cost_price: Number(p.cost_price),
       vendor_id: p.vendor_id,
     });
-    setProductQuery(p.product_name);
     setShowEdit(true);
   };
 
@@ -172,7 +133,7 @@ const ListPurchase = () => {
 
     try {
       await axiosWithAuth().put(`/purchase/${editData.id}`, {
-        invoice_no: editData.invoice_no,   // ✅ NEW
+        invoice_no: editData.invoice_no,
         product_id: Number(editData.product_id),
         quantity: Number(editData.quantity),
         cost_price: Number(editData.cost_price),
@@ -201,30 +162,13 @@ const ListPurchase = () => {
           onChange={(e) => setInvoiceNo(e.target.value)}
         />
 
-        <input
-          type="text"
-          placeholder="Search product..."
-          value={productQuery}
-          onChange={(e) => searchProducts(e.target.value)}
-        />
-
-        {products.length > 0 && (
-          <ul className="dropdown-list">
-            {products.map((p) => (
-              <li
-                key={p.id}
-                onClick={() => {
-                  setProductId(p.id);
-                  setProductQuery(p.name);
-                  setProducts([]);
-                  fetchPurchases();
-                }}
-              >
-                {p.name}
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* SIMPLE PRODUCT SELECT */}
+        <select value={productId} onChange={(e) => setProductId(e.target.value)}>
+          <option value="">All Products</option>
+          {allProducts.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
 
         <select value={vendorId} onChange={(e) => setVendorId(e.target.value)}>
           <option value="">All Vendors</option>
@@ -245,7 +189,7 @@ const ListPurchase = () => {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Invoice</th> {/* ✅ NEW */}
+            <th>Invoice</th>
             <th>Date</th>
             <th>Product</th>
             <th>Vendor</th>
@@ -302,14 +246,17 @@ const ListPurchase = () => {
 
               <label>
                 Product
-                <input
-                  type="text"
-                  value={productQuery}
-                  onChange={(e) => {
-                    setProductQuery(e.target.value);
-                    searchProducts(e.target.value);
-                  }}
-                />
+                <select
+                  name="product_id"
+                  value={editData.product_id}
+                  onChange={handleEditChange}
+                  required
+                >
+                  <option value="">-- Select Product --</option>
+                  {allProducts.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
               </label>
 
               <label>
@@ -343,20 +290,14 @@ const ListPurchase = () => {
                 >
                   <option value="">-- Select Vendor --</option>
                   {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.business_name}
-                    </option>
+                    <option key={v.id} value={v.id}>{v.business_name}</option>
                   ))}
                 </select>
               </label>
 
               <div className="modal-actions">
                 <button type="submit" className="save-btn">Update</button>
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setShowEdit(false)}
-                >
+                <button type="button" className="cancel-btn" onClick={() => setShowEdit(false)}>
                   Cancel
                 </button>
               </div>

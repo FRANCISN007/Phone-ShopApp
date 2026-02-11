@@ -213,6 +213,7 @@ def update_sale_header(
 def sales_analysis(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    product_id: Optional[int] = None,   # ✅ NEW
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
         role_required(["manager", "admin"])
@@ -221,8 +222,10 @@ def sales_analysis(
     return service.sales_analysis(
         db=db,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
+        product_id=product_id,   # ✅ PASS TO SERVICE
     )
+
 
 
 

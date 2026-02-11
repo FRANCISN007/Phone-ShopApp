@@ -37,4 +37,4 @@ class Expense(Base):
     )
 
 
-print("🔥 LOADED Expense model from:", __file__)
+#print("🔥 LOADED Expense model from:", __file__)

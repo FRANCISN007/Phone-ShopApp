@@ -9,6 +9,8 @@ const SalesAnalysis = () => {
   const todayStr = new Date().toISOString().split("T")[0];
 
   const [items, setItems] = useState([]);
+  const [products, setProducts] = useState([]);
+
   const [summary, setSummary] = useState({
     total_sales: 0,
     total_discount: 0,
@@ -17,6 +19,12 @@ const SalesAnalysis = () => {
 
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
+  const [productId, setProductId] = useState("");
+
+  // 🔎 searchable dropdown state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [show, setShow] = useState(true);
@@ -26,23 +34,41 @@ const SalesAnalysis = () => {
       ? "-"
       : Number(value).toLocaleString();
 
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/stock/products/simple`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
+
+      const data = res.data;
+
+      if (Array.isArray(data)) setProducts(data);
+      else if (Array.isArray(data?.items)) setProducts(data.items);
+      else if (Array.isArray(data?.results)) setProducts(data.results);
+      else setProducts([]);
+    } catch (err) {
+      console.error("Failed to load products", err);
+      setProducts([]);
+    }
+  }, []);
+
   const fetchSalesAnalysis = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const res = await axios.get(
-        `${BASE_URL}/sales/report/analysis`,
-        {
-          params: {
-            start_date: startDate,
-            end_date: endDate,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-          },
-        }
-      );
+      const res = await axios.get(`${BASE_URL}/sales/report/analysis`, {
+        params: {
+          start_date: startDate,
+          end_date: endDate,
+          ...(productId && { product_id: productId }),
+        },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+      });
 
       const {
         items = [],
@@ -57,50 +83,82 @@ const SalesAnalysis = () => {
       console.error("Sales analysis fetch failed:", err);
       setError("Failed to load sales analysis");
       setItems([]);
-      setSummary({
-        total_sales: 0,
-        total_discount: 0,
-        total_margin: 0,
-      });
+      setSummary({ total_sales: 0, total_discount: 0, total_margin: 0 });
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, productId]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     fetchSalesAnalysis();
   }, [fetchSalesAnalysis]);
 
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectProduct = (p) => {
+    setProductId(p.id);
+    setSearchTerm(p.name);
+    setShowDropdown(false);
+  };
+
   if (!show) return null;
 
   return (
     <div className="sales-analysis-container">
-      {/* Close */}
-      <button className="close-btn" onClick={() => setShow(false)}>
-        ✖
-      </button>
+      <button className="close-btn" onClick={() => setShow(false)}>✖</button>
 
       <h2>📊 Sales Analysis Report</h2>
 
-      {/* Filters */}
       <div className="filter-section">
         <label>
           Start Date
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </label>
 
         <label>
           End Date
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </label>
+
+        {/* 🔎 SEARCHABLE PRODUCT DROPDOWN */}
+        <div className="product-search">
+          <label>Product</label>
+          <input
+            type="text"
+            placeholder="Search product..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setShowDropdown(true);
+              setProductId("");
+            }}
+            onFocus={() => setShowDropdown(true)}
+          />
+
+          {showDropdown && (
+            <div className="dropdown">
+              <div className="dropdown-item" onClick={() => { setProductId(""); setSearchTerm(""); setShowDropdown(false); }}>
+                All Products
+              </div>
+
+              {filteredProducts.slice(0, 10).map((p) => (
+                <div key={p.id} className="dropdown-item" onClick={() => selectProduct(p)}>
+                  {p.name}
+                </div>
+              ))}
+
+              {filteredProducts.length === 0 && (
+                <div className="dropdown-empty">No product found</div>
+              )}
+            </div>
+          )}
+        </div>
 
         <button onClick={fetchSalesAnalysis}>Filter</button>
       </div>
@@ -126,58 +184,33 @@ const SalesAnalysis = () => {
 
             <tbody>
               {items.length === 0 ? (
-                <tr className="empty-row">
-                  <td colSpan={8}>No data available</td>
-                </tr>
+                <tr className="empty-row"><td colSpan={8}>No data available</td></tr>
               ) : (
                 items.map((item, index) => (
-                  <tr
-                    key={item.product_id}
-                    className={index % 2 === 0 ? "even" : "odd"}
-                  >
+                  <tr key={item.product_id} className={index % 2 === 0 ? "even" : "odd"}>
                     <td>{item.product_name}</td>
                     <td>{item.quantity_sold}</td>
                     <td>{formatAmount(item.cost_price)}</td>
                     <td>{formatAmount(item.selling_price)}</td>
-                    <td className="text-right">
-                      {formatAmount(item.gross_sales)}
-                    </td>
-                    <td className="text-right discount">
-                      {formatAmount(item.discount)}
-                    </td>
-                    <td className="text-right">
-                      {formatAmount(item.net_sales)}
-                    </td>
-                    <td className="text-right margin">
-                      {formatAmount(item.margin)}
-                    </td>
+                    <td className="text-right">{formatAmount(item.gross_sales)}</td>
+                    <td className="text-right discount">{formatAmount(item.discount)}</td>
+                    <td className="text-right">{formatAmount(item.net_sales)}</td>
+                    <td className="text-right margin">{formatAmount(item.margin)}</td>
                   </tr>
                 ))
               )}
             </tbody>
 
-            {/* SUMMARY */}
             {items.length > 0 && (
               <tfoot>
                 <tr className="sales-total-row">
                   <td colSpan={4}>TOTAL</td>
                   <td className="text-right">
-                    {formatAmount(
-                      items.reduce(
-                        (sum, i) => sum + Number(i.gross_sales || 0),
-                        0
-                      )
-                    )}
+                    {formatAmount(items.reduce((sum, i) => sum + Number(i.gross_sales || 0), 0))}
                   </td>
-                  <td className="text-right">
-                    {formatAmount(summary.total_discount)}
-                  </td>
-                  <td className="text-right">
-                    {formatAmount(summary.total_sales)}
-                  </td>
-                  <td className="text-right">
-                    {formatAmount(summary.total_margin)}
-                  </td>
+                  <td className="text-right">{formatAmount(summary.total_discount)}</td>
+                  <td className="text-right">{formatAmount(summary.total_sales)}</td>
+                  <td className="text-right">{formatAmount(summary.total_margin)}</td>
                 </tr>
               </tfoot>
             )}

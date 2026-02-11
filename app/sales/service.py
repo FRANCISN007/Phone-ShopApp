@@ -667,8 +667,11 @@ def outstanding_sales_service(
     customer_name: str | None = None
 ):
     today = datetime.now().date()
-    start_date = start_date or today
-    end_date = end_date or today
+    
+    if not start_date and not end_date:
+        start_date = today.replace(day=1)
+        end_date = today
+
 
     query = db.query(models.Sale).filter(models.Sale.sold_at != None)
 
@@ -747,32 +750,28 @@ from sqlalchemy import func
 from datetime import datetime, time
 
 
-def sales_analysis(db: Session, start_date=None, end_date=None):
+def sales_analysis(db: Session, start_date=None, end_date=None, product_id=None):
     """
     Sales analysis based on HISTORICAL COST stored in SaleItem.
     Ensures past margins never change when purchase prices change.
     """
 
     # ==============================
-    # BASE QUERY (NO PURCHASE JOIN)
+    # BASE QUERY
     # ==============================
     query = (
         db.query(
             models.SaleItem.product_id,
             Product.name.label("product_name"),
 
-            # 🔹 Total quantity sold
             func.sum(models.SaleItem.quantity).label("quantity_sold"),
 
-            # 🔹 Total gross sales BEFORE discount
             func.sum(
                 models.SaleItem.selling_price * models.SaleItem.quantity
             ).label("gross_sales"),
 
-            # 🔹 Total discount
             func.sum(models.SaleItem.discount).label("total_discount"),
 
-            # 🔹 Total historical cost
             func.sum(
                 models.SaleItem.cost_price * models.SaleItem.quantity
             ).label("total_cost"),
@@ -798,6 +797,12 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
         )
 
     # ==============================
+    # PRODUCT FILTER
+    # ==============================
+    if product_id:
+        query = query.filter(models.SaleItem.product_id == product_id)
+
+    # ==============================
     # GROUP BY PRODUCT
     # ==============================
     query = query.group_by(
@@ -821,14 +826,9 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
         total_discount = float(row.total_discount or 0.0)
         total_cost = float(row.total_cost or 0.0)
 
-        # 🔹 Net sales AFTER discount
         net_sales = gross_sales - total_discount
-
-        # 🔹 Weighted averages (safe division)
         avg_selling_price = gross_sales / quantity if quantity else 0.0
         avg_cost_price = total_cost / quantity if quantity else 0.0
-
-        # 🔹 Margin
         product_margin = net_sales - total_cost
 
         total_sales += net_sales
@@ -849,15 +849,13 @@ def sales_analysis(db: Session, start_date=None, end_date=None):
             }
         )
 
-    # ==============================
-    # FINAL RESPONSE
-    # ==============================
     return {
         "items": items,
         "total_sales": total_sales,
         "total_discount": total_discount_sum,
         "total_margin": total_margin,
     }
+
 
 
 

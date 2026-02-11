@@ -47,7 +47,7 @@ POSSIBLE_ENV_PATHS = [
 
 for env_path in POSSIBLE_ENV_PATHS:
     if env_path.exists():
-        print(f"[INFO] Loading environment from: {env_path}")
+        #print(f"[INFO] Loading environment from: {env_path}")
         load_dotenv(env_path, override=True)
         break
 else:

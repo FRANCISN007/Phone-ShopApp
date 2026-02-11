@@ -240,7 +240,7 @@ const ListSalesPayment = () => {
         <table className="sales-payment-table">
           <thead>
             <tr>
-              <th>#</th>
+              <th>ID</th>
               <th>Invoice</th>
               <th>Date</th>
               <th>Total</th>

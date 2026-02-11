@@ -48,6 +48,12 @@ const AddPayment = () => {
   const [bankId, setBankId] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
 
+
+  const [filterStartDate, setFilterStartDate] = useState(startDate);
+  const [filterEndDate, setFilterEndDate] = useState(endDate);
+  const [filterCustomer, setFilterCustomer] = useState("");
+
+
   /* ===============================
      FETCH OUTSTANDING SALES
   =============================== */
@@ -58,9 +64,11 @@ const AddPayment = () => {
 
       const res = await axiosWithAuth().get("/sales/outstanding", {
         params: {
-          start_date: startDate,
-          end_date: endDate,
+          start_date: filterStartDate,
+          end_date: filterEndDate,
+          customer_name: filterCustomer || undefined,
         },
+
       });
 
       setSales(res.data?.sales ?? []);
@@ -77,7 +85,8 @@ const AddPayment = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [filterStartDate, filterEndDate, filterCustomer]);
+
 
   /* ===============================
      FETCH BANKS
@@ -160,6 +169,33 @@ const AddPayment = () => {
       {error && (
         <div className="outstanding-sales__error">{error}</div>
       )}
+
+
+      <div className="outstanding-sales__filters">
+        <input
+          type="date"
+          value={filterStartDate}
+          onChange={(e) => setFilterStartDate(e.target.value)}
+        />
+
+        <input
+          type="date"
+          value={filterEndDate}
+          onChange={(e) => setFilterEndDate(e.target.value)}
+        />
+
+        <input
+          type="text"
+          placeholder="Search customer..."
+          value={filterCustomer}
+          onChange={(e) => setFilterCustomer(e.target.value)}
+        />
+
+        <button className="filter-btn" onClick={fetchOutstandingSales}>
+          Filter
+        </button>
+      </div>
+
 
       <div className="outstanding-sales__table1-wrapper">
         <table className="outstanding-sales__table1">

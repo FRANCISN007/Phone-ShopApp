@@ -198,7 +198,7 @@ const ListSalesPayment = () => {
         />
 
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All</option>
+          <option value="">Payment Status</option>
           <option value="completed">Completed</option>
           <option value="part_paid">Part Paid</option>
           <option value="pending">Pending</option>

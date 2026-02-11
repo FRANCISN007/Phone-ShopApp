@@ -38,10 +38,32 @@ const PosSales = ({ onClose }) => {
   const getNetAmount = (item) => getGrossAmount(item) - (item.discount ?? 0);
 
   
+  /* ===============================
+     Total
+  ================================ */
+  const grossTotal = saleItems.reduce(
+    (acc, item) => acc + getGrossAmount(item),
+    0
+  );
+
+  const totalDiscount = saleItems.reduce(
+    (acc, item) => acc + (item.discount || 0),
+    0
+  );
+
+  const netTotal = saleItems.reduce(
+    (acc, item) => acc + getNetAmount(item),
+    0
+  );
 
 
-  const [showPayment, setShowPayment] = useState(false);
+  
   const [amountPaid, setAmountPaid] = useState(0);
+
+  // ✅ Always keep amountPaid equal to netTotal (POSCard behavior)
+  useEffect(() => {
+    setAmountPaid(netTotal);
+  }, [netTotal]);
 
   const [productSearch, setProductSearch] = useState({});
   const [activeSearchRow, setActiveSearchRow] = useState(null);
@@ -163,29 +185,7 @@ const PosSales = ({ onClose }) => {
     setSaleItems(newItems);
   };
 
-  /* ===============================
-     Total
-  ================================ */
-  const grossTotal = saleItems.reduce(
-    (acc, item) => acc + getGrossAmount(item),
-    0
-  );
-
-  const totalDiscount = saleItems.reduce(
-    (acc, item) => acc + (item.discount || 0),
-    0
-  );
-
-  const netTotal = saleItems.reduce(
-    (acc, item) => acc + getNetAmount(item),
-    0
-  );
-
-
-
   
-  
-    
 
   /* ===============================
     Reset Form
@@ -366,7 +366,7 @@ const handleSubmit = async () => {
     alert("Sale completed successfully");
 
     resetForm();
-    setShowPayment(false);
+    
     
 
     setAmountPaid(0);
@@ -638,19 +638,8 @@ const handleSubmit = async () => {
         </td>
 
         {/* 💳 PAY NOW — Action column */}
-        <td className="action-pay-cell">
-          {!showPayment && (
-            <button
-              className="pay-now-btn inline-pay"
-              onClick={() => {
-                setShowPayment(true);
-                setAmountPaid(netTotal);
-              }}
-            >
-              Pay Now
-            </button>
-          )}
-        </td>
+        <td className="action-pay-cell"></td>
+
       </tr>
 
 
@@ -667,8 +656,9 @@ const handleSubmit = async () => {
       <div className="pay-area">
         <div className="pay-balance-container">
           <div className="pay-now-wrapper">
-            {showPayment && (
+            
               <div className="payment-card">
+
                 <div className="payment-title">Payment</div>
 
                 <div className="payment-row compact">
@@ -722,16 +712,16 @@ const handleSubmit = async () => {
                   </button>
                 </div>
               </div>
-            )}
+            
           </div>
 
           {/* Balance */}
-          {showPayment && (
-            <div className="balance-wrapper">
+          <div className="balance-wrapper">
+
               <label>Balance</label>
               <strong>{formatCurrency(netTotal - amountPaid)}</strong>
             </div>
-          )}
+          
         </div>
       </div>
 

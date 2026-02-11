@@ -212,7 +212,8 @@ i will send you the backend code to use
 
 
 
-
+Uncaught ReferenceError: Cannot access 'Y' before initialization
+    at ue (PosSales.jsx:49:7)
 
 
 

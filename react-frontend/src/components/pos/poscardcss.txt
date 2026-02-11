@@ -1,252 +1,223 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./PosSales.css";
+import { numberToWords } from "../../utils/numberToWords";
 
-import { useNavigate } from "react-router-dom";
-import axiosWithAuth from "../../utils/axiosWithAuth";
-import "./POSCardPage.css";
-
-import { printReceipt } from "../../components/pos/printReceipt";
 import { SHOP_NAME } from "../../config/constants";
 
-
-const Calculator = () => {
-  const [display, setDisplay] = React.useState("");
-
-  const handleClick = (value) => {
-    if (value === "C") {
-      setDisplay(""); // Clear display
-      return;
-    }
-
-    if (value === "<") {
-      setDisplay((prev) => prev.slice(0, -1)); // Backspace
-      return;
-    }
-
-    if (value === "=") {
-      try {
-        // Evaluate display string
-        // eslint-disable-next-line no-eval
-        setDisplay(eval(display).toString());
-      } catch {
-        setDisplay("Error");
-      }
-      return;
-    }
-
-    // Append numbers/operators
-    setDisplay((prev) => prev + value);
-  };
-
-  // Buttons layout
-  const buttons = [
-    "C", "<", "/", "*",     // Top row: clear, backspace, divide, multiply
-    "7", "8", "9", "+",     
-    "4", "5", "6", "-",     
-    "1", "2", "3", "=",     
-    "0", "00", "%", "."     // Bottom row
-  ];
-
-  return (
-    <div
-      className="calculator"
-      style={{
-        width: 360,
-        height: 300,
-        display: "flex",
-        flexDirection: "column",
-        padding: "2px",
-        boxSizing: "border-box",
-      }}
-    >
-      {/* Display */}
-      <input
-        className="calc-display"
-        type="text"
-        value={display}
-        readOnly
-        style={{
-          width: "100%",
-          height: "60px",
-          fontSize: "28px",
-          fontWeight: "bold",
-          textAlign: "right",
-          marginBottom: "10px",
-          paddingRight: "10px",
-          boxSizing: "border-box",
-          borderRadius: "6px",
-          border: "1px solid #ccc",
-        }}
-      />
-
-      {/* Buttons */}
-      <div
-        className="calc-buttons"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gridGap: "10px",
-          flexGrow: 1,
-        }}
-      >
-        {buttons.map((b, index) => (
-          <button
-            key={index}
-            onClick={() => handleClick(b)}
-            className={b === "=" ? "equal-btn" : ""}
-            style={{
-              fontSize: "28px",
-              fontWeight: "bold",
-              borderRadius: "6px",
-              cursor: "pointer",
-              padding: "5px",
-            }}
-          >
-            {b}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
+// At the top of PosSales.jsx
+import { printReceipt } from "../../components/pos/printReceipt";
 
 
-const POSCardPage = () => {
-  const navigate = useNavigate();
 
-  const [categories, setCategories] = useState([]);
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL ||
+  `http://${window.location.hostname}:8000`;
+
+const PosSales = ({ onClose }) => {
   const [products, setProducts] = useState([]);
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [cartItems, setCartItems] = useState([]);
-
-  const [showPayment, setShowPayment] = useState(false);
-  const [amountPaid, setAmountPaid] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState("");
-  const [bankId, setBankId] = useState("");
-  const [showBankDropdown, setShowBankDropdown] = useState(false);
   const [banks, setBanks] = useState([]);
+  const [saleItems, setSaleItems] = useState([
+    { productId: "", quantity: 1, sellingPrice: 0, discount: 0 }
+  ]);
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [bankId, setBankId] = useState("");
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState("");
   const [refNo, setRefNo] = useState("");
-
-  const [receiptFormat, setReceiptFormat] = useState("80mm");
-  const paymentInitializedRef = useRef(false);
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
 
 
+  const [receiptFormat, setReceiptFormat] = useState("80mm"); // default
 
-  const EMPTY_ROWS = 10;
+  const getGrossAmount = (item) => (item.quantity ?? 0) * (item.sellingPrice ?? 0);
+
+  const getNetAmount = (item) => getGrossAmount(item) - (item.discount ?? 0);
+
+  
+
+
+  
+  const [amountPaid, setAmountPaid] = useState(0);
+
+  // ✅ Always keep amountPaid equal to netTotal (POSCard behavior)
+  useEffect(() => {
+    setAmountPaid(netTotal);
+  }, [netTotal]);
+
+
+  const [productSearch, setProductSearch] = useState({});
+  const [activeSearchRow, setActiveSearchRow] = useState(null);
+
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  
+  
+
+  const parseNumber = (value) => Number(value?.toString().replace(/,/g, "")) || 0;
+
+
+
+
+
+  /* ===============================
+     Currency Formatter
+  ================================ */
+  const formatCurrency = (amount) => {
+    return `N${Number(amount || 0).toLocaleString("en-NG")}`;
+  };
+
 
   const handlePrintPreview = () => {
-    handlePrintReceipt("PREVIEW");
+    // Build a temporary invoice object
+    const tempInvoice = "PREVIEW"; // just a placeholder
+    handlePrintReceipt(tempInvoice);
   };
 
 
-  // =========================
-  // FETCH DATA
-  // =========================
+  /* ===============================
+     Fetch data on mount
+  ================================ */
   useEffect(() => {
     const token = localStorage.getItem("token");
+    
+    axios.get(`${API_BASE_URL}/stock/products/simple`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => setProducts(res.data))
+      .catch(console.error);
 
-    axiosWithAuth(token)
-      .get("/stock/category/simple")
-      .then((res) => setCategories(res.data))
-      .catch(() => alert("Failed to load categories"));
+    axios
+    .get(`${API_BASE_URL}/bank/simple`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => {
+      if (Array.isArray(res.data)) {
+        setBanks(res.data);
+      } else {
+        console.error("Banks API did not return an array:", res.data);
+        setBanks([]);
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to load banks:", err);
+      setBanks([]);
+    });
 
-    axiosWithAuth(token)
-      .get("/stock/products/simple-pos")
-      .then((res) => setProducts(res.data))
-      .catch(() => alert("Failed to load products"));
+    const today = new Date().toISOString().split("T")[0];
+    setInvoiceDate(today);
 
-    axiosWithAuth(token)
-      .get("/bank/simple")
-      .then((res) => setBanks(res.data))
-      .catch(() => setBanks([]));
+    // ✅ Generate first invoice immediately
+    
   }, []);
 
-  // =========================
-  // CART LOGIC
-  // =========================
-  const addItemToCart = (item) => {
-    setCartItems((prev) => {
-      const found = prev.find((i) => i.id === item.id);
-      if (found) {
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, qty: i.qty + 1 } : i
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: item.id,
-          name: item.name,
-          selling_price: item.selling_price,
-          qty: 1,
-          discount: 0,
-        },
-      ];
-    });
-  };
 
-  const updateQty = (id, qty) => {
-    if (qty <= 0) return;
-    setCartItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty } : i))
-    );
-  };
-
-  const updatePrice = (id, price) => {
-    setCartItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, selling_price: price } : i))
-    );
-  };
-
-  const updateDiscount = (id, discount) => {
-    setCartItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, discount } : i))
-    );
-  };
-
-  const removeItem = (id) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  // =========================
-  // TOTALS
-  // =========================
-  const grossTotal = cartItems.reduce(
-    (sum, i) => sum + i.qty * i.selling_price,
-    0
-  );
-  const totalDiscount = cartItems.reduce(
-    (sum, i) => sum + (i.discount || 0),
-    0
-  );
-  const netTotal = grossTotal - totalDiscount;
-
-  const filteredProducts = activeCategory
-    ? products.filter((p) => p.category_name === activeCategory.name)
-    : [];
-
-  // =========================
-  // SYNC PAYMENT WITH NET
-  // =========================
   useEffect(() => {
-    if (showPayment && !paymentInitializedRef.current) {
-      setAmountPaid(netTotal);
-      paymentInitializedRef.current = true;
-    }
-
-    if (!showPayment) {
-      paymentInitializedRef.current = false;
-    }
-  }, [showPayment, netTotal]);
+  const closeDropdown = () => setActiveSearchRow(null);
+  document.addEventListener("click", closeDropdown);
+  return () => document.removeEventListener("click", closeDropdown);
+}, []);
 
 
-  const handlePrintReceipt = (invoiceNo) => {
+
+  const getFilteredProducts = (rowIndex) => {
+    const search = productSearch[rowIndex] || "";
+    if (!search.trim()) return products;
+
+    return products.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  
+
+  
+
+  /* ===============================
+     Add / Update / Remove Items
+  ================================ */
+  const addItem = () => {
+    setSaleItems([
+      ...saleItems,
+      { productId: "", quantity: 1, sellingPrice: 0, discount: 0 },
+    ]);
+  };
+
+  const updateItem = (index, key, value) => {
+  const newItems = [...saleItems];
+  newItems[index][key] = value;
+
+  if (key === "productId") {
+    const product = products.find((p) => p.id === Number(value));
+    newItems[index].sellingPrice = product
+      ? product.selling_price || 0
+      : 0;
+    newItems[index].sellingPriceFormatted = product
+      ? product.selling_price_formatted || formatCurrency(product.selling_price)
+      : "0";
+  }
+
+  setSaleItems(newItems);
+};
+
+
+  const removeItem = (index) => {
+    const newItems = [...saleItems];
+    newItems.splice(index, 1);
+    setSaleItems(newItems);
+  };
+
+  /* ===============================
+     Total
+  ================================ */
+  const grossTotal = saleItems.reduce(
+    (acc, item) => acc + getGrossAmount(item),
+    0
+  );
+
+  const totalDiscount = saleItems.reduce(
+    (acc, item) => acc + (item.discount || 0),
+    0
+  );
+
+  const netTotal = saleItems.reduce(
+    (acc, item) => acc + getNetAmount(item),
+    0
+  );
+
+
+
+  
+  
+    
+
+  /* ===============================
+    Reset Form
+  =============================== */
+  const resetForm = () => {
+    // Reset everything except invoice
+    setSaleItems([{ productId: "", quantity: 1, sellingPrice: 0 }]);
+    setCustomerName("");
+    setCustomerPhone("");
+    setPaymentMethod(""); // ✅ reset to blank
+    setBankId("");
+    setRefNo("");
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
+  };
+
+
+  
+
+  /* ===============================
+     Print Receipt
+  ================================ */
+  const handlePrintReceipt = (invoice) => {
     const receiptData = {
       SHOP_NAME,
-      invoice: invoiceNo,
-      invoiceDate: new Date().toISOString().split("T")[0],
+      invoice,
+      invoiceDate,
       customerName,
       customerPhone,
       refNo,
@@ -256,364 +227,513 @@ const POSCardPage = () => {
       grossTotal,
       totalDiscount,
       netTotal,
+
       balance: netTotal - amountPaid,
 
-      items: cartItems.map((i) => ({
-        product_name: i.name,
-        quantity: i.qty,
-        selling_price: i.selling_price,
-        gross_amount: i.qty * i.selling_price,
-        discount: i.discount || 0,
-        net_amount: i.qty * i.selling_price - (i.discount || 0),
-      })),
+      items: saleItems.map(item => {
+        const product = products.find(p => p.id === Number(item.productId));
+        return {
+          product_name: product?.name || "",
+          quantity: item.quantity,
+          selling_price: item.sellingPrice,
+          gross_amount: getGrossAmount(item),
+          discount: item.discount || 0,
+          net_amount: getNetAmount(item),
+        };
+      }),
 
-      formatCurrency: (amount) =>
-        `₦${Number(amount || 0).toLocaleString("en-NG")}`,
+      amountInWords: numberToWords(netTotal),
+      formatCurrency
     };
 
+
+    // ✅ Use the selected format dynamically
     printReceipt(receiptFormat, receiptData);
   };
 
 
-  // =========================
-  // SUBMIT SALE (BACKEND)
-  // =========================
-  const handleSubmit = async () => {
-    if (!cartItems.length) return alert("Cart is empty");
-    if (!paymentMethod) return alert("Select payment method");
-    if (amountPaid <= 0) return alert("Invalid amount");
 
-    if (paymentMethod !== "cash" && !bankId) {
-      return alert("Please select a bank");
+const validateSale = () => {
+  if (!saleItems.length) {
+    alert("Add at least one product");
+    return false;
+  }
+
+  for (let i = 0; i < saleItems.length; i++) {
+    const item = saleItems[i];
+
+    // ✅ Product
+    if (!item.productId) {
+      alert(`Product not selected on row ${i + 1}`);
+      return false;
     }
 
-    const token = localStorage.getItem("token");
-
-    try {
-      /* ===============================
-        1️⃣ CREATE SALE
-      ================================ */
-      const salePayload = {
-        invoice_date: new Date().toISOString().split("T")[0],
-        customer_name: customerName || "Walk-in",
-        customer_phone: customerPhone || null,
-        ref_no: refNo || null,
-        items: cartItems.map((i) => ({
-          product_id: i.id,
-          quantity: i.qty,
-          selling_price: i.selling_price,
-          discount: i.discount || 0,
-        })),
-      };
-
-      const saleRes = await axiosWithAuth(token).post(
-        "/sales/",
-        salePayload
-      );
-
-      const invoiceNo = saleRes.data.invoice_no;
-
-      /* ===============================
-        2️⃣ CREATE PAYMENT
-      ================================ */
-      const paymentPayload = {
-        amount_paid: amountPaid,
-        payment_method: paymentMethod,
-      };
-
-      if (paymentMethod !== "cash") {
-        paymentPayload.bank_id = bankId;
-      }
-
-      await axiosWithAuth(token).post(
-        `/payments/sale/${invoiceNo}`,
-        paymentPayload
-      );
-
-      handlePrintReceipt(invoiceNo);
-
-
-      alert("Sale completed successfully");
-
-      /* ===============================
-        RESET UI
-      ================================ */
-      setCartItems([]);
-      setShowPayment(false);
-      setAmountPaid(0);
-      setPaymentMethod("");
-      setBankId("");
-      setShowBankDropdown(false);
-      setCustomerName("");
-      setCustomerPhone("");
-      setRefNo("");
-
-    } catch (err) {
-      console.error(err);
-      const detail = err?.response?.data?.detail;
-
-      if (Array.isArray(detail)) {
-        alert(detail.map((d) => d.msg).join("\n"));
-      } else {
-        alert(detail || "Transaction failed");
-      }
+    // ✅ Quantity
+    if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+      alert(`Invalid quantity on row ${i + 1}`);
+      return false;
     }
-  };
+
+    // ✅ Selling price
+    if (!Number.isFinite(item.sellingPrice) || item.sellingPrice <= 0) {
+      alert(`Invalid selling price on row ${i + 1}`);
+      return false;
+    }
+
+    // ✅ Discount
+    const discount = Number(item.discount) || 0;
+    const gross = item.quantity * item.sellingPrice;
+
+    if (discount < 0) {
+      alert(`Discount cannot be negative on row ${i + 1}`);
+      return false;
+    }
+
+    if (discount > gross) {
+      alert(`Discount exceeds item total on row ${i + 1}`);
+      return false;
+    }
+  }
+
+  // ✅ Net total must be positive
+  if (!Number.isFinite(netTotal) || netTotal <= 0) {
+    alert("Net total must be greater than zero");
+    return false;
+  }
+
+
+  return true;
+};
+
+
+
+/* ===============================
+    Submit Sale
+  =============================== */
+  // Updated handleSubmit
+
+
+  
+const handleSubmit = async () => {
+  if (!validateSale()) return;
+
+  const token = localStorage.getItem("token");
+
+  try {
+    const salePayload = {
+      invoice_date: invoiceDate,
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim() || null,
+      ref_no: refNo.trim() || null,
+      items: saleItems.map(item => ({
+        product_id: Number(item.productId),
+        quantity: item.quantity,
+        selling_price: item.sellingPrice,
+        discount: item.discount || 0,
+      })),
+    };
+
+    // ✅ ONE REQUEST ONLY
+    const saleRes = await axios.post(
+      `${API_BASE_URL}/sales/`,
+      salePayload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const invoice = saleRes.data.invoice_no;
+    setInvoiceNo(invoice);
+
+    /* ===============================
+       CREATE PAYMENT (uses invoice_no)
+    ================================ */
+    if (amountPaid > 0) {
+    const paymentPayload = {
+      amount_paid: amountPaid,
+      payment_method: paymentMethod,
+    };
+
+    if (paymentMethod !== "cash") {
+      if (!bankId) {
+        alert("Please select a bank");
+        return;
+      }
+      paymentPayload.bank_id = bankId;
+    }
+
+    await axios.post(
+      `${API_BASE_URL}/payments/sale/${invoice}`,
+      paymentPayload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+
+    handlePrintReceipt(invoice);
+    alert("Sale completed successfully");
+
+    resetForm();
+    
+    
+
+    setAmountPaid(0);
+    setBankId("");
+    setInvoiceNo("");
+
+  } catch (err) {
+    console.error(err);
+    const detail = err.response?.data?.detail;
+
+    if (Array.isArray(detail)) {
+      alert(detail.map(d => d.msg).join("\n"));
+    } else {
+      alert(detail || "Transaction failed");
+    }
+  }
+};
+
+
 
 
   return (
-    <div className="poscard-container">
-      {/* ================= TOP ================= */}
-      <div className="poscard-top">
-        <div className="poscard-cart">
-          <div className="cart-header">
-            <div className="sales-header-left">
-              <h2>Sales</h2>
+    <div
+      className="pos-sales-container"
+      onKeyDown={(e) => {
+        e.stopPropagation(); // 🔴 POS owns keyboard
+      }}
+    >
 
-              <input
-                type="text"
-                placeholder="Customer"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Phone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Ref No"
-                value={refNo}
-                onChange={(e) => setRefNo(e.target.value)}
-              />
-            </div>
+  {/* Header */}
+  <div className="pos-header">
+    <h2 className="pos-heading">POS Sales Entry</h2>
 
-            <select
-              className="receipt-format-select"
-              value={receiptFormat}
-              onChange={(e) => setReceiptFormat(e.target.value)}
-            >
-              <option value="80mm">80mm Print</option>
-              <option value="A4">A4 Print</option>
-            </select>
+    <div className="pos-header-actions">
+      {/* Receipt format selector */}
+      <select
+        className="receipt-format-select"
+        value={receiptFormat}
+        onChange={(e) => setReceiptFormat(e.target.value)}
+        title="Receipt Format"
+      >
+        <option value="80mm">80mm Print</option>
+        <option value="A4">A4 Print</option>
+      </select>
+
+      {/* Close button */}
+      <button
+        type="button"
+        className="pos-close-btn"
+        onClick={() => window.close()}
+      >
+        ✕
+      </button>
+    </div>
+  </div>
 
 
-            <button onClick={() => navigate("/dashboard")}>Exit</button>
-          </div>
 
-          <div className="cart-grid header extended">
-            <div>Item</div>
-            <div>Qty</div>
-            <div>Price</div>
-            <div>Gross</div>
-            <div>Discount</div>
-            <div>Net</div>
-            <div>X</div>
-          </div>
 
-          <div className="cart-items">
-            {Array.from({ length: Math.max(EMPTY_ROWS, cartItems.length) }).map(
-              (_, index) => {
-                const item = cartItems[index];
-                const gross = item ? item.qty * item.selling_price : 0;
-                const net = item ? gross - (item.discount || 0) : 0;
+  {/* Scrollable Form Area */}
+  <div className="pos-scrollable-content">
+    {/* Top Info */}
+    <div className="pos-meta-grid">
+      <div className="input-group">
+        <label>Customer Name</label>
+        <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+      </div>
 
-                return (
-                  <div
-                    key={item ? item.id : index}
-                    className={`cart-grid row ${
-                      index % 2 === 0 ? "even" : "odd"
-                    }`}
-                  >
-                    <div className="cell item-name">{item?.name || ""}</div>
-                    <div className="cell">
-                      {item && (
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.qty}
-                          onChange={(e) =>
-                            updateQty(item.id, Number(e.target.value))
-                          }
-                        />
-                      )}
-                    </div>
-                    <div className="cell">
-                      {item && (
-                        <input
-                          type="text"
-                          value={item.selling_price.toLocaleString()}
-                          onChange={(e) =>
-                            updatePrice(
-                              item.id,
-                              Number(e.target.value.replace(/,/g, ""))
-                            )
-                          }
-                        />
-                      )}
-                    </div>
-                    <div className="cell">{gross.toLocaleString()}</div>
-                    <div className="cell">
-                      {item && (
-                        <input
-                          type="text"
-                          value={(item.discount || 0).toLocaleString()}
-                          onChange={(e) =>
-                            updateDiscount(
-                              item.id,
-                              Number(e.target.value.replace(/,/g, ""))
-                            )
-                          }
-                        />
-                      )}
-                    </div>
-                    <div className="cell net-cell">{net.toLocaleString()}</div>
-                    <div className="cell action-cell">
-                      {item && (
-                        <button onClick={() => removeItem(item.id)}>X</button>
-                      )}
-                    </div>
+      <div className="input-group">
+        <label>Customer Phone</label>
+        <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+      </div>
+
+      <div className="input-group">
+        <label>Invoice Date</label>
+        <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+      </div>
+
+      <div className="input-group">
+        <label>Ref No</label>
+        <input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+      </div>
+
+      {invoiceNo && <div className="invoice-no">Invoice No: {invoiceNo}</div>}
+    </div>
+
+    {/* Sale Items Table */}
+    <table className="pos-sales-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Gross</th>
+          <th>Discount</th>
+          <th>Net</th>
+          <th>Action</th>
+
+        </tr>
+      </thead>
+      <tbody>
+
+        
+        {saleItems.map((item, index) => (
+          <tr key={index}>
+            <td>
+              <div
+                className="product-search-wrapper"
+                onClick={(e) => e.stopPropagation()}
+              >
+
+                <input
+                  type="text"
+                  placeholder="Search product..."
+                  value={
+                    activeSearchRow === index
+                      ? productSearch[index] || ""
+                      : products.find(p => p.id === Number(item.productId))?.name || ""
+                  }
+                  onFocus={() => {
+                    setActiveSearchRow(index);
+                    setProductSearch({ ...productSearch, [index]: "" });
+                  }}
+                  onChange={(e) => {
+                    setProductSearch({
+                      ...productSearch,
+                      [index]: e.target.value,
+                    });
+                    setHighlightedIndex(-1);
+                  }}
+
+                  onKeyDown={(e) => {
+                    e.stopPropagation(); // ✅ block dashboard/global shortcuts
+
+                    const filtered = getFilteredProducts(index);
+                    if (!filtered.length) return;
+
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault(); // ⛔ prevent cursor move
+                      setHighlightedIndex((prev) =>
+                        prev < filtered.length - 1 ? prev + 1 : 0
+                      );
+                    }
+
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault(); // ⛔ prevent cursor move
+                      setHighlightedIndex((prev) =>
+                        prev > 0 ? prev - 1 : filtered.length - 1
+                      );
+                    }
+
+                    if (e.key === "Enter" && highlightedIndex >= 0) {
+                      e.preventDefault(); // ⛔ prevent form submit
+                      const selected = filtered[highlightedIndex];
+                      updateItem(index, "productId", selected.id);
+                      setActiveSearchRow(null);
+                      setHighlightedIndex(-1);
+                    }
+                  }}
+
+
+
+
+                  className="product-search-input"
+                />
+
+
+
+                {activeSearchRow === index && (
+                  <div className="product-search-dropdown">
+
+                  {/* 🔢 MATCH COUNT — PLACE IT HERE */}
+                  <div className="product-search-count">
+                    {getFilteredProducts(index).length} items found
                   </div>
-                );
-              }
+
+                  {/* 📦 PRODUCT LIST */}
+                  {getFilteredProducts(index).map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`product-search-item ${
+                        i === highlightedIndex ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        updateItem(index, "productId", p.id);
+                        setActiveSearchRow(null);
+                        setHighlightedIndex(-1);
+                      }}
+                    >
+                      {p.name}
+                    </div>
+                  ))}
+
+
+                  {/* ❌ EMPTY STATE */}
+                  {getFilteredProducts(index).length === 0 && (
+                    <div className="product-search-empty">No product found</div>
+                  )}
+
+                </div>
+
+                )}
+              </div>
+            </td>
+
+            <td>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) => updateItem(index, "quantity", Number(e.target.value))}
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={(item.sellingPrice ?? 0).toLocaleString("en-NG")}
+                onChange={(e) => {
+                  const raw = parseNumber(e.target.value); // remove commas
+                  updateItem(index, "sellingPrice", raw);  // update state with raw number
+                }}
+                onFocus={(e) => {
+                  e.target.select(); // optional: select all text on focus
+                }}
+              />
+
+            </td>
+            <td>{formatCurrency(getGrossAmount(item))}</td>
+
+            <td>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={(item.discount ?? 0).toLocaleString("en-NG")}
+                onChange={(e) => {
+                  const raw = parseNumber(e.target.value);
+                  updateItem(index, "discount", raw);
+                }}
+                onFocus={(e) => e.target.select()}
+              />
+            </td>
+            <td className="net-amount">
+              {formatCurrency(getNetAmount(item))}
+            </td>
+
+
+            <td>
+              <button className="remove-btn" onClick={() => removeItem(index)}>Remove</button>
+            </td>
+          </tr>
+        ))}
+       <tr className="add-product-summary-row">
+        {/* Add product button — stays at the beginning */}
+        <td className="add-product-row">
+          <button className="add-btn" onClick={addItem}>
+            + Add Product
+          </button>
+        </td>
+
+        {/* Empty cells */}
+        <td colSpan="4"></td>
+
+        {/* 🔢 NET TOTAL — Net column */}
+        <td className="gross-total-cell">
+          <span className="gross-total-inline">
+            Net Total {formatCurrency(netTotal)}
+          </span>
+        </td>
+
+        {/* 💳 PAY NOW — Action column */}
+        <td className="action-pay-cell"></td>
+
+      </tr>
+
+
+
+      </tbody>
+    </table>
+
+    
+
+    
+    
+    
+      {/* Pay Now, Payment & Balance */}
+      <div className="pay-area">
+        <div className="pay-balance-container">
+          <div className="pay-now-wrapper">
+            {showPayment && (
+              <div className="payment-card">
+
+                <div className="payment-title">Payment</div>
+
+                <div className="payment-row compact">
+                  <label>Amount</label>
+                  <input
+                    type="text"
+                    value={amountPaid.toLocaleString("en-NG")}
+                    onChange={(e) => {
+                      const value = Number(e.target.value.replace(/,/g, ""));
+                      setAmountPaid(value);
+                    }}
+                  />
+                </div>
+
+                <div className="payment-row compact">
+                  <label>Method</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => {
+                      const method = e.target.value;
+                      setPaymentMethod(method);
+                      setShowBankDropdown(method !== "cash");
+                      if (method === "cash") setBankId("");
+                    }}
+                  >
+                    <option value="">-- Select --</option>
+                    <option value="cash">Cash</option>
+                    <option value="transfer">Transfer</option>
+                    <option value="pos">POS</option>
+                  </select>
+                </div>
+
+                {showBankDropdown && (
+                  <div className="payment-row compact">
+                    <label>Bank</label>
+                    <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
+                      <option value="">-- Bank --</option>
+                      {banks.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="complete-sale-container payment-complete">
+                  <button className="preview-btn" onClick={handlePrintPreview}>
+                    Print Preview
+                  </button>
+                  <button className="submit-btn" onClick={handleSubmit}>
+                    Complete Sale
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
-          <div className="cart-grid total-row extended">
-            <div>Total</div>
-            <div></div>
-            <div></div>
-            <div>{grossTotal.toLocaleString()}</div>
-            <div>{totalDiscount.toLocaleString()}</div>
-            <div>{netTotal.toLocaleString()}</div>
-            <div></div>
-          </div>
-        </div>
+          {/* Balance */}
+          <div className="balance-wrapper">
 
-        <div className="poscard-right-wrapper" style={{ display: "flex", gap: "10px" }}>
-        {/* ================= MIDDLE-RIGHT: Pay Now / Payment Form ================= */}
-        <div className="poscard-right-placeholder" style={{ width: "250px" }}>
-          {!showPayment && cartItems.length > 0 ? (
-            <button
-              className="pay-now-btn1"
-              onClick={() => setShowPayment(true)}
-              style={{ marginTop: "10px", width: "100%" }}
-            >
-              Pay Now
-            </button>
-          ) : showPayment ? (
-            <div className="payment-card1" style={{ marginTop: "10px" }}>
-              <div className="payment-title1">Payment</div>
-
-              <div className="payment-row amount compact">
-                <label>Amount</label>
-                <input
-                  type="text"
-                  value={amountPaid.toLocaleString()}
-                  onChange={(e) =>
-                    setAmountPaid(Number(e.target.value.replace(/,/g, "")))
-                  }
-                />
-              </div>
-
-              <div className="payment-row compact1">
-                <label>Method</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => {
-                    const m = e.target.value;
-                    setPaymentMethod(m);
-                    setShowBankDropdown(m !== "cash");
-                    if (m === "cash") setBankId("");
-                  }}
-                >
-                  <option value="">-- Select --</option>
-                  <option value="cash">Cash</option>
-                  <option value="transfer">Transfer</option>
-                  <option value="pos">POS</option>
-                </select>
-              </div>
-
-              {showBankDropdown && (
-                <div className="payment-row compact1">
-                  <label>Bank</label>
-                  <select
-                    value={bankId}
-                    onChange={(e) => setBankId(e.target.value)}
-                  >
-                    <option value="">-- Bank --</option>
-                    {banks.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="payment-row compact1">
-                <label>Balance</label>
-                <strong>{(netTotal - amountPaid).toLocaleString()}</strong>
-              </div>
-
-              <div className="payment-actions">
-                <button className="preview-btn1" onClick={handlePrintPreview}>
-                  Preview
-                </button>
-                <button className="complete-btn1" onClick={handleSubmit}>
-                  Complete Sale
-                </button>
-              </div>
+              <label>Balance</label>
+              <strong>{formatCurrency(netTotal - amountPaid)}</strong>
             </div>
-          ) : (
-            <p style={{ marginTop: "10px" }}>Select products to enable payment</p>
-          )}
-        </div>
-
-        {/* ================= FAR-RIGHT: Permanent Calculator ================= */}
-        <div className="poscard-calculator" style={{ width: "360px" }}>
-          <Calculator />
+          
         </div>
       </div>
 
-
-
-      </div>
-
-      {/* ================= BOTTOM ================= */}
-      <div className="poscard-items">
-        <div className="category-bar">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              className={`category-tab ${
-                activeCategory?.id === cat.id ? "active" : ""
-              }`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat.name}
-            </div>
-          ))}
-        </div>
-
-        <div className="item-grid1">
-          {activeCategory &&
-            filteredProducts.map((item) => (
-              <div
-                key={item.id}
-                className="item-card1"
-                onClick={() => addItemToCart(item)}
-              >
-                <div>{item.name}</div>
-                <div>{item.selling_price.toLocaleString()}</div>
-              </div>
-            ))}
-        </div>
-      </div>
+      </div> {/* End scrollable content */}
     </div>
   );
 };
 
-export default POSCardPage;
+export default PosSales;

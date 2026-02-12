@@ -135,9 +135,7 @@ def list_payments(
 
     # ----------------- Payment Method Filter -----------------
     if payment_method:
-        query = query.filter(
-            models.Payment.payment_method.ilike(payment_method.lower())
-        )
+        query = query.filter(models.Payment.payment_method.ilike(payment_method.lower()))
 
     payments = query.order_by(models.Payment.created_at.desc()).all()
 
@@ -146,6 +144,9 @@ def list_payments(
         p.bank_name = p.bank.name if p.bank else None
         p.created_by_name = p.user.username if p.user else None
         p.total_amount = p.sale.total_amount if p.sale else None
+
+        # ✅ NEW: attach customer name
+        p.customer_name = p.sale.customer_name if p.sale else None
 
     return payments
 

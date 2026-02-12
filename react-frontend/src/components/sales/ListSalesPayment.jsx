@@ -241,6 +241,7 @@ const ListSalesPayment = () => {
           <thead>
             <tr>
               <th>ID</th>
+              <th>Customer Name</th>
               <th>Invoice</th>
               <th>Date</th>
               <th>Total</th>
@@ -264,6 +265,7 @@ const ListSalesPayment = () => {
               payments.map((p, i) => (
                 <tr key={p.id}>
                   <td>{i + 1}</td>
+                  <td>{p.customer_name}</td>
                   <td>{p.invoice_no ?? p.sale_invoice_no}</td>
                   <td>{new Date(p.payment_date).toLocaleDateString()}</td>
                   <td>{formatAmount(p.total_amount)}</td>
@@ -296,7 +298,7 @@ const ListSalesPayment = () => {
           {payments.length > 0 && (
             <tfoot>
               <tr className="sales-total-row">
-                <td colSpan="3">TOTAL</td>
+                <td colSpan="4">TOTAL</td>
                 <td style={{ fontWeight: "bold", fontSize: "1rem" }}>
                   {formatAmount(totals.total_sales)}
                 </td>

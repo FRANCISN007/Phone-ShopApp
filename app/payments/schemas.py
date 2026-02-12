@@ -34,11 +34,13 @@ class PaymentOut(PaymentBase):
     created_by: Optional[int]
     created_at: datetime
 
-    # ✅ New fields
+    # ✅ Existing extras
     bank_name: Optional[str] = None
     created_by_name: Optional[str] = None
     total_amount: Optional[float] = None
 
+    # ✅ NEW
+    customer_name: Optional[str] = None
 
     class Config:
         from_attributes = True

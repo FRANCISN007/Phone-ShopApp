@@ -14,6 +14,7 @@ const SalesAnalysis = () => {
   const [summary, setSummary] = useState({
     total_sales: 0,
     total_discount: 0,
+    total_cost_of_sales: 0,   // ✅ ADD
     total_margin: 0,
   });
 
@@ -74,20 +75,38 @@ const SalesAnalysis = () => {
         items = [],
         total_sales = 0,
         total_discount = 0,
+        total_cost_of_sales = 0,   // ✅ IMPORTANT
         total_margin = 0,
       } = res.data || {};
 
       setItems(items);
-      setSummary({ total_sales, total_discount, total_margin });
+
+      setSummary({
+        total_sales,
+        total_discount,
+        total_cost_of_sales,   // ✅ IMPORTANT
+        total_margin,
+      });
+
     } catch (err) {
       console.error("Sales analysis fetch failed:", err);
       setError("Failed to load sales analysis");
+
       setItems([]);
-      setSummary({ total_sales: 0, total_discount: 0, total_margin: 0 });
+
+      // ✅ reset safely with zeros
+      setSummary({
+        total_sales: 0,
+        total_discount: 0,
+        total_cost_of_sales: 0,
+        total_margin: 0,
+      });
+
     } finally {
       setLoading(false);
     }
   }, [startDate, endDate, productId]);
+
 
   useEffect(() => {
     fetchProducts();
@@ -178,6 +197,7 @@ const SalesAnalysis = () => {
                 <th className="text-right">Gross Sales</th>
                 <th className="text-right">Discount</th>
                 <th className="text-right">Net Sales</th>
+                <th className="text-right">Cost Of Sales</th>
                 <th className="text-right">Margin</th>
               </tr>
             </thead>
@@ -195,6 +215,7 @@ const SalesAnalysis = () => {
                     <td className="text-right">{formatAmount(item.gross_sales)}</td>
                     <td className="text-right discount">{formatAmount(item.discount)}</td>
                     <td className="text-right">{formatAmount(item.net_sales)}</td>
+                    <td className="text-right">{formatAmount(item.cost_of_sales)}</td>
                     <td className="text-right margin">{formatAmount(item.margin)}</td>
                   </tr>
                 ))
@@ -210,6 +231,7 @@ const SalesAnalysis = () => {
                   </td>
                   <td className="text-right">{formatAmount(summary.total_discount)}</td>
                   <td className="text-right">{formatAmount(summary.total_sales)}</td>
+                  <td className="text-right">{formatAmount(summary.total_cost_of_sales)}</td>
                   <td className="text-right">{formatAmount(summary.total_margin)}</td>
                 </tr>
               </tfoot>

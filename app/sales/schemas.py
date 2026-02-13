@@ -187,12 +187,14 @@ class SaleAnalysisItem(BaseModel):
     gross_sales: float      # ✅ NEW (optional but clear)
     discount: float         # ✅ NEW
     net_sales: float        # renamed for clarity
+    cost_of_sales: float   # ✅ ADD THIS
     margin: float
 
 class SaleAnalysisOut(BaseModel):
     items: List[SaleAnalysisItem]
     total_sales: float          # NET
     total_discount: float       # ✅ NEW
+    total_cost_of_sales: float   # ✅ ALSO ADD THIS
     total_margin: float
 
 

@@ -763,15 +763,11 @@ def sales_analysis(db: Session, start_date=None, end_date=None, product_id=None)
         db.query(
             models.SaleItem.product_id,
             Product.name.label("product_name"),
-
             func.sum(models.SaleItem.quantity).label("quantity_sold"),
-
             func.sum(
                 models.SaleItem.selling_price * models.SaleItem.quantity
             ).label("gross_sales"),
-
             func.sum(models.SaleItem.discount).label("total_discount"),
-
             func.sum(
                 models.SaleItem.cost_price * models.SaleItem.quantity
             ).label("total_cost"),
@@ -803,7 +799,7 @@ def sales_analysis(db: Session, start_date=None, end_date=None, product_id=None)
         query = query.filter(models.SaleItem.product_id == product_id)
 
     # ==============================
-    # GROUP BY PRODUCT
+    # GROUP BY
     # ==============================
     query = query.group_by(
         models.SaleItem.product_id,
@@ -817,23 +813,27 @@ def sales_analysis(db: Session, start_date=None, end_date=None, product_id=None)
     # ==============================
     items = []
     total_sales = 0.0
-    total_margin = 0.0
     total_discount_sum = 0.0
+    total_cost_sum = 0.0
+    total_margin = 0.0
 
     for row in results:
         quantity = int(row.quantity_sold or 0)
         gross_sales = float(row.gross_sales or 0.0)
         total_discount = float(row.total_discount or 0.0)
-        total_cost = float(row.total_cost or 0.0)
+        cost_of_sales = float(row.total_cost or 0.0)
 
         net_sales = gross_sales - total_discount
         avg_selling_price = gross_sales / quantity if quantity else 0.0
-        avg_cost_price = total_cost / quantity if quantity else 0.0
-        product_margin = net_sales - total_cost
+        avg_cost_price = cost_of_sales / quantity if quantity else 0.0
+
+        # ✅ Margin formula
+        product_margin = net_sales - cost_of_sales
 
         total_sales += net_sales
-        total_margin += product_margin
         total_discount_sum += total_discount
+        total_cost_sum += cost_of_sales
+        total_margin += product_margin
 
         items.append(
             {
@@ -845,18 +845,21 @@ def sales_analysis(db: Session, start_date=None, end_date=None, product_id=None)
                 "gross_sales": gross_sales,
                 "discount": total_discount,
                 "net_sales": net_sales,
+                "cost_of_sales": cost_of_sales,
                 "margin": product_margin,
             }
         )
 
+    # ==============================
+    # FINAL RESPONSE
+    # ==============================
     return {
         "items": items,
         "total_sales": total_sales,
         "total_discount": total_discount_sum,
+        "total_cost_of_sales": total_cost_sum,
         "total_margin": total_margin,
     }
-
-
 
 
 

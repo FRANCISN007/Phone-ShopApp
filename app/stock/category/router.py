@@ -37,8 +37,8 @@ def list_categories(db: Session = Depends(get_db)):
 @router.get("/simple", response_model=List[schemas.CategoryOut])
 def list_categories_simple(db: Session = Depends(get_db)):
     """
-    Returns all categories directly from the database.
-    Can be used for frontend dropdowns.
+    Returns all categories directly from the database
+    Can be used for frontend dropdowns
     """
     return db.query(category_models.Category).order_by(category_models.Category.id).all()
 

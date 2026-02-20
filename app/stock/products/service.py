@@ -1,5 +1,8 @@
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
+
+
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from app.stock.products import models, schemas
@@ -7,7 +10,10 @@ from app.stock.inventory import models as inventory_models
 from app.purchase import models as purchase_models
 from app.stock.category import models as category_models
 from app.stock.category.models import Category
+from app.business.dependencies import get_current_business
 import re
+
+
 
 
 from sqlalchemy import func
@@ -20,29 +26,45 @@ import pandas as pd
 
 from .models import Product
 
+import logging
+
+
 
 
 def create_product(db: Session, product: schemas.ProductCreate):
 
-    # 1️⃣ Find category by name
+    product_name = product.name.strip()
+    product_type = product.type.strip() if product.type else None
+    category_name = product.category.strip()
+    business_id = product.business_id
+
+    # -------------------------------------------------
+    # 1️⃣ CATEGORY LOOKUP (strictly tenant-based)
+    # -------------------------------------------------
     category = (
         db.query(category_models.Category)
-        .filter(category_models.Category.name == product.category.strip())
+        .filter(
+            category_models.Category.name == category_name,
+            category_models.Category.business_id == business_id,
+        )
         .first()
     )
 
     if not category:
         raise HTTPException(
             status_code=400,
-            detail=f"Category '{product.category}' does not exist."
+            detail="Category not found for this business",
         )
 
-    # 2️⃣ Duplicate check (name + category)
+    # -------------------------------------------------
+    # 2️⃣ DUPLICATE CHECK
+    # -------------------------------------------------
     exists = (
         db.query(models.Product)
         .filter(
-            models.Product.name == product.name.strip(),
-            models.Product.category_id == category.id
+            models.Product.name == product_name,
+            models.Product.category_id == category.id,
+            models.Product.business_id == business_id,
         )
         .first()
     )
@@ -50,48 +72,73 @@ def create_product(db: Session, product: schemas.ProductCreate):
     if exists:
         raise HTTPException(
             status_code=400,
-            detail="Product already exists in this category."
+            detail="Product already exists for this business",
         )
 
-    # 3️⃣ Create product
+    # -------------------------------------------------
+    # 3️⃣ CREATE PRODUCT
+    # -------------------------------------------------
     db_product = models.Product(
-        name=product.name.strip(),
-        type=product.type.strip() if product.type else None,
+        name=product_name,
+        type=product_type,
         category_id=category.id,
         cost_price=product.cost_price,
-        selling_price=product.selling_price
+        selling_price=product.selling_price,
+        business_id=business_id,
     )
 
     db.add(db_product)
-    db.flush()  # 🔥 get product ID without committing yet
+    db.flush()
 
-    # 4️⃣ AUTO-CREATE INVENTORY RECORD (ZERO STOCK)
-    inventory = inventory_models.Inventory(
-        product_id=db_product.id,
-        quantity_in=0,
-        quantity_out=0,
-        adjustment_total=0,
-        current_stock=0
+    # -------------------------------------------------
+    # 4️⃣ CREATE INVENTORY
+    # -------------------------------------------------
+    db.add(
+        inventory_models.Inventory(
+            product_id=db_product.id,
+            quantity_in=0,
+            quantity_out=0,
+            adjustment_total=0,
+            current_stock=0,
+            business_id=business_id,
+        )
     )
 
-    db.add(inventory)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Product already exists for this business",
+        )
 
-    # 5️⃣ Commit once (atomic)
-    db.commit()
     db.refresh(db_product)
-
     return db_product
-    
+
+
 
 def get_products(
     db: Session,
+    current_user,
     category: Optional[str] = None,
     name: Optional[str] = None,
-    active_only: bool = False,  # 🔹 default to False
+    active_only: bool = False,
 ):
-    query = db.query(models.Product).options(joinedload(models.Product.category))
+    query = db.query(models.Product).options(
+        joinedload(models.Product.category)
+    )
 
-    if active_only:  # still allows active-only filter if explicitly requested
+    # 🔑 Tenant isolation (same logic as bank)
+    if "admin" in current_user.roles or \
+       "manager" in current_user.roles or \
+       "user" in current_user.roles:
+        query = query.filter(
+            models.Product.business_id == current_user.business_id
+        )
+
+    # 🔹 Optional filters
+    if active_only:
         query = query.filter(models.Product.is_active.is_(True))
 
     if category:
@@ -109,15 +156,67 @@ def get_products(
 
 
 
+def search_products(db: Session, query: str, current_user):
 
+    q = db.query(Product)
 
-def get_products_simple(db: Session):
+    # 🔐 Tenant isolation (same as bank logic)
+    if (
+        "admin" in current_user.roles
+        or "manager" in current_user.roles
+        or "user" in current_user.roles
+    ):
+        q = q.filter(Product.business_id == current_user.business_id)
+
+    # 🔎 Name filter
+    q = q.filter(Product.name.ilike(f"%{query.strip()}%"))
+
     return (
-        db.query(
-            models.Product.id,
-            models.Product.name,
-            models.Product.selling_price
+        q.order_by(Product.name.asc())
+         .limit(20)
+         .all()
+    )
+
+
+
+def get_products_simple(db: Session, current_user):
+
+    query = db.query(models.Product)
+
+    # 🔐 Tenant isolation (same as bank pattern)
+    if (
+        "admin" in current_user.roles
+        or "manager" in current_user.roles
+        or "user" in current_user.roles
+    ):
+        query = query.filter(
+            models.Product.business_id == current_user.business_id
         )
+
+    return (
+        query
+        .order_by(models.Product.name.asc())
+        .all()
+    )
+
+
+
+def get_products_simple(db: Session, current_user):
+
+    query = db.query(models.Product)
+
+    # 🔐 Tenant isolation
+    if (
+        "admin" in current_user.roles
+        or "manager" in current_user.roles
+        or "user" in current_user.roles
+    ):
+        query = query.filter(
+            models.Product.business_id == current_user.business_id
+        )
+
+    return (
+        query
         .order_by(models.Product.name.asc())
         .all()
     )
@@ -125,26 +224,43 @@ def get_products_simple(db: Session):
 
 def get_product_by_id(
     db: Session,
-    product_id: int
+    product_id: int,
+    current_user
 ):
-    return (
-        db.query(models.Product)
-        .options(joinedload(models.Product.category))
-        .filter(models.Product.id == product_id)
-        .first()
+    query = db.query(models.Product).filter(
+        models.Product.id == product_id
     )
+
+    # 🔐 Tenant Isolation
+    if "super_admin" not in current_user.roles:
+        query = query.filter(
+            models.Product.business_id == current_user.business_id
+        )
+
+    return query.first()
+
+
+
 
 def update_product(
     db: Session,
     product_id: int,
-    product: schemas.ProductUpdate
+    product: schemas.ProductUpdate,
+    current_user
 ):
-    db_product = (
+    query = (
         db.query(models.Product)
         .options(joinedload(models.Product.category))
         .filter(models.Product.id == product_id)
-        .first()
     )
+
+    # 🔐 Tenant isolation
+    if "super_admin" not in current_user.roles:
+        query = query.filter(
+            models.Product.business_id == current_user.business_id
+        )
+
+    db_product = query.first()
 
     if not db_product:
         return None
@@ -152,16 +268,21 @@ def update_product(
     update_data = product.model_dump(exclude_unset=True)
 
     # -----------------------
-    # Handle category update
+    # Handle category update (Tenant Safe)
     # -----------------------
     if "category" in update_data:
         category_name = update_data.pop("category").strip()
 
-        category = (
-            db.query(category_models.Category)
-            .filter(category_models.Category.name == category_name)
-            .first()
+        category_query = db.query(category_models.Category).filter(
+            category_models.Category.name == category_name
         )
+
+        if "super_admin" not in current_user.roles:
+            category_query = category_query.filter(
+                category_models.Category.business_id == current_user.business_id
+            )
+
+        category = category_query.first()
 
         if not category:
             raise HTTPException(
@@ -172,19 +293,22 @@ def update_product(
         db_product.category_id = category.id
 
     # -----------------------
-    # Duplicate protection
+    # Duplicate protection (Tenant Safe)
     # -----------------------
     new_name = update_data.get("name", db_product.name)
 
-    duplicate = (
-        db.query(models.Product)
-        .filter(
-            models.Product.id != product_id,
-            models.Product.name == new_name,
-            models.Product.category_id == db_product.category_id
-        )
-        .first()
+    duplicate_query = db.query(models.Product).filter(
+        models.Product.id != product_id,
+        models.Product.name == new_name,
+        models.Product.category_id == db_product.category_id,
     )
+
+    if "super_admin" not in current_user.roles:
+        duplicate_query = duplicate_query.filter(
+            models.Product.business_id == current_user.business_id
+        )
+
+    duplicate = duplicate_query.first()
 
     if duplicate:
         raise HTTPException(
@@ -206,33 +330,65 @@ def update_product(
 
 
 
-def delete_product(db: Session, product_id: int):
-    product = get_product_by_id(db, product_id)
-    if not product:
-        return None
+def delete_product(db: Session, product_id: int, current_user):
+    """
+    Permanently deletes a product, only if:
+    - Inventory is empty
+    - No purchase records exist
+    - Tenant isolation is respected
+    """
 
-    # Check if product has any inventory
-    inventory_entry = db.query(inventory_models.Inventory).filter(
-        inventory_models.Inventory.product_id == product_id
-    ).first()
+    # 🔹 Tenant-aware query
+    query = db.query(models.Product)
+    if "super_admin" not in current_user.roles:
+        query = query.filter(models.Product.business_id == current_user.business_id)
+
+    product = query.filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # 🔹 Check inventory
+    inventory_entry = (
+        db.query(inventory_models.Inventory)
+        .filter(inventory_models.Inventory.product_id == product_id)
+        .first()
+    )
+
     if inventory_entry and inventory_entry.current_stock > 0:
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete product with existing stock"
+            detail="Cannot delete product: inventory is not empty",
         )
 
-    # Check if product has any purchases
-    purchase_entry = db.query(purchase_models.Purchase).filter(
-        purchase_models.Purchase.product_id == product_id
-    ).first()
+    # 🔹 Check purchase records
+    purchase_entry = (
+        db.query(purchase_models.Purchase)
+        .filter(purchase_models.Purchase.product_id == product_id)
+        .first()
+    )
+
     if purchase_entry:
         raise HTTPException(
             status_code=400,
-            detail="Cannot delete product with existing purchase records"
+            detail="Cannot delete product: purchase records exist",
         )
 
+    # 🔹 Delete dependent inventory first (even if quantity=0)
+    if inventory_entry:
+        db.delete(inventory_entry)
+
+    # 🔹 Delete the product
     db.delete(product)
-    db.commit()
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to delete product due to database constraints",
+        )
+
     return {"detail": "Product deleted successfully"}
 
 
@@ -240,14 +396,18 @@ def delete_product(db: Session, product_id: int):
 def update_product_price(
     db: Session,
     product_id: int,
-    price_update: ProductPriceUpdate
+    price_update: ProductPriceUpdate,
+    current_user
 ):
-    product = (
-        db.query(models.Product)
-        .options(joinedload(models.Product.category))
-        .filter(models.Product.id == product_id)
-        .first()
+    query = db.query(models.Product).options(joinedload(models.Product.category)).filter(
+        models.Product.id == product_id
     )
+
+    # 🔐 Tenant isolation
+    if "super_admin" not in current_user.roles:
+        query = query.filter(models.Product.business_id == current_user.business_id)
+
+    product = query.first()
 
     if not product:
         return None
@@ -298,14 +458,29 @@ def clean_price(value):
         return 0.0
 
 
-# --------------------------------------------------
-# Main Service
-# --------------------------------------------------
 def import_products_from_excel(
     db: Session,
-    file: UploadFile
+    file: UploadFile,
+    current_user,
+    business_id: Optional[int] = None,
 ):
     try:
+        # -----------------------
+        # Determine target business
+        # -----------------------
+        if "super_admin" in current_user.roles:
+            if not business_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Super admin must specify business_id."
+                )
+
+            target_business_id = business_id
+
+        else:
+            # Admin imports only to their own business
+            target_business_id = current_user.business_id
+
         # -----------------------
         # Validate file type
         # -----------------------
@@ -315,10 +490,8 @@ def import_products_from_excel(
                 detail="Invalid file type. Upload .xlsx or .xls"
             )
 
-        # -----------------------
-        # Read Excel
-        # -----------------------
         df = pd.read_excel(file.file)
+        df.columns = [c.strip().lower() for c in df.columns]
 
         required_columns = {
             "name",
@@ -327,9 +500,6 @@ def import_products_from_excel(
             "cost_price",
             "selling_price"
         }
-
-        # Normalize column names (important!)
-        df.columns = [c.strip().lower() for c in df.columns]
 
         if not required_columns.issubset(df.columns):
             raise HTTPException(
@@ -344,36 +514,36 @@ def import_products_from_excel(
             return " ".join(text.lower().strip().split())
 
         # -----------------------
-        # Cache categories
+        # Tenant-aware categories
         # -----------------------
         categories = {
             normalize(c.name): c.id
-            for c in db.query(Category).all()
+            for c in db.query(Category)
+            .filter(Category.business_id == target_business_id)
+            .all()
         }
 
         if not categories:
             raise HTTPException(
                 status_code=400,
-                detail="No categories found. Create categories first."
+                detail="No categories found for this business."
             )
 
         # -----------------------
-        # Cache existing products
+        # Existing products cache
         # -----------------------
         existing_products = {
             (p.name.lower().strip(), p.category_id)
-            for p in db.query(Product.name, Product.category_id).all()
+            for p in db.query(Product.name, Product.category_id)
+            .filter(Product.business_id == target_business_id)
+            .all()
         }
 
         products_to_add = []
         skipped = 0
 
-        # -----------------------
-        # Process rows
-        # -----------------------
         for _, row in df.iterrows():
 
-            # Required fields
             if pd.isna(row["name"]) or pd.isna(row["category"]):
                 skipped += 1
                 continue
@@ -386,8 +556,8 @@ def import_products_from_excel(
                 continue
 
             category_id = categories[category_key]
-
             key = (name.lower(), category_id)
+
             if key in existing_products:
                 skipped += 1
                 continue
@@ -398,28 +568,18 @@ def import_products_from_excel(
                 type=None if pd.isna(row["type"]) else str(row["type"]).strip(),
                 cost_price=clean_price(row["cost_price"]),
                 selling_price=clean_price(row["selling_price"]),
+                business_id=target_business_id,  # 🔥 ALWAYS SET
             )
 
             products_to_add.append(product)
             existing_products.add(key)
 
-        # -----------------------
-        # Nothing imported
-        # -----------------------
         if not products_to_add:
             raise HTTPException(
                 status_code=409,
-                detail={
-                    "message": "Import unsuccessful",
-                    "imported": 0,
-                    "skipped": skipped,
-                    "reason": "All rows were invalid or duplicated"
-                }
+                detail="All rows were invalid or duplicated"
             )
 
-        # -----------------------
-        # Save
-        # -----------------------
         db.add_all(products_to_add)
         db.commit()
 
@@ -438,22 +598,32 @@ def import_products_from_excel(
             status_code=500,
             detail=f"Import failed: {str(e)}"
         )
+
     
 
 def update_product_status(
     db: Session,
     product_id: int,
-    is_active: bool
+    is_active: bool,
+    current_user
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    query = db.query(Product).filter(Product.id == product_id)
+
+    # 🔐 Tenant isolation
+    if "super_admin" not in current_user.roles:
+        query = query.filter(
+            Product.business_id == current_user.business_id
+        )
+
+    product = query.first()
 
     if not product:
         return None
 
     product.is_active = is_active
+
     db.commit()
     db.refresh(product)
 
     return product
-
 

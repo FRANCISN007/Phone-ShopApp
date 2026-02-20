@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.license.models import LicenseKey
+from app.license.schemas import LicenseCreate
 
 LICENSE_FILE = "license.json"
 
@@ -29,44 +30,39 @@ def read_license_from_file():
         return None
 
 
-def create_license_key(db: Session, key: str):
-    # Deactivate all other licenses in DB
-    db.query(LicenseKey).update({LicenseKey.is_active: False})
+def create_license_key(db: Session, data: LicenseCreate):
+    new_license = LicenseKey(
+        key=data.key,
+        expiration_date=data.expiration_date,
+        business_id=data.business_id,
+        is_active=True,
+    )
 
-    expiration = datetime.utcnow() + timedelta(days=365)
-    license_key = LicenseKey(key=key, expiration_date=expiration, is_active=True)
-    
-    db.add(license_key)
+    db.add(new_license)
     db.commit()
-    db.refresh(license_key)
-
-    # ✅ Save to local file
-    save_license_to_file(key, expiration)
-
-    return license_key
+    db.refresh(new_license)
+    return new_license
 
 
-def verify_license_key(db: Session, key: str):
-    license_entry = db.query(LicenseKey).filter(
-        LicenseKey.key == key, LicenseKey.is_active == True
-    ).first()
+def verify_license_key(db: Session, key: str, business_id: int):
+    license_record = (
+        db.query(LicenseKey)
+        .filter(
+            LicenseKey.key == key,
+            LicenseKey.business_id == business_id,
+            LicenseKey.is_active == True,
+        )
+        .first()
+    )
 
-    if not license_entry:
-        # ✅ fallback: check local file
-        file_license = read_license_from_file()
-        if file_license and file_license["key"] == key:
-            if file_license["expiration_date"] > datetime.utcnow():
-                return {"valid": True, "expires_on": file_license["expiration_date"]}
-            else:
-                return {"valid": False, "message": "License expired"}
-        return {"valid": False, "message": "Invalid or inactive license key"}
+    if not license_record:
+        return {"valid": False, "message": "Invalid license key"}
 
-    if license_entry.expiration_date < datetime.utcnow():
-        license_entry.is_active = False
-        db.commit()
+    from datetime import datetime
+    if license_record.expiration_date < datetime.utcnow():
         return {"valid": False, "message": "License expired"}
 
-    # ✅ keep file in sync
-    save_license_to_file(license_entry.key, license_entry.expiration_date)
-
-    return {"valid": True, "expires_on": license_entry.expiration_date}
+    return {
+        "valid": True,
+        "expires_on": license_record.expiration_date,
+    }

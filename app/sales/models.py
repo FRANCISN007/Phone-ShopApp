@@ -18,29 +18,26 @@ class Sale(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # ✅ CORRECT: PostgreSQL IDENTITY column
-    invoice_no = Column(
-        Integer,
-        Identity(start=1, increment=1),
-        unique=True,
-        nullable=False,
-        index=True
-    )
+    # 🔑 Multi-tenant link
+    business_id = Column(Integer, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
+    business = relationship("Business", back_populates="sales")
 
+    # Invoice info
+    invoice_no = Column(Integer, Identity(start=1, increment=1), unique=True, nullable=False, index=True)
     invoice_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     ref_no = Column(String, nullable=True)
+
+    # Customer info
     customer_name = Column(String, nullable=True)
     customer_phone = Column(String, nullable=True)
+
+    # Sale totals
     total_amount = Column(Float, default=0)
 
-    sold_by = Column(
-        Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True
-    )
-
+    sold_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     sold_at = Column(DateTime, default=datetime.utcnow)
 
+    # Relationships
     items = relationship(
         "SaleItem",
         back_populates="sale",
@@ -54,7 +51,7 @@ class Sale(Base):
         viewonly=True
     )
 
-    user = relationship("User", backref="sales")  # 👈 REQUIRED
+    user = relationship("User", backref="sales")
 
 
 class SaleItem(Base):

@@ -1,0 +1,133 @@
+.list-vendor-container {
+  position: relative;
+  padding: 20px;
+  max-width: 950px;
+  margin: 2rem auto;
+  background-color: #fff;
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: bold;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.close-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.list-vendor-title {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  color: #333;
+  text-align: center;
+}
+
+/* Table wrapper with vertical scroll */
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 450px; /* scroll if too many vendors */
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  background-color: white;
+}
+
+/* Table styling */
+.vendor-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.vendor-table th,
+.vendor-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border: 1px solid #28a745;
+  font-size: 0.9rem;
+}
+
+.vendor-table th {
+  background-color: #28a745;
+  color: white;
+  font-weight: bold;
+}
+
+/* Zebra striping */
+.vendor-table tbody tr:nth-child(odd) {
+  background-color: #e6f4ea;
+}
+
+.vendor-table tbody tr:nth-child(even) {
+  background-color: #f0faf5;
+}
+
+/* Empty row */
+.empty-row {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+}
+
+/* Loading / Error text */
+.status-text,
+.error-text {
+  font-weight: bold;
+  margin: 10px 0;
+  color: #333;
+}
+
+.error-text {
+  color: #dc3545;
+}
+
+/* Action buttons */
+.actions {
+  display: flex;
+  gap: 5px;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #fff;
+  transition: 0.2s;
+}
+
+.edit-btn {
+  background-color: #007bff;
+}
+
+.edit-btn:hover {
+  background-color: #0056b3;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+}
+
+.delete-btn:hover {
+  background-color: #a71d2a;
+}

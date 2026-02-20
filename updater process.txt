@@ -1,0 +1,29 @@
+Step 2 — Convert updater.py → EXE
+
+Install the EXE builder once:
+
+pip install pyinstaller
+
+
+Then build:
+
+pyinstaller --onefile --uac-admin updater.py
+
+
+After build completes, you’ll get:
+
+dist\updater.exe
+
+
+That file is your one-click updater.
+
+Step 3 — Move EXE into installed program
+
+Copy:
+
+dist\updater.exe
+
+
+to:
+
+C:\Program Files\PhoneShopApp\updater.exe

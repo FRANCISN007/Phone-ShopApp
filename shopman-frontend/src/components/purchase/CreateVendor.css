@@ -1,0 +1,95 @@
+.create-vendor-container {
+  position: relative; /* ✅ add this */
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #f0ecec;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #ff4d4f;
+}
+
+.create-vendor-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.vendor-form label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.vendor-form input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.3rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border 0.3s;
+}
+
+.vendor-form input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.vendor-form button {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 1rem;
+  background-color: #007bff;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.vendor-form button:hover {
+  background-color: #0056b3;
+}
+
+.vendor-form button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+.error-message,
+.success-message {
+  text-align: center;
+  padding: 0.7rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+}

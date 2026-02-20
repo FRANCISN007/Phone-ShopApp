@@ -140,7 +140,7 @@ class SaleReprintOut(BaseModel):
     amount_paid: float
     balance_due: float
 
-    payment_method: str
+    payment_method: str | None
     bank_id: int | None
     payment_status: str
 

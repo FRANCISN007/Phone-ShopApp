@@ -10,6 +10,11 @@ class Expense(Base):
     id = Column(Integer, primary_key=True, index=True)
     ref_no = Column(String(100), unique=True, index=True, nullable=False)
 
+    # 🔑 Multi-tenant link
+    business_id = Column(Integer, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
+    business = relationship("Business", back_populates="expenses")  # ✅ link to 'expenses'
+
+
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
     account_type = Column(String, nullable=False)
     description = Column(String, nullable=True)
@@ -29,12 +34,9 @@ class Expense(Base):
     vendor = relationship("Vendor")
     bank = relationship("Bank")
 
-    # ✅ SINGLE relationship
+    # 🔑 SINGLE relationship
     creator = relationship(
         "User",
         back_populates="expenses",
         foreign_keys=[created_by]
     )
-
-
-#print("🔥 LOADED Expense model from:", __file__)

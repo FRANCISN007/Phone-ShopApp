@@ -8,6 +8,10 @@ class Payment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # 🔑 Multi-tenant link
+    business_id = Column(Integer, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
+    business = relationship("Business", back_populates="payments")
+
     # Reference sales.invoice_no instead of sales.id
     sale_invoice_no = Column(
         Integer,
@@ -35,13 +39,11 @@ class Payment(Base):
 
     # Relationships
     sale = relationship(
-    "Sale",
-    primaryjoin="Payment.sale_invoice_no == foreign(Sale.invoice_no)",
-    viewonly=True,
-    uselist=False  # <-- this makes it return a single Sale object
-)
-
-
+        "Sale",
+        primaryjoin="Payment.sale_invoice_no == foreign(Sale.invoice_no)",
+        viewonly=True,
+        uselist=False
+    )
 
     bank = relationship("Bank")
     user = relationship("User")

@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session
 from typing import List
 import pandas as pd
 from typing import List, Optional
-from app.users.auth import pwd_context, get_current_user
+
 from app.users.permissions import role_required
 from app.users.schemas import UserDisplaySchema
+from app.business.dependencies import get_current_business
+from app.users.auth import get_current_user
 
 
 from app.database import get_db
@@ -15,30 +17,52 @@ from app.stock.products import schemas, service, models
 from app.stock.products.models import Product
 from app.stock.products.schemas import ProductPriceUpdate, ProductOut, ProductSimpleSchema, ProductSimpleSchema1
 
+from app.core.db import db_dependency   # ⭐ import this
+
+
+
 
 router = APIRouter()
 
+# -------------------------------
+# CREATE PRODUCT
+# -------------------------------
 
 @router.post(
     "/",
     response_model=schemas.ProductOut,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 def create_product(
     product: schemas.ProductCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),  # same as bank
+    current_user: UserDisplaySchema = Depends(
+        role_required(["user", "manager", "admin", "super_admin"])
+    ),
 ):
-    db_product = service.create_product(db, product)
+    if "admin" in current_user.roles and not current_user.business_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Current user does not belong to any business",
+        )
 
-    return schemas.ProductOut(
-        id=db_product.id,
-        name=db_product.name,
-        category=db_product.category.name,  # ✅ STRING
-        type=db_product.type,
-        cost_price=db_product.cost_price,
-        selling_price=db_product.selling_price,
-        is_active=db_product.is_active,   # 🔥 ADD THIS
-        created_at=db_product.created_at
+    product_data = product.dict(exclude_unset=True)
+
+    # 🔑 Admin → force their business
+    if "admin" in current_user.roles:
+        product_data["business_id"] = current_user.business_id
+
+    # 🔑 Super admin → must provide business_id
+    elif "super_admin" in current_user.roles:
+        if not product_data.get("business_id"):
+            raise HTTPException(
+                status_code=400,
+                detail="Super admin must specify a business_id",
+            )
+
+    return service.create_product(
+        db,
+        schemas.ProductCreate(**product_data),
     )
 
 
@@ -48,10 +72,17 @@ def list_products(
     category: Optional[str] = None,
     name: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["user", "manager", "admin", "super_admin"])
+    ),
 ):
-    products = service.get_products(db, category=category, name=name)
+    products = service.get_products(
+        db,
+        current_user=current_user,
+        category=category,
+        name=name,
+    )
 
-    # Return ALL products, regardless of is_active
     return [
         schemas.ProductOut(
             id=p.id,
@@ -60,11 +91,13 @@ def list_products(
             type=p.type,
             cost_price=p.cost_price,
             selling_price=p.selling_price,
-            is_active=p.is_active,   # 🔥 Include this
+            is_active=p.is_active,
+            business_id=p.business_id, 
             created_at=p.created_at,
         )
         for p in products
     ]
+
 
     
 @router.get(
@@ -73,19 +106,12 @@ def list_products(
 )
 def search_products(
     query: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["user", "manager", "admin", "super_admin"])
+    ),
 ):
-    """
-    Simple product search for dropdowns (by name)
-    """
-    products = (
-        db.query(Product)
-        .filter(Product.name.ilike(f"%{query}%"))
-        .order_by(Product.name.asc())
-        .limit(20)
-        .all()
-    )
-
+    products = service.search_products(db, query, current_user)
     return products
 
 
@@ -95,28 +121,35 @@ def search_products(
     response_model=List[ProductSimpleSchema]
 )
 def list_products_simple(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["user", "manager", "admin", "super_admin"])
+    ),
 ):
-    products = service.get_products_simple(db)
-
-    return [
-        ProductSimpleSchema(
-            id=p.id,
-            name=p.name,
-            selling_price=p.selling_price
-        )
-        for p in products
-    ]
+    return service.get_products_simple(db, current_user)
 
 
-# products/simple
+
+# products/simple-pos
 @router.get("/simple-pos")
-def simple_products(db: Session = Depends(get_db)):
-    products = (
+def simple_products(
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["user", "manager", "admin", "super_admin"])
+    ),
+):
+    query = (
         db.query(Product)
-        .filter(Product.is_active == True)  # 🔥 KEY LINE
-        .all()
+        .filter(Product.is_active == True)
     )
+
+    # 🔐 Tenant Isolation
+    if "super_admin" not in current_user.roles:
+        query = query.filter(
+            Product.business_id == current_user.business_id
+        )
+
+    products = query.order_by(Product.name.asc()).all()
 
     return [
         {
@@ -124,7 +157,7 @@ def simple_products(db: Session = Depends(get_db)):
             "name": p.name,
             "selling_price": p.selling_price,
             "category_id": p.category_id,
-            "category_name": p.category.name
+            "category_name": p.category.name if p.category else None
         }
         for p in products
     ]
@@ -139,9 +172,12 @@ def simple_products(db: Session = Depends(get_db)):
 )
 def get_product(
     product_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["user", "manager", "admin", "super_admin"])
+    ),
 ):
-    product = service.get_product_by_id(db, product_id)
+    product = service.get_product_by_id(db, product_id, current_user)
 
     if not product:
         raise HTTPException(
@@ -152,13 +188,17 @@ def get_product(
     return schemas.ProductOut(
         id=product.id,
         name=product.name,
-        category=product.category.name,   # ✅ STRING
+        category=product.category.name if product.category else None,
         type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
-        is_active=product.is_active,   # 🔥 ADD THIS
+        is_active=product.is_active,
+        business_id=product.business_id,
         created_at=product.created_at,
     )
+
+
+
 
 @router.put(
     "/{product_id}",
@@ -167,10 +207,13 @@ def get_product(
 def update_product(
     product_id: int,
     product: schemas.ProductUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin", "super_admin"])
+    ),
 ):
     updated_product = service.update_product(
-        db, product_id, product
+        db, product_id, product, current_user
     )
 
     if not updated_product:
@@ -182,13 +225,15 @@ def update_product(
     return schemas.ProductOut(
         id=updated_product.id,
         name=updated_product.name,
-        category=updated_product.category.name,  # ✅ STRING
+        category=updated_product.category.name if updated_product.category else None,
         type=updated_product.type,
         cost_price=updated_product.cost_price,
         selling_price=updated_product.selling_price,
-        is_active=updated_product.is_active,   # 🔥 ADD THIS
+        is_active=updated_product.is_active,
+        business_id=product.business_id,
         created_at=updated_product.created_at,
     )
+
 
 
 
@@ -200,11 +245,12 @@ def update_product_price(
     product_id: int,
     price_update: schemas.ProductPriceUpdate,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["admin","manager"]))
-
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin", "super_admin"])
+    )
 ):
     product = service.update_product_price(
-        db, product_id, price_update
+        db, product_id, price_update, current_user
     )
 
     if not product:
@@ -216,11 +262,12 @@ def update_product_price(
     return schemas.ProductOut(
         id=product.id,
         name=product.name,
-        category=product.category.name,  # ✅ STRING
+        category=product.category.name if product.category else None,
         type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
-        is_active=product.is_active,   # 🔥 ADD THIS
+        is_active=product.is_active,
+        business_id=product.business_id,
         created_at=product.created_at,
     )
 
@@ -228,8 +275,14 @@ def update_product_price(
 
 
 @router.delete("/{product_id}")
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    return service.delete_product(db, product_id)
+def delete_product_endpoint(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin", "super_admin"])
+    ),
+):
+    return service.delete_product(db, product_id, current_user)
 
 
 
@@ -238,9 +291,15 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 @router.post("/import-excel")
 def import_products_from_excel(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    business_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["admin", "super_admin"])
+    ),
 ):
-    return service.import_products_from_excel(db, file)
+    return service.import_products_from_excel(
+        db, file, current_user, business_id
+    )
 
 
 @router.put(
@@ -251,22 +310,29 @@ def update_product_status(
     product_id: int,
     payload: schemas.ProductStatusUpdate,
     db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin", "super_admin"])
+    ),
 ):
     product = service.update_product_status(
-        db, product_id, payload.is_active
+        db, product_id, payload.is_active, current_user
     )
 
     if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
 
     return schemas.ProductOut(
         id=product.id,
         name=product.name,
-        category=product.category.name,
+        category=product.category.name if product.category else None,
         type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
         is_active=product.is_active,
+        business_id=product.business_id,
         created_at=product.created_at,
     )
 
@@ -279,12 +345,15 @@ def update_product_status(
 def deactivate_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["admin","manager"]))
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin", "super_admin"])
+    ),
 ):
     product = service.update_product_status(
         db=db,
         product_id=product_id,
-        is_active=False
+        is_active=False,
+        current_user=current_user
     )
 
     if not product:
@@ -296,13 +365,15 @@ def deactivate_product(
     return schemas.ProductOut(
         id=product.id,
         name=product.name,
-        category=product.category.name,
+        category=product.category.name if product.category else None,
         type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
         is_active=product.is_active,
+        business_id=product.business_id,
         created_at=product.created_at,
     )
+
 
 
 @router.patch(
@@ -312,12 +383,15 @@ def deactivate_product(
 def activate_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: UserDisplaySchema = Depends(role_required(["admin","manager"]))
+    current_user: UserDisplaySchema = Depends(
+        role_required(["manager", "admin", "super_admin"])
+    ),
 ):
     product = service.update_product_status(
         db=db,
         product_id=product_id,
-        is_active=True
+        is_active=True,
+        current_user=current_user
     )
 
     if not product:
@@ -329,10 +403,12 @@ def activate_product(
     return schemas.ProductOut(
         id=product.id,
         name=product.name,
-        category=product.category.name,
+        category=product.category.name if product.category else None,
         type=product.type,
         cost_price=product.cost_price,
         selling_price=product.selling_price,
         is_active=product.is_active,
+        business_id=product.business_id,
         created_at=product.created_at,
     )
+

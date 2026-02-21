@@ -1,3 +1,4 @@
+# app/business/router.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -16,7 +17,7 @@ router = APIRouter()
 def create_business(
     business_in: schemas.BusinessCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required(["super_admin"], bypass_admin=False))  # only super_admin
+    current_user=Depends(role_required(["super_admin"], bypass_admin=False))
 ):
     # Prevent duplicate name
     existing = db.query(models.Business).filter(
@@ -30,12 +31,16 @@ def create_business(
         address=business_in.address,
         phone=business_in.phone,
         email=business_in.email,
-        is_active=True
     )
     db.add(business)
     db.commit()
     db.refresh(business)
-    return business
+
+    # Enrich with dynamic license status (new business → no license yet)
+    return schemas.BusinessOut(
+        **business.__dict__,
+        license_active=business.is_license_active(db)
+    )
 
 
 # -------------------------------
@@ -48,29 +53,37 @@ def list_businesses(
 ):
     roles = set(current_user.roles)
 
-    # ✅ Super Admin → all businesses
     if "super_admin" in roles:
+        # Super admin sees all + real-time license status
         businesses = db.query(models.Business).all()
-        return {
-            "total": len(businesses),
-            "businesses": businesses,
-        }
+        enriched = [
+            schemas.BusinessOut(
+                **biz.__dict__,
+                license_active=biz.is_license_active(db)
+            )
+            for biz in businesses
+        ]
+        return {"total": len(enriched), "businesses": enriched}
 
-    # ✅ Business Admin → ONLY their business object
+    # Normal admin → only their own + license check
     business = (
         db.query(models.Business)
         .filter(models.Business.id == current_user.business_id)
         .first()
     )
 
-    if not business:
+    if not business or not business.is_license_active(db):
         return {"total": 0, "businesses": []}
 
     return {
         "total": 1,
-        "businesses": [business],
+        "businesses": [
+            schemas.BusinessOut(
+                **business.__dict__,
+                license_active=True  # they are logged in → license must be active
+            )
+        ]
     }
-
 
 
 # -------------------------------
@@ -88,11 +101,13 @@ def get_business(
 
     roles = set(current_user.roles)
 
-    # ❌ Normal admin can ONLY view their own business
     if "super_admin" not in roles and business.id != current_user.business_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    return business
+    return schemas.BusinessOut(
+        **business.__dict__,
+        license_active=business.is_license_active(db)
+    )
 
 
 # -------------------------------
@@ -111,7 +126,6 @@ def update_business(
 
     roles = set(current_user.roles)
 
-    # ❌ Normal admin can update ONLY their own business
     if "super_admin" not in roles and business.id != current_user.business_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
@@ -120,7 +134,12 @@ def update_business(
 
     db.commit()
     db.refresh(business)
-    return business
+
+    return schemas.BusinessOut(
+        **business.__dict__,
+        license_active=business.is_license_active(db)
+    )
+
 
 # -------------------------------
 # DELETE BUSINESS - SUPER ADMIN ONLY
@@ -133,7 +152,6 @@ def delete_business(
 ):
     roles = set(current_user.roles)
 
-    # ❌ Block normal admin completely
     if "super_admin" not in roles:
         raise HTTPException(status_code=403, detail="Only super admin can delete businesses")
 

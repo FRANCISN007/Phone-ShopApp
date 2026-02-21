@@ -67,7 +67,7 @@ def sign_up(user: schemas.UserSchema, db: Session = Depends(get_db)):
 
         if not business:
             raise HTTPException(status_code=404, detail="Business not found")
-        if not business.is_active:
+        if not business.is_license_active:
             raise HTTPException(status_code=403, detail="Business is inactive")
 
     # ------------------------------
@@ -121,7 +121,7 @@ def login(
             raise HTTPException(status_code=403, detail="User must belong to a business")
 
         business = db.query(Business).filter(Business.id == user.business_id).first()
-        if not business or not business.is_active:
+        if not business or not business.is_license_active:
             raise HTTPException(status_code=403, detail="Business is missing or inactive")
 
         license_key = (

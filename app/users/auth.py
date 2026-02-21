@@ -97,7 +97,7 @@ def get_current_user(
 
         # Confirm business exists and is active
         business = db.query(Business).filter(Business.id == effective_business_id).first()
-        if not business or not business.is_active:
+        if not business or not business.is_license_active:
             raise HTTPException(status_code=403, detail="Business not found or inactive")
 
     else:

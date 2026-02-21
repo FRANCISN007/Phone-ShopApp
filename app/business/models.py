@@ -1,6 +1,7 @@
+# app/business/models.py (fully rewritten - removed is_active column, added dynamic method)
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship, Session
 
 from app.database import Base
 
@@ -16,8 +17,7 @@ class Business(Base):
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
 
-    # SaaS control
-    is_active = Column(Boolean, default=True)
+    # SaaS control (removed is_active - now dynamic via method)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Core relationships
@@ -40,14 +40,39 @@ class Business(Base):
     inventory_items = relationship("Inventory", back_populates="business", cascade="all, delete-orphan")
     sales = relationship("Sale", back_populates="business", cascade="all, delete-orphan")
 
-
-
-# Ensure dependent models are imported AFTER Business is defined
-# Expenses
+    # Expenses
     expenses = relationship("Expense", back_populates="business", cascade="all, delete-orphan")
 
+    stock_adjustments = relationship(
+        "StockAdjustment",
+        back_populates="business",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
+    def is_license_active(self, db: Session) -> bool:
+        """
+        Dynamically check if this business has an active, non-expired license.
+        Returns False if no active license or expired.
+        """
+        from app.license.models import LicenseKey
+        
+        latest_license = (
+            db.query(LicenseKey)
+            .filter(
+                LicenseKey.business_id == self.id,
+                LicenseKey.is_active == True
+            )
+            .order_by(LicenseKey.expiration_date.desc())
+            .first()
+        )
+        
+        if not latest_license:
+            return False
+            
+        return latest_license.expiration_date >= datetime.utcnow()
 
+# Ensure dependent models are imported AFTER Business is defined
 from app.bank.models import Bank
 from app.vendor.models import Vendor
 from app.purchase.models import Purchase

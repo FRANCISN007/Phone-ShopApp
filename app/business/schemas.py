@@ -1,5 +1,6 @@
 # app/business/schemas.py (fully rewritten - removed static is_active, use dynamic in response)
 from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 
@@ -12,7 +13,7 @@ class BusinessBase(BaseModel):
 
 
 class BusinessCreate(BusinessBase):
-    pass
+    owner_username: str = Field(..., min_length=3, description="Username of the business owner/admin")
 
 
 class BusinessUpdate(BaseModel):
@@ -25,8 +26,9 @@ class BusinessUpdate(BaseModel):
 # app/business/schemas.py
 class BusinessOut(BusinessBase):
     id: int
-    license_active: bool          # renamed – clearly dynamic
+    license_active: Optional[bool] = None  # ← allow None, we set it manually
     created_at: datetime
+    owner_username: Optional[str] = None  # ← NEW: username of the business owner/admin
 
     class Config:
         from_attributes = True

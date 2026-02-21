@@ -17,6 +17,9 @@ class Business(Base):
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
 
+    # NEW: store the username of the creator/primary admin
+    owner_username = Column(String, nullable=True, index=True)
+
     # SaaS control (removed is_active - now dynamic via method)
     created_at = Column(DateTime, default=datetime.utcnow)
 

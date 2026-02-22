@@ -1,48 +1,19 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { checkLicenseStatus } from "../api/licenseApi";
 import backgroundImage from "../assets/images/phoneshop.png";
 import "./HomePage.css";
-
 import { SHOP_NAME } from "../config/constants";
-
-
 
 const HomePage = () => {
   const navigate = useNavigate();
 
-  const verifyLicense = async () => {
-    try {
-      const storedVerified = localStorage.getItem("license_verified");
-      const storedExpires = localStorage.getItem("license_valid_until");
-      const now = new Date();
-
-      if (storedVerified === "true" && storedExpires) {
-        const expiresOn = new Date(storedExpires);
-        if (expiresOn > now) {
-          navigate("/login");
-          return;
-        } else {
-          localStorage.removeItem("license_verified");
-          localStorage.removeItem("license_valid_until");
-        }
-      }
-
-      const data = await checkLicenseStatus();
-      const expiresOn = data.expires_on ? new Date(data.expires_on) : null;
-
-      if (data.valid && expiresOn && expiresOn > now) {
-        localStorage.setItem("license_verified", "true");
-        localStorage.setItem("license_valid_until", expiresOn.toISOString());
-        navigate("/login");
-      } else {
-        navigate("/license");
-      }
-    } catch (error) {
-      console.error("License check failed", error);
-      navigate("/license");
-    }
+  const handleProceed = () => {
+    // Always go to login screen – no skipping, no token check here
+    console.log("Proceed clicked → redirecting to login");
+    navigate("/login", { replace: true });
   };
+
+  console.log("HomePage component rendered – no auto-login");
 
   return (
     <>
@@ -68,7 +39,6 @@ const HomePage = () => {
           justifyContent: "space-between",
         }}
       >
-        {/* ✅ hotel name is now global */}
         <div className="hotel-name-banner">{SHOP_NAME}</div>
 
         <div className="home-card">
@@ -79,10 +49,10 @@ const HomePage = () => {
             <span className="hems-letter">an</span>
           </div>
 
-          
           <button
             className="proceed-button"
-            onClick={verifyLicense}
+            onClick={handleProceed}
+            type="button"
           >
             Proceed &gt;&gt;
           </button>

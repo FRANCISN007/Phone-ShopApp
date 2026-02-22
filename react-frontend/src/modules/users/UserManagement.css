@@ -6,6 +6,14 @@
   font-family: Arial, sans-serif;
   background-color: #eee5e5;
   border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+/* Super admin mode - slight visual distinction */
+.user-container.super-admin-mode {
+  background-color: #f0e8ff; /* very light purple tint */
+  border: 1px solid #6f42c1; /* subtle purple border */
+  box-shadow: 0 0 10px rgba(111, 66, 193, 0.15);
 }
 
 .user-container.small-frame {
@@ -25,6 +33,24 @@
 .user-heading {
   font-size: 1.8rem;
   color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Super admin header indicator */
+.user-heading.super-admin {
+  color: #6f42c1; /* purple for super admin */
+}
+
+.user-heading.super-admin::after {
+  content: "SYSTEM-WIDE";
+  font-size: 0.75rem;
+  background: #6f42c1;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
 }
 
 .header-right {
@@ -82,6 +108,12 @@
   border: 2px solid #28a745;
   border-radius: 6px;
   background-color: white;
+  transition: border-color 0.3s ease;
+}
+
+/* Super admin table - stronger visual */
+.user-table.super-admin-table {
+  border-color: #6f42c1; /* purple accent */
 }
 
 /* ===============================
@@ -89,11 +121,20 @@
 =============================== */
 .user-table .table-header {
   display: grid;
-  grid-template-columns: 80px 260px 1fr 360px;
   background-color: #28a745;
   color: white;
   font-weight: bold;
   border-bottom: 2px solid #28a745;
+}
+
+/* Default columns (business not included) */
+.user-table .table-header:not(.with-business) {
+  grid-template-columns: 80px 260px 1fr 360px;
+}
+
+/* With business column (super admin) */
+.user-table .table-header.with-business {
+  grid-template-columns: 80px 220px 1fr 140px 360px;
 }
 
 .user-table .table-header div {
@@ -106,14 +147,30 @@
   border-right: none;
 }
 
+/* Highlight business column header for super admin */
+.user-table .table-header.with-business div:nth-child(4) {
+  background-color: #5a32a3;
+  color: #fff;
+}
+
 /* ===============================
    TABLE ROWS
 =============================== */
 .user-table .table-row {
   display: grid;
-  grid-template-columns: 80px 260px 1fr 360px;
   border-bottom: 1px solid #28a745;
   font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+}
+
+/* Default grid */
+.user-table .table-row:not(.with-business) {
+  grid-template-columns: 80px 260px 1fr 360px;
+}
+
+/* With business column */
+.user-table .table-row.with-business {
+  grid-template-columns: 80px 220px 1fr 140px 360px;
 }
 
 /* Zebra striping */
@@ -130,6 +187,12 @@
   background-color: #d4edda;
 }
 
+/* Super admin row hover - more noticeable */
+.user-table.super-admin-table .table-row:hover {
+  background-color: #e2d9ff;
+  box-shadow: inset 0 0 6px rgba(111, 66, 193, 0.2);
+}
+
 .user-table .table-row div {
   padding: 4px 8px;
   border-right: 1px solid #28a745;
@@ -140,6 +203,13 @@
 
 .user-table .table-row div:last-child {
   border-right: none;
+}
+
+/* Highlight business cell for super admin */
+.user-table .table-row.with-business div:nth-child(4) {
+  background-color: #f3e8ff;
+  font-weight: 500;
+  color: #4a2c8c;
 }
 
 /* ===============================
@@ -158,6 +228,7 @@
   font-weight: bold;
   border: none;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn.edit {
@@ -167,6 +238,7 @@
 
 .btn.edit:hover {
   background: #0b5ed7;
+  transform: translateY(-1px);
 }
 
 .btn.delete {
@@ -176,6 +248,7 @@
 
 .btn.delete:hover {
   background: #bb2d3b;
+  transform: translateY(-1px);
 }
 
 .btn.reset {
@@ -185,6 +258,16 @@
 
 .btn.reset:hover {
   background: #e0a800;
+  transform: translateY(-1px);
+}
+
+/* Super admin action buttons - subtle glow */
+.user-table.super-admin-table .btn {
+  box-shadow: 0 2px 4px rgba(111, 66, 193, 0.2);
+}
+
+.user-table.super-admin-table .btn:hover {
+  box-shadow: 0 4px 8px rgba(111, 66, 193, 0.4);
 }
 
 /* ===============================
@@ -196,6 +279,13 @@
   background: #f7f4f4;
   border: 1px solid #11d83f;
   border-radius: 10px;
+  transition: border-color 0.3s ease;
+}
+
+/* Super admin form - purple accent */
+.edit-form.compact-form.super-admin-form {
+  border-color: #6f42c1;
+  background: #f8f5ff;
 }
 
 .edit-header h4 {
@@ -233,6 +323,16 @@
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* Super admin role highlight */
+.roles-checkboxes label:has(input[value="super_admin"]) {
+  background: #e2d9ff;
+  border-color: #6f42c1;
+  color: #4a2c8c;
+  font-weight: bold;
 }
 
 /* ===============================
@@ -251,6 +351,7 @@
   font-weight: bold;
   border: none;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .form-buttons button[type="submit"] {
@@ -258,27 +359,19 @@
   color: white;
 }
 
+.form-buttons button[type="submit"]:hover {
+  background: #1dad3c;
+  transform: scale(1.03);
+}
+
 .form-buttons button[type="button"] {
   background: #81858a;
   color: white;
 }
 
-
-/* Submit button hover */
-.form-buttons button[type="submit"]:hover {
-  background: #1dad3c; /* darker green */
-  transform: scale(1.03);
-}
-
-/* Cancel / secondary button hover */
 .form-buttons button[type="button"]:hover {
-  background: #627888; /* darker gray */
+  background: #627888;
   transform: scale(1.03);
-}
-
-/* Smooth animation */
-.form-buttons button {
-  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 /* ===============================
@@ -359,4 +452,199 @@
   border-radius: 50%;
   font-weight: bold;
   cursor: pointer;
+}
+
+
+
+/* ───────────────────────────────────────────────
+   BUSINESS MANAGEMENT - REUSE USER TABLE PATTERN
+───────────────────────────────────────────────── */
+
+.business-section {
+  margin: 8px 0 0 0;
+  padding: 0;
+}
+
+/* Compact header */
+.business-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.business-section .section-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.business-section .btn.create {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.business-section .btn.create:hover {
+  background: #1e7e34;
+}
+
+/* Reuse user table classes + make business version compact */
+.business-section .user-table.compact.super-admin-table.with-business {
+  font-size: 0.86rem;           /* slightly smaller text */
+  line-height: 1.2;
+}
+
+/* Reuse the grid columns you already have for .with-business */
+.business-section .table-header.with-business {
+  grid-template-columns: 80px 140px 180px 160px 100px 360px; /* ID | Expiring Date | Name | Owner | License | Actions */
+}
+
+.business-section .table-row.with-business {
+  grid-template-columns: 80px 140px 180px 160px 100px 360px; /* same as header */
+}
+
+/* Compact cell padding for business table */
+.business-section .table-row.with-business div {
+  padding: 4px 8px;             /* tighter than default */
+}
+
+/* Actions always right-aligned */
+.business-section .table-row.with-business .action-buttons {
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+
+/* Status colors - match your theme */
+.business-section .status-active {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.business-section .status-expired,
+.business-section .status-inactive {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* No data message - compact */
+.business-section .no-data {
+  text-align: center;
+  color: #6c757d;
+  padding: 12px 0;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Horizontal scroll if needed */
+@media (max-width: 992px) {
+  .business-section .user-table {
+    overflow-x: auto;
+    display: block;
+  }
+}
+
+
+.btn.refresh {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn.refresh:hover {
+  background: #5a6268;
+}
+
+
+/* ───────────────────────────────────────────────
+   LICENSE MANAGEMENT STYLES
+───────────────────────────────────────────────── */
+
+.license-section {
+  margin: 12px 0 0 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 1px solid #6f42c1;
+  border-radius: 8px;
+}
+
+.license-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.license-section .section-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #6f42c1;
+  font-weight: 600;
+}
+
+/* Prominent Generate License Button */
+.license-section .btn.create {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  transition: all 0.2s;
+}
+
+.license-section .btn.create:hover {
+  background: #1e7e34;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* License Status Card */
+.license-status-card {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #6f42c1;
+  box-shadow: 0 2px 6px rgba(111, 66, 193, 0.1);
+}
+
+.license-status-card h4 {
+  margin-top: 0;
+  color: #6f42c1;
+}
+
+/* Generate License Form */
+.edit-form.compact-form.super-admin-form {
+  border-color: #6f42c1;
+  background: #f8f5ff;
+}
+
+/* Make Generate License button extra prominent */
+.edit-form.compact-form.super-admin-form button[type="submit"] {
+  background: #28a745;
+  color: white;
+  font-size: 1.05rem;
+  padding: 10px 24px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+}
+
+.edit-form.compact-form.super-admin-form button[type="submit"]:hover {
+  background: #1e7e34;
+  transform: scale(1.03);
 }

@@ -36,7 +36,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "supersecret")
 
 @router.post("/register/")
-def sign_up(user: schemas.UserSchema, db: Session = Depends(get_db)):
+def sign_up(
+    user: schemas.UserSchema,
+    current_user: user_models.User = Depends(get_current_user),  # ← NEW: get the logged-in user
+    db: Session = Depends(get_db)
+):
+    """
+    Register a new user.
+    - Super admin can register anyone without admin_password
+    - Normal admin must provide valid admin_password
+    """
     # Normalize username
     user.username = user.username.strip().lower()
 
@@ -45,12 +54,16 @@ def sign_up(user: schemas.UserSchema, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=409, detail="Username already exists")
 
-    # 🔒 Enforce admin password for ALL registrations
-    if not user.admin_password or user.admin_password != ADMIN_PASSWORD:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admin can register users. Invalid admin password."
-        )
+    # Determine if current user is super admin
+    is_super_admin_caller = "super_admin" in (current_user.roles or "")
+
+    # Enforce admin_password ONLY if caller is NOT super admin
+    if not is_super_admin_caller:
+        if not user.admin_password or user.admin_password != ADMIN_PASSWORD:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admin can register users. Invalid admin password."
+            )
 
     # ------------------------------
     # Validate and attach business_id
@@ -79,7 +92,7 @@ def sign_up(user: schemas.UserSchema, db: Session = Depends(get_db)):
         db=db,
         user=user,
         hashed_password=hashed_password,
-        business_id=business.id if business else None  # Attach business_id if present
+        business_id=business.id if business else None
     )
 
     return {
@@ -91,7 +104,6 @@ def sign_up(user: schemas.UserSchema, db: Session = Depends(get_db)):
             "business_id": new_user.business_id
         }
     }
-
 
 
 

@@ -7,14 +7,10 @@ import {
 } from "react-router-dom";
 
 // ================= GUARDS =================
-import RequireLicense from "./components/guards/RequireLicense";
 import RequireAuth from "./components/guards/RequireAuth";
 
 // ================= PUBLIC =================
 import HomePage from "./pages/HomePage";
-import LicensePage from "./modules/license/LicensePage";
-
-// ================= AUTH =================
 import LoginPage from "./modules/auth/LoginPage";
 import RegisterPage from "./modules/auth/RegisterPage";
 
@@ -55,8 +51,7 @@ import ProfitLoss from "./components/accounts/ProfitLoss";
 import CreateBank from "./components/accounts/CreateBank";
 import Backup from "./components/accounts/Backup";
 
-
-// ================= USERS =================
+// ================= USERS / MAINTENANCE =================
 import UserManagement from "./modules/users/UserManagement";
 
 // ================= POS =================
@@ -68,75 +63,83 @@ const App = () => {
     <Router>
       <Routes>
 
-        {/* 🌍 PUBLIC */}
+        {/* 🌍 PUBLIC ROUTES - no license check anymore */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/license" element={<LicensePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-        {/* 🔐 LICENSE REQUIRED (BUT NO AUTH) */}
-        <Route element={<RequireLicense />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+        {/* 🔐 AUTH PROTECTED ROUTES */}
+        <Route element={<RequireAuth />}>
+          <Route path="/dashboard" element={<DashboardPage />}>
 
-          {/* 🔑 LICENSE + AUTH REQUIRED */}
-          <Route element={<RequireAuth />}>
-            <Route path="/dashboard" element={<DashboardPage />}>
+            {/* Dashboard default / home */}
+            <Route index element={<UsersPage />} />
 
-              {/* Dashboard Home */}
-              <Route index element={<UsersPage />} />
+            {/* POS */}
+            <Route path="pos" element={<PosSales />} />
+            <Route path="pos-card" element={<POSCardPage />} />
 
-              {/* POS */}
-              <Route path="pos" element={<PosSales />} />
-              <Route path="pos-card" element={<POSCardPage />} />
-
-              {/* SALES */}
-              <Route path="sales">
-                <Route path="list" element={<ListSales />} />
-                <Route path="itemsold" element={<SalesItemSold />} />
-                <Route path="analysis" element={<SalesAnalysis />} />
-                <Route path="staff" element={<StaffSalesReport />} />
-                <Route path="debtor" element={<DebtorSalesReport />} />
-                <Route path="customer" element={<SalesByCustomer />} />
-                <Route path="addpayment" element={<AddPayment />} />
-                <Route path="listpayment" element={<ListSalesPayment />} />
-                <Route path="priceupdate" element={<PriceUpdate />} />
-              </Route>
-
-              {/* STOCK */}
-              <Route path="stock">
-                <Route path="create" element={<CreateProduct />} />
-                <Route path="list" element={<ListProduct />} />
-                <Route path="import" element={<ImportProduct />} />
-                <Route path="inventory" element={<ListInventory />} />
-                <Route path="adjustment" element={<StockAdjustment />} />
-                <Route path="adjustmentlist" element={<ListAdjustment />} />
-              </Route>
-
-              {/* PURCHASE */}
-              <Route path="purchase">
-                <Route path="create" element={<CreatePurchase />} />
-                <Route path="list" element={<ListPurchase />} />
-                <Route path="createvendor" element={<CreateVendor />} />
-                <Route path="listvendor" element={<ListVendor />} />
-              </Route>
-
-              {/* ACCOUNTS */}
-              <Route path="accounts">
-                <Route path="expenses/create" element={<CreateExpenses />} />
-                <Route path="expenses/list" element={<ListExpenses />} />
-                <Route path="revenueitem" element={<RevenueItem />} />
-                <Route path="profitloss" element={<ProfitLoss />} />
-                <Route path="bankmanagement" element={<CreateBank />} />
-                <Route path="backup" element={<Backup />} />
-              </Route>
-
-              {/* USERS */}
-              <Route path="users" element={<UserManagement />} />
-
+            {/* SALES */}
+            <Route path="sales">
+              <Route path="list" element={<ListSales />} />
+              <Route path="itemsold" element={<SalesItemSold />} />
+              <Route path="analysis" element={<SalesAnalysis />} />
+              <Route path="staff" element={<StaffSalesReport />} />
+              <Route path="debtor" element={<DebtorSalesReport />} />
+              <Route path="customer" element={<SalesByCustomer />} />
+              <Route path="addpayment" element={<AddPayment />} />
+              <Route path="listpayment" element={<ListSalesPayment />} />
+              <Route path="priceupdate" element={<PriceUpdate />} />
             </Route>
+
+            {/* STOCK */}
+            <Route path="stock">
+              <Route path="create" element={<CreateProduct />} />
+              <Route path="list" element={<ListProduct />} />
+              <Route path="import" element={<ImportProduct />} />
+              <Route path="inventory" element={<ListInventory />} />
+              <Route path="adjustment" element={<StockAdjustment />} />
+              <Route path="adjustmentlist" element={<ListAdjustment />} />
+            </Route>
+
+            {/* PURCHASE */}
+            <Route path="purchase">
+              <Route path="create" element={<CreatePurchase />} />
+              <Route path="list" element={<ListPurchase />} />
+              <Route path="createvendor" element={<CreateVendor />} />
+              <Route path="listvendor" element={<ListVendor />} />
+            </Route>
+
+            {/* ACCOUNTS */}
+            <Route path="accounts">
+              <Route path="expenses/create" element={<CreateExpenses />} />
+              <Route path="expenses/list" element={<ListExpenses />} />
+              <Route path="revenueitem" element={<RevenueItem />} />
+              <Route path="profitloss" element={<ProfitLoss />} />
+              <Route path="bankmanagement" element={<CreateBank />} />
+              <Route path="backup" element={<backup />} />
+            </Route>
+
+            {/* MAINTENANCE / USERS */}
+            <Route path="users" element={<UserManagement />} />
+
+            {/* ───────────────────────────────────────────────
+                Future super-admin / maintenance-only routes
+                We will add these later when we restructure
+                Maintenance submenu for superadmin
+            ─────────────────────────────────────────────── */}
+            {/* 
+            <Route path="maintenance">
+              <Route path="license" element={<LicensePage />} />           ← planned
+              <Route path="system-settings" element={<SystemSettings />} /> ← future
+              <Route path="audit-logs" element={<AuditLogs />} />          ← future
+            </Route>
+            */}
+
           </Route>
         </Route>
 
-        {/* 🚨 FALLBACK */}
+        {/* 🚨 FALLBACK - redirect unknown paths to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>

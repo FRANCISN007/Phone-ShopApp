@@ -1,10 +1,13 @@
 # app/business/router.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from datetime import datetime
+from sqlalchemy import func
 from app.users.auth import get_current_user
 from app.users.schemas import UserDisplaySchema
+from app.license import models as license_models
 
 
 from app.database import get_db
@@ -66,42 +69,120 @@ def create_business(
 
 @router.get("/", response_model=schemas.BusinessListResponse)
 def list_businesses(
+    active: Optional[bool] = Query(
+        None,
+        description="Filter by license active status: true (active), false (inactive/expired)"
+    ),
+    name: Optional[str] = Query(
+        None,
+        description="Search/filter by business name (partial, case-insensitive)"
+    ),
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(role_required(["super_admin", "admin"]))
 ):
+    """
+    List businesses with:
+    - License active/inactive filter (?active=true/false)
+    - Business name search (?name=xyz)
+    - Sorted by newest creation date first
+    - Real-time expiration_date from latest license
+    - owner_username from DB column
+    """
     roles = set(current_user.roles)
 
     if "super_admin" in roles:
-        businesses = db.query(models.Business).all()
+        # Super admin sees ALL businesses
+        query = db.query(models.Business)
+
+        # Apply name search filter (partial, case-insensitive)
+        if name:
+            query = query.filter(
+                func.lower(models.Business.name).ilike(f"%{name.lower().strip()}%")
+            )
+
+        # Apply active/inactive filter (computed from licenses)
+        if active is not None:
+            subquery = (
+                db.query(license_models.LicenseKey.business_id)
+                .filter(
+                    license_models.LicenseKey.is_active == True,
+                    license_models.LicenseKey.expiration_date >= datetime.utcnow()
+                )
+                .subquery()
+            )
+
+            if active:
+                query = query.filter(models.Business.id.in_(subquery))
+            else:
+                query = query.filter(~models.Business.id.in_(subquery))
+
+        # Sort by newest first
+        query = query.order_by(models.Business.created_at.desc())
+
+        businesses = query.all()
 
         enriched = []
         for biz in businesses:
             biz_out = schemas.BusinessOut.from_orm(biz)
-            biz_out.license_active = biz.is_license_active(db)  # ← set computed value
+
+            # Latest license for active status and expiration date
+            latest_license = (
+                db.query(license_models.LicenseKey)
+                .filter(license_models.LicenseKey.business_id == biz.id)
+                .order_by(license_models.LicenseKey.expiration_date.desc())
+                .first()
+            )
+
+            biz_out.license_active = (
+                latest_license.is_active and latest_license.expiration_date >= datetime.utcnow()
+            ) if latest_license else False
+
+            biz_out.expiration_date = latest_license.expiration_date if latest_license else None
             biz_out.owner_username = biz.owner_username
+
             enriched.append(biz_out)
 
         return {"total": len(enriched), "businesses": enriched}
 
     else:
+        # Normal admin → only their own business
         business = (
             db.query(models.Business)
             .filter(models.Business.id == current_user.business_id)
             .first()
         )
 
-        if not business or not business.is_license_active(db):
+        if not business:
+            return {"total": 0, "businesses": []}
+
+        # Apply name filter (only if it matches their business)
+        if name and name.lower().strip() not in business.name.lower():
+            return {"total": 0, "businesses": []}
+
+        latest_license = (
+            db.query(license_models.LicenseKey)
+            .filter(license_models.LicenseKey.business_id == business.id)
+            .order_by(license_models.LicenseKey.expiration_date.desc())
+            .first()
+        )
+
+        is_active = (
+            latest_license.is_active and latest_license.expiration_date >= datetime.utcnow()
+        ) if latest_license else False
+
+        if active is not None and is_active != active:
             return {"total": 0, "businesses": []}
 
         biz_out = schemas.BusinessOut.from_orm(business)
-        biz_out.license_active = True
+        biz_out.license_active = is_active
+        biz_out.expiration_date = latest_license.expiration_date if latest_license else None
         biz_out.owner_username = business.owner_username
 
         return {
             "total": 1,
             "businesses": [biz_out]
         }
-    
+
 
 @router.get("/{business_id}", response_model=schemas.BusinessOut)
 def get_business(
@@ -109,7 +190,14 @@ def get_business(
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(role_required(["super_admin", "admin"]))
 ):
-    # Fetch business (no need to eager load users – we use owner_username column)
+    """
+    Get details of a single business by ID.
+    
+    - Regular users → only their own business
+    - Super admin → any business
+    - Includes license_active (computed) and expiration_date from latest license
+    """
+    # Fetch business
     business = db.query(models.Business).filter(models.Business.id == business_id).first()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
@@ -119,13 +207,25 @@ def get_business(
     if "super_admin" not in roles and business.id != current_user.business_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    # Safe mapping + computed fields
+    # Safe mapping from ORM
     biz_out = schemas.BusinessOut.from_orm(business)
-    biz_out.license_active = business.is_license_active(db)
+
+    # Get latest license for active status and expiration date
+    latest_license = (
+        db.query(license_models.LicenseKey)
+        .filter(license_models.LicenseKey.business_id == business.id)
+        .order_by(license_models.LicenseKey.expiration_date.desc())
+        .first()
+    )
+
+    biz_out.license_active = (
+        latest_license.is_active and latest_license.expiration_date >= datetime.utcnow()
+    ) if latest_license else False
+
+    biz_out.expiration_date = latest_license.expiration_date if latest_license else None
     biz_out.owner_username = business.owner_username
 
     return biz_out
-
 
 
 @router.put("/{business_id}", response_model=schemas.BusinessOut)
@@ -135,6 +235,14 @@ def update_business(
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(role_required(["super_admin", "admin"]))
 ):
+    """
+    Update business details.
+    
+    - Super admin → any business
+    - Admin → only their own business
+    - Cannot change owner_username or business_id
+    - Returns updated business with computed license_active and expiration_date
+    """
     business = db.query(models.Business).filter(models.Business.id == business_id).first()
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
@@ -143,12 +251,14 @@ def update_business(
     if "super_admin" not in roles and business.id != current_user.business_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    # Apply updates (only allowed fields)
+    # Apply updates (only allowed fields from schema)
     update_data = updated.dict(exclude_unset=True)
 
-    # Optional: prevent changing owner_username or business_id
-    if "owner_username" in update_data or "business_id" in update_data:
-        raise HTTPException(status_code=400, detail="Cannot update owner_username or business_id")
+    # Prevent changing protected fields
+    protected = {"owner_username", "business_id"}
+    for field in protected:
+        if field in update_data:
+            raise HTTPException(status_code=400, detail=f"Cannot update '{field}'")
 
     for field, value in update_data.items():
         setattr(business, field, value)
@@ -158,10 +268,24 @@ def update_business(
 
     # Safe mapping + computed fields
     biz_out = schemas.BusinessOut.from_orm(business)
-    biz_out.license_active = business.is_license_active(db)
+
+    # Latest license for active status and expiration date
+    latest_license = (
+        db.query(license_models.LicenseKey)
+        .filter(license_models.LicenseKey.business_id == business.id)
+        .order_by(license_models.LicenseKey.expiration_date.desc())
+        .first()
+    )
+
+    biz_out.license_active = (
+        latest_license.is_active and latest_license.expiration_date >= datetime.utcnow()
+    ) if latest_license else False
+
+    biz_out.expiration_date = latest_license.expiration_date if latest_license else None
     biz_out.owner_username = business.owner_username
 
     return biz_out
+
 
 # -------------------------------
 # DELETE BUSINESS - SUPER ADMIN ONLY

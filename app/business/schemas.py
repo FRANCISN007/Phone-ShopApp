@@ -27,6 +27,7 @@ class BusinessUpdate(BaseModel):
 class BusinessOut(BusinessBase):
     id: int
     license_active: Optional[bool] = None  # ← allow None, we set it manually
+    expiration_date: Optional[datetime] = None   # ← ADD THIS LINE
     created_at: datetime
     owner_username: Optional[str] = None  # ← NEW: username of the business owner/admin
 

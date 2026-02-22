@@ -2,16 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../api/authService";
 import "./LogReg.css";
-import { Link } from "react-router-dom";
-import { getLicenseExpiryWarning } from "../../utils/licenseUtils";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const warning = getLicenseExpiryWarning();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,9 +16,10 @@ const LoginPage = () => {
     try {
       const user = await loginUser(username.trim().toLowerCase(), password);
       localStorage.setItem("token", user.access_token);
+      // Optional: store full user if your app needs it
+      localStorage.setItem("user", JSON.stringify(user));
 
       navigate("/dashboard");
-
     } catch (err) {
       setError(err?.message || "Invalid username or password.");
     }
@@ -30,12 +27,9 @@ const LoginPage = () => {
 
   return (
     <div className="auth-page-wrapper">
-
-      {/* ⭐ LEFT SIDE DESCRIPTION */}
+      {/* LEFT SIDE DESCRIPTION */}
       <div className="auth-left-panel">
-        <h1 className="app-title">
-          SHopMan App
-        </h1>
+        <h1 className="app-title">SHopMan App</h1>
 
         <p className="app-description">
           The App is a complete Inventory management & Sales solution designed to
@@ -43,7 +37,7 @@ const LoginPage = () => {
         </p>
 
         <ul className="app-features">
-          <li>POS Sales Point </li>
+          <li>POS Sales Point</li>
           <li>Purchases</li>
           <li>Payments & Receipts</li>
           <li>Secured Database Integration</li>
@@ -52,24 +46,18 @@ const LoginPage = () => {
         </ul>
 
         <p className="app-tagline">
-          Fast • Reliable • All-in-One Invenyroty Management System
+          Fast • Reliable • All-in-One Inventory Management System
         </p>
       </div>
 
-      {/* ⭐ RIGHT SIDE LOGIN FORM */}
+      {/* RIGHT SIDE LOGIN FORM */}
       <div className="auth-container">
-
-        {warning && (
-          <div className="license-warning">
-            {warning}
-          </div>
-        )}
-
         <div className="auth-logo-text">
-          SHopMan <span></span> App <span></span>
+          SHopMan <span>App</span>
         </div>
 
         <h2>Login</h2>
+
         <form onSubmit={handleLogin}>
           <input
             type="text"
@@ -77,23 +65,24 @@ const LoginPage = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            autoComplete="username"
           />
+
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
           />
 
           {error && <div className="error">{error}</div>}
 
           <button type="submit">Login</button>
-
-          <p>
-            Don't have an account? <Link to="/register">Register</Link>
-          </p>
         </form>
+
+        {/* No Register link anymore */}
       </div>
 
       <footer className="homes-footer">

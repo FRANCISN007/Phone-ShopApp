@@ -181,8 +181,45 @@ def list_businesses(
         return {
             "total": 1,
             "businesses": [biz_out]
+
         }
 
+
+
+
+from typing import List, Optional
+from fastapi import Query
+from sqlalchemy import func
+
+@router.get("/simple", response_model=List[schemas.BusinessSimple])
+def list_businesses_simple(
+    search: Optional[str] = Query(None, description="Search businesses by name"),
+    limit: int = Query(50, ge=1, le=100, description="Max number of results"),
+    db: Session = Depends(get_db),
+    current_user: UserDisplaySchema = Depends(role_required(["super_admin", "admin"]))
+):
+    """
+    Return a simple list of businesses for dropdowns:
+
+    - Super admin → can search all businesses
+    - Admin → only their own business
+    - Returns only `id` and `name`
+    """
+
+    query = db.query(models.Business.id, models.Business.name)
+
+    # Admin → only their own business
+    if "super_admin" not in set(current_user.roles):
+        query = query.filter(models.Business.id == current_user.business_id)
+    else:
+        # Super admin → apply optional search
+        if search:
+            search_term = f"%{search.strip().lower()}%"
+            query = query.filter(func.lower(models.Business.name).ilike(search_term))
+
+    return query.order_by(models.Business.name.asc()).limit(limit).all()
+
+    
 
 @router.get("/{business_id}", response_model=schemas.BusinessOut)
 def get_business(

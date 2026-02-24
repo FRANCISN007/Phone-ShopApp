@@ -823,6 +823,89 @@ const UserManagement = () => {
             </form>
           )}
 
+          {/* EDIT BUSINESS FORM */}
+          {isSuperAdmin && selectedAction === "edit-business" && editingBusiness && (
+            <form
+              onSubmit={handleUpdateBusiness}
+              className="edit-form compact-form super-admin-form"
+            >
+              <div className="edit-header">
+                <h4>Edit Business (ID: {editingBusiness.id})</h4>
+              </div>
+
+              <label>
+                Business Name:
+                <input
+                  type="text"
+                  value={editingBusiness.name || ""}
+                  onChange={(e) =>
+                    setEditingBusiness({
+                      ...editingBusiness,
+                      name: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </label>
+
+              <label>
+                Address:
+                <input
+                  type="text"
+                  value={editingBusiness.address || ""}
+                  onChange={(e) =>
+                    setEditingBusiness({
+                      ...editingBusiness,
+                      address: e.target.value,
+                    })
+                  }
+                />
+              </label>
+
+              <label>
+                Phone:
+                <input
+                  type="text"
+                  value={editingBusiness.phone || ""}
+                  onChange={(e) =>
+                    setEditingBusiness({
+                      ...editingBusiness,
+                      phone: e.target.value,
+                    })
+                  }
+                />
+              </label>
+
+              <label>
+                Email:
+                <input
+                  type="email"
+                  value={editingBusiness.email || ""}
+                  onChange={(e) =>
+                    setEditingBusiness({
+                      ...editingBusiness,
+                      email: e.target.value,
+                    })
+                  }
+                />
+              </label>
+
+              <div className="form-buttons">
+                <button type="submit">Save Changes</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingBusiness(null);
+                    setSelectedAction("list-businesses");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+
           {/* LICENSE MANAGEMENT - SUPER ADMIN ONLY */}
           {isSuperAdmin && selectedAction === "license-management" && (
             <div className="license-section">

@@ -12,7 +12,8 @@ class ProductBase(BaseModel):
     type: Optional[str] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
-    business_id: int        # 🔑 tenant scoping
+    business_id: Optional[int] = None
+
 
 # -------------------------------
 # Create

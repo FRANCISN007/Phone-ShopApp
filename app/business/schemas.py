@@ -38,3 +38,13 @@ class BusinessOut(BusinessBase):
 class BusinessListResponse(BaseModel):
     total: int
     businesses: List[BusinessOut]
+
+
+
+
+class BusinessSimple(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True

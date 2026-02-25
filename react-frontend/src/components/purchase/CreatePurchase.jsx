@@ -20,19 +20,27 @@ const emptyRow = {
   total: 0,
 };
 
-const CreatePurchase = ({ onClose }) => {
+const CreatePurchase = ({ onClose, currentUser }) => {
+  const roles = currentUser?.roles || [];
+  const isSuperAdmin = roles.includes("super_admin");
+
   const [vendors, setVendors] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
   const [rows, setRows] = useState([{ ...emptyRow }]);
   const [vendorId, setVendorId] = useState("");
+  const [businessId, setBusinessId] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
-  const [invoiceNo, setInvoiceNo] = useState(""); // ✅ renamed
+  const [invoiceNo, setInvoiceNo] = useState("");
   const [message, setMessage] = useState("");
   const [visible, setVisible] = useState(true);
 
+  /* ===================== Fetch Data ===================== */
   useEffect(() => {
     fetchVendors();
+    if (isSuperAdmin) fetchBusinesses();
     setPurchaseDate(new Date().toISOString().split("T")[0]);
   }, []);
+
 
   const fetchVendors = async () => {
     try {
@@ -43,27 +51,31 @@ const CreatePurchase = ({ onClose }) => {
     }
   };
 
+  const fetchBusinesses = async () => {
+    try {
+      const res = await axiosWithAuth().get("/business/simple");
+      setBusinesses(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setBusinesses([]);
+    }
+  };
+
   const searchProducts = async (index, query) => {
     if (!query || query.length < 2) return;
-
     try {
       const res = await axiosWithAuth().get("/stock/products/search", {
         params: { query },
       });
-
       const updated = [...rows];
       updated[index].products = Array.isArray(res.data) ? res.data : [];
       setRows(updated);
     } catch {}
   };
 
+  /* ===================== Row Handlers ===================== */
   const handleRowChange = (index, field, value) => {
     const updated = [...rows];
-
-    if (field === "unitPrice") {
-      value = stripCommas(value);
-    }
-
+    if (field === "unitPrice") value = stripCommas(value);
     updated[index][field] = value;
 
     const qty = parseFloat(updated[index].quantity) || 0;
@@ -84,15 +96,19 @@ const CreatePurchase = ({ onClose }) => {
   const addRow = () => setRows([...rows, { ...emptyRow }]);
   const removeRow = (index) => setRows(rows.filter((_, i) => i !== index));
 
-  /* ===========================
-     SUBMIT
-  ============================ */
+  /* ===================== Submit ===================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
     if (!invoiceNo) {
       setMessage("❌ Invoice number is required");
+      return;
+    }
+
+    // Super admin must select business
+    if (isSuperAdmin && !businessId) {
+      setMessage("❌ Please select a business");
       return;
     }
 
@@ -103,12 +119,13 @@ const CreatePurchase = ({ onClose }) => {
         if (!row.productId || !row.quantity || !row.unitPrice) continue;
 
         await axios.post("/purchase/", {
-          invoice_no: invoiceNo,                 // ✅ FIX
+          invoice_no: invoiceNo,
           product_id: Number(row.productId),
           quantity: Number(row.quantity),
           cost_price: Number(row.unitPrice),
           vendor_id: vendorId ? Number(vendorId) : null,
           purchase_date: purchaseDate,
+          business_id: businessId || undefined,
         });
       }
 
@@ -117,6 +134,7 @@ const CreatePurchase = ({ onClose }) => {
       setVendorId("");
       setInvoiceNo("");
       setPurchaseDate(new Date().toISOString().split("T")[0]);
+      setBusinessId("");
     } catch (err) {
       setMessage(err.response?.data?.detail || "❌ Failed to save purchase");
     }
@@ -134,15 +152,17 @@ const CreatePurchase = ({ onClose }) => {
     else setVisible(false);
   };
 
+  /* ===================== Render ===================== */
   return (
     <div className="create-purchase-container">
       <button className="close-btn" onClick={handleClose}>✖</button>
-
       <h2>Add New Purchase</h2>
       {message && <p className="message">{message}</p>}
 
       <form onSubmit={handleSubmit} className="purchase-form">
         <div className="form-grid">
+
+          {/* Vendor Selector */}
           <div className="form-group">
             <label>Vendor</label>
             <select
@@ -158,6 +178,7 @@ const CreatePurchase = ({ onClose }) => {
             </select>
           </div>
 
+          {/* Purchase Date */}
           <div className="form-group">
             <label>Purchase Date</label>
             <input
@@ -168,6 +189,7 @@ const CreatePurchase = ({ onClose }) => {
             />
           </div>
 
+          {/* Invoice Number */}
           <div className="form-group">
             <label>Invoice Number</label>
             <input
@@ -177,6 +199,26 @@ const CreatePurchase = ({ onClose }) => {
               required
             />
           </div>
+
+          {/* Business Selector (Super Admin Only) */}
+          {isSuperAdmin && (
+            <div className="form-group">
+              <label>Business</label>
+              <select
+                value={businessId}
+                onChange={(e) => setBusinessId(e.target.value)}
+                required
+              >
+                <option value="">Select Business</option>
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
         </div>
 
         {/* ===== ITEMS TABLE ===== */}

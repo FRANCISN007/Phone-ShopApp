@@ -1,39 +1,61 @@
-/* ===== Container ===== */
+/* ===============================
+   MAIN CONTAINER
+================================= */
 .create-purchase-container {
-  max-width: 800px;
-  margin: 1px auto;
-  background: #e6e2e2;
-  padding: 4px;
+  max-width: 1300px;
+  width: 96%;
+  margin: 5px auto;
+  background: #eeebeb;
+  padding: 16px 20px;
   border-radius: 10px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-  font-family: Arial, sans-serif;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  font-family: "Segoe UI", Tahoma, sans-serif;
   position: relative;
 }
 
 .create-purchase-container h2 {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 15px;
-  color: #333;
+  margin-bottom: 12px;
+  color: #090a0a;
 }
 
-/* ===== Message ===== */
-.message {
-  margin-bottom: 15px;
-  font-size: 14px;
-  padding: 8px;
+/* ===============================
+   CLOSE BUTTON
+================================= */
+.close-btn {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  background: #f3f4f6;
+  border: none;
+  padding: 4px 8px;
   border-radius: 6px;
-  background: #e7f3ff;
-  color: #0d6efd;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* ===============================
+   MESSAGE
+================================= */
+.message {
+  margin-bottom: 10px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #eef4ff;
+  color: #1d4ed8;
   font-weight: 500;
 }
 
-/* ===== Top Form Grid ===== */
+/* ===============================
+   TOP FORM GRID
+================================= */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
-  margin-bottom: 5px;
+  margin-bottom: 15px;
 }
 
 .form-group {
@@ -42,145 +64,160 @@
 }
 
 .form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 0px;
-  color: #000000;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  color: #141414;
 }
 
 .form-group input,
 .form-group select {
-  padding: 6px;
-  border: 1px solid #ccc;
+  padding: 6px 8px;
+  border: 1px solid #c1cddf;
   border-radius: 6px;
-  font-size: 14px;
-  background-color: #fff;
+  font-size: 13px;
+  background: #f9fafb;
 }
 
 .form-group input:focus,
 .form-group select:focus {
-  border-color: #3498db;
+  border-color: #2563eb;
+  background: #ffffff;
   outline: none;
 }
 
-/* ===== Purchase Items Table ===== */
+/* ===============================
+   TABLE
+================================= */
 .purchase-items-table {
   width: 100%;
-  border: 1px solid #ddd;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #fff;
+  background: #ffffff;
   overflow-x: auto;
 }
 
+/* HEADER */
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 2fr 2fr 2fr 0fr; /* ✅ match table-row */
-  background-color: #b9b3b3;
-  padding: 3px;
+  grid-template-columns: 3fr 1fr 1.5fr 1.5fr 0.6fr;
+  padding: 8px 10px;
   font-weight: 600;
   font-size: 14px;
-  border-bottom: 1px solid #b48f8f;
-  color: #111010;
-  text-align: center;       /* ✅ center headings */
-  align-items: center;      /* vertical centering */
+  background: #f3f4f6;
+  color: #000000;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-
+/* ROW */
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 2fr 2fr 2fr 0fr;
-  gap: 2px;
-  padding: 5px;
+  grid-template-columns: 3fr 1fr 1.5fr 1.5fr 0.6fr;
+  gap: 8px;
+  padding: 2px 4px;
   align-items: center;
-  border-bottom: 1px solid #c2aeae;
+  border-bottom: 1px solid #d8e2ec;
 }
 
-
-
-.table-row:nth-child(even) {
-  background-color: #aed6bf;
-}
-
-.table-row input,
-.table-row select {
-  padding: 8px;
-  border: 1px solid #ccc;
+.table-row input {
+  padding: 5px 6px;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 14px;
-  
-  
+  font-size: 12px;
 }
-
-
-.table-row input,
-.table-row select {
-  padding: 2px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-  text-align:left;      /* ✅ center text */
-}
-
-
 
 .table-row input[readonly] {
-  background: #f0f0f0;
-  cursor: not-allowed;
+  background: #f3f4f6;
+  color: #000000;
 }
 
-/* ===== Buttons ===== */
-.add-row-btn {
-  margin-top: 2px;
-  background-color: #27ae60;
-  color: #fff;
-  border: none;
+/* ===============================
+   PRODUCT DROPDOWN
+================================= */
+.product-search {
+  position: relative;
+}
+
+.product-dropdown {
+  position: absolute;
+  top: 102%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.06);
+}
+
+.product-option {
   padding: 6px 8px;
-  font-size: 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.product-option:hover {
+  background: #f3f4f6;
+}
+
+/* ===============================
+   BUTTONS
+================================= */
+.add-row-btn {
+  margin-top: 10px;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
   border-radius: 6px;
   cursor: pointer;
 }
 
 .add-row-btn:hover {
-  background-color: #219150;
+  background: #15803d;
 }
 
 .remove-btn {
-  background-color: #e74c3c;
-  color: #fff;
+  background: #ef4444;
+  color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 6px;
-  font-size: 13px;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 11px;
   cursor: pointer;
 }
 
 .remove-btn:hover {
-  background-color: #c0392b;
+  background: #dc2626;
 }
 
 .submit-button {
   margin-top: 15px;
-  background-color: #3498db;
-  color: #fff;
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
   border: none;
-  padding: 4px 8px;
-  font-size: 15px;
-  border-radius: 6px;
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
 }
 
 .submit-button:hover {
-  background-color: #2980b9;
+  background: #1d4ed8;
 }
 
-/* ===== Invoice Total ===== */
+/* ===============================
+   TOTAL
+================================= */
 .invoice-total {
-  margin-top: 0px;
+  margin-top: 10px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   text-align: right;
-  color: #1a1919;
+  color: #111827;
 }
-
-
-

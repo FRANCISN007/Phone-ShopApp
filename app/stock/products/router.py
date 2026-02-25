@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List
 import pandas as pd
@@ -288,10 +288,11 @@ def delete_product_endpoint(
 
 
 
+# ------------------- IMPORT EXCEL -------------------
 @router.post("/import-excel")
 def import_products_from_excel(
     file: UploadFile = File(...),
-    business_id: Optional[int] = None,
+    business_id: Optional[int] = Form(None),  # 🔹 use Form to receive from multipart/form-data
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
         role_required(["admin", "super_admin"])
@@ -300,6 +301,7 @@ def import_products_from_excel(
     return service.import_products_from_excel(
         db, file, current_user, business_id
     )
+
 
 
 @router.put(

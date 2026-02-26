@@ -1,4 +1,4 @@
-// print_A4_receipt.jsx
+// print_A4_receipt_formatted.jsx
 export const printA4Receipt = ({
   SHOP_NAME,
   invoice,
@@ -7,16 +7,18 @@ export const printA4Receipt = ({
   customerPhone,
   refNo,
   paymentMethod,
-  amountPaid,
-  grossTotal,
-  totalDiscount,
-  netTotal,
-  balance,
-  items,
-  amountInWords,
-  formatCurrency
+  amountPaid = 0,
+  grossTotal = 0,
+  totalDiscount = 0,
+  netTotal = 0,
+  balance = 0,
+  items = [],
+  amountInWords
 }) => {
   const printWindow = window.open("", "_blank", "width=800,height=600");
+
+  // Helper to format numbers with commas
+  const formatNumber = (num) => Number(num).toLocaleString();
 
   const itemsHtml = items
     .map(
@@ -24,10 +26,10 @@ export const printA4Receipt = ({
       <tr>
         <td style="width:30%">${item.product_name}</td>
         <td style="width:8%; text-align:center;">${item.quantity}</td>
-        <td style="width:12%; text-align:right;">${formatCurrency(item.selling_price)}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.gross_amount)}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.discount || 0)}</td>
-        <td style="width:20%; text-align:right;">${formatCurrency(item.net_amount)}</td>
+        <td style="width:12%; text-align:right;">${formatNumber(item.selling_price)}</td>
+        <td style="width:15%; text-align:right;">${formatNumber(item.gross_amount)}</td>
+        <td style="width:15%; text-align:right;">${formatNumber(item.discount || 0)}</td>
+        <td style="width:20%; text-align:right;">${formatNumber(item.net_amount)}</td>
       </tr>
     `
     )
@@ -53,7 +55,9 @@ export const printA4Receipt = ({
             text-align: left;
             font-size: 11px;
           }
-          td { padding: 4px 0; font-size: 11px; }
+          td { padding: 4px 0; font-size: 11px; text-align:right; }
+          td:first-child { text-align:left; }
+          td:nth-child(2) { text-align:center; }
           .total-line {
             display: flex;
             justify-content: space-between;
@@ -77,12 +81,7 @@ export const printA4Receipt = ({
         <div>Phone: ${customerPhone || "-"}</div>
         <div>Ref No: ${refNo || "-"}</div>
         <div>
-          Payment:
-          ${
-            amountPaid > 0 && paymentMethod
-              ? paymentMethod.toUpperCase()
-              : "NOT PAID"
-          }
+          Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}
         </div>
         <hr />
 
@@ -90,11 +89,11 @@ export const printA4Receipt = ({
           <thead>
             <tr>
               <th>Product</th>
-              <th style="text-align:center;">Qty</th>
-              <th style="text-align:right;">Price</th>
-              <th style="text-align:right;">Gross</th>
-              <th style="text-align:right;">Discount</th>
-              <th style="text-align:right;">Net</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Gross</th>
+              <th>Discount</th>
+              <th>Net</th>
             </tr>
           </thead>
           <tbody>
@@ -106,27 +105,27 @@ export const printA4Receipt = ({
 
         <div class="total-line">
           <span>Gross Total:</span>
-          <span>${formatCurrency(grossTotal)}</span>
+          <span>${formatNumber(grossTotal)}</span>
         </div>
 
         <div class="total-line">
           <span>Total Discount:</span>
-          <span>- ${formatCurrency(totalDiscount)}</span>
+          <span>- ${formatNumber(totalDiscount)}</span>
         </div>
 
         <div class="total-line">
           <span>Net Total:</span>
-          <span>${formatCurrency(netTotal)}</span>
+          <span>${formatNumber(netTotal)}</span>
         </div>
 
         <div class="total-line">
           <span>Paid:</span>
-          <span>${formatCurrency(amountPaid)}</span>
+          <span>${formatNumber(amountPaid)}</span>
         </div>
 
         <div class="total-line">
           <span>Balance:</span>
-          <span>${formatCurrency(balance)}</span>
+          <span>${formatNumber(balance)}</span>
         </div>
 
         <hr />

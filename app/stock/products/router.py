@@ -71,6 +71,7 @@ def create_product(
 def list_products(
     category: Optional[str] = None,
     name: Optional[str] = None,
+    business_id: Optional[int] = None,   # ✅ NEW
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(
         role_required(["user", "manager", "admin", "super_admin"])
@@ -81,6 +82,7 @@ def list_products(
         current_user=current_user,
         category=category,
         name=name,
+        business_id=business_id,   # ✅ PASS IT
     )
 
     return [
@@ -92,7 +94,7 @@ def list_products(
             cost_price=p.cost_price,
             selling_price=p.selling_price,
             is_active=p.is_active,
-            business_id=p.business_id, 
+            business_id=p.business_id,
             created_at=p.created_at,
         )
         for p in products

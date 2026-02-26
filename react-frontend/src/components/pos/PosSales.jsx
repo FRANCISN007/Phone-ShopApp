@@ -30,6 +30,10 @@ const PosSales = ({ onClose }) => {
   const [refNo, setRefNo] = useState("");
   const [showBankDropdown, setShowBankDropdown] = useState(false);
 
+  const [businesses, setBusinesses] = useState([]);  // for super admin
+  const [businessId, setBusinessId] = useState(null);  // selected business
+  
+
 
   const [receiptFormat, setReceiptFormat] = useState("80mm"); // default
 
@@ -99,35 +103,33 @@ const PosSales = ({ onClose }) => {
   ================================ */
   useEffect(() => {
     const token = localStorage.getItem("token");
-    
+
     axios.get(`${API_BASE_URL}/stock/products/simple`, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setProducts(res.data))
+    })
+      .then(res => setProducts(res.data))
       .catch(console.error);
 
-    axios
-    .get(`${API_BASE_URL}/bank/simple`, {
+    axios.get(`${API_BASE_URL}/bank/simple`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    .then((res) => {
-      if (Array.isArray(res.data)) {
-        setBanks(res.data);
-      } else {
-        console.error("Banks API did not return an array:", res.data);
-        setBanks([]);
-      }
-    })
-    .catch((err) => {
-      console.error("Failed to load banks:", err);
-      setBanks([]);
-    });
+      .then(res => setBanks(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setBanks([]));
 
-    const today = new Date().toISOString().split("T")[0];
-    setInvoiceDate(today);
+    // ✅ FETCH BUSINESSES (LIKE POSCARD)
+    const currentUserRoles = JSON.parse(localStorage.getItem("user_roles") || "[]");
 
-    // ✅ Generate first invoice immediately
-    
+    if (currentUserRoles.includes("super_admin")) {
+      axios.get(`${API_BASE_URL}/business/simple`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(res => setBusinesses(res.data))
+        .catch(() => setBusinesses([]));
+    }
+
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
   }, []);
+
 
 
   useEffect(() => {
@@ -311,12 +313,29 @@ const validateSale = () => {
 const handleSubmit = async () => {
   if (!validateSale()) return;
 
+  // ✅ SUPER ADMIN MUST SELECT BUSINESS
+  if (businesses.length > 0 && !businessId) {
+    return alert("Please select a business");
+  }
+
+  if (!paymentMethod) {
+    return alert("Select payment method");
+  }
+
+  if (amountPaid < 0) {
+    return alert("Amount cannot be negative");
+  }
+
+  if (paymentMethod !== "cash" && !bankId) {
+    return alert("Please select a bank");
+  }
+
   const token = localStorage.getItem("token");
 
   try {
     const salePayload = {
       invoice_date: invoiceDate,
-      customer_name: customerName.trim(),
+      customer_name: customerName.trim() || "Walk-in",
       customer_phone: customerPhone.trim() || null,
       ref_no: refNo.trim() || null,
       items: saleItems.map(item => ({
@@ -325,9 +344,10 @@ const handleSubmit = async () => {
         selling_price: item.sellingPrice,
         discount: item.discount || 0,
       })),
+      // ✅ EXACTLY LIKE POSCARD
+      ...(businessId && { business_id: businessId }),
     };
 
-    // ✅ ONE REQUEST ONLY
     const saleRes = await axios.post(
       `${API_BASE_URL}/sales/`,
       salePayload,
@@ -337,38 +357,26 @@ const handleSubmit = async () => {
     const invoice = saleRes.data.invoice_no;
     setInvoiceNo(invoice);
 
-    /* ===============================
-       CREATE PAYMENT (uses invoice_no)
-    ================================ */
+    // ✅ USE invoice VARIABLE (NOT invoiceNo STATE)
     if (amountPaid > 0) {
-    const paymentPayload = {
-      amount_paid: amountPaid,
-      payment_method: paymentMethod,
-    };
+      const paymentPayload = {
+        amount_paid: amountPaid,
+        payment_method: paymentMethod,
+        ...(paymentMethod !== "cash" && { bank_id: bankId }),
+      };
 
-    if (paymentMethod !== "cash") {
-      if (!bankId) {
-        alert("Please select a bank");
-        return;
-      }
-      paymentPayload.bank_id = bankId;
+      await axios.post(
+        `${API_BASE_URL}/payments/${invoice}/payments`,
+        paymentPayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
     }
 
-    await axios.post(
-      `${API_BASE_URL}/payments/sale/${invoice}`,
-      paymentPayload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
-
-
     handlePrintReceipt(invoice);
+
     alert("Sale completed successfully");
 
     resetForm();
-    
-    
-
     setAmountPaid(0);
     setBankId("");
     setInvoiceNo("");
@@ -384,6 +392,7 @@ const handleSubmit = async () => {
     }
   }
 };
+
 
 
 
@@ -431,6 +440,24 @@ const handleSubmit = async () => {
     {/* Top Info */}
     <div className="pos-meta-grid">
       <div className="input-group">
+
+        {businesses.length > 0 && (
+            <div className="input-group">
+              <label>Business</label>
+              <select
+                value={businessId || ""}
+                onChange={(e) => setBusinessId(Number(e.target.value))}
+              >
+                <option value="">-- Select Business --</option>
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
         <label>Customer Name</label>
         <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
       </div>

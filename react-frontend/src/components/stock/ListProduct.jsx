@@ -6,24 +6,40 @@ const ListProduct = () => {
   /* ================= State ================= */
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [editProduct, setEditProduct] = useState(null);
 
-  // 🔍 Filters
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
+
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [show, setShow] = useState(true); // controls visibility
+  const [show, setShow] = useState(true);
 
   /* ================= Helpers ================= */
-  const formatAmount = (value) => (value == null ? "-" : Number(value).toLocaleString());
-  const cleanPrice = (value) => (value == null || value === "" ? 0 : Number(String(value).replace(/,/g, "")));
+  const formatAmount = (value) =>
+    value == null ? "-" : Number(value).toLocaleString();
 
-  /* ================= Fetch ================= */
+  const cleanPrice = (value) =>
+    value == null || value === ""
+      ? 0
+      : Number(String(value).replace(/,/g, ""));
+
+  /* ================= Fetch Functions ================= */
   const fetchProducts = async () => {
     setLoading(true);
+    setError("");
+
     try {
-      const res = await axiosWithAuth().get("/stock/products/");
+      const params = {};
+      if (selectedBusinessId) {
+        params.business_id = Number(selectedBusinessId);
+      }
+
+      const res = await axiosWithAuth().get("/stock/products/", { params });
       setProducts(res.data);
     } catch (err) {
       console.error(err);
@@ -42,16 +58,36 @@ const ListProduct = () => {
     }
   };
 
+  const fetchBusinesses = async () => {
+    try {
+      const res = await axiosWithAuth().get("/business/simple");
+      setBusinesses(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to load businesses:", err);
+      setBusinesses([]);
+    }
+  };
+
+  /* ================= Initial Load ================= */
+  useEffect(() => {
+    fetchCategories();
+    fetchBusinesses();
+  }, []);
+
+  /* ================= Refetch When Business Changes ================= */
   useEffect(() => {
     fetchProducts();
-    fetchCategories();
-  }, []);
+  }, [selectedBusinessId]);
 
   /* ================= Filtering ================= */
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const matchesName = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "" || p.category === selectedCategory;
+      const matchesName = p.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "" || p.category === selectedCategory;
+
       return matchesName && matchesCategory;
     });
   }, [products, searchTerm, selectedCategory]);
@@ -61,6 +97,7 @@ const ListProduct = () => {
   /* ================= Actions ================= */
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
+
     try {
       await axiosWithAuth().delete(`/stock/products/${id}`);
       setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -80,6 +117,7 @@ const ListProduct = () => {
       cost_price: cleanPrice(editProduct.cost_price),
       selling_price: cleanPrice(editProduct.selling_price),
     };
+
     try {
       const res = await axiosWithAuth().put(`/stock/products/${payload.id}`, payload);
       setProducts((prev) => prev.map((p) => (p.id === payload.id ? res.data : p)));
@@ -111,13 +149,24 @@ const ListProduct = () => {
 
   return (
     <div className="list-container">
-      {/* ================= Close Button ================= */}
       <button className="close-btn" onClick={() => setShow(false)}>✖</button>
       <h2>Product List</h2>
 
       {/* ================= Filters + Summary ================= */}
       <div className="filters-row">
         <div className="filters">
+          {/* Business Selector */}
+          <select
+            value={selectedBusinessId}
+            onChange={(e) => setSelectedBusinessId(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Businesses</option>
+            {businesses.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+
           <input
             type="text"
             placeholder="Search product name..."
@@ -125,6 +174,7 @@ const ListProduct = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="filter-input"
           />
+
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -159,34 +209,34 @@ const ListProduct = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredProducts.length === 0 && (
+          {filteredProducts.length === 0 ? (
             <tr>
               <td colSpan={9} style={{ textAlign: "center" }}>No products found.</td>
             </tr>
+          ) : (
+            filteredProducts.map((p) => (
+              <tr key={p.id}>
+                <td>{p.id}</td>
+                <td>{p.name}</td>
+                <td>{p.category}</td>
+                <td>{p.type || "-"}</td>
+                <td>{formatAmount(p.cost_price)}</td>
+                <td>{formatAmount(p.selling_price)}</td>
+                <td>{new Date(p.created_at).toLocaleString()}</td>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={p.is_active}
+                    onChange={() => handleToggleActive(p)}
+                  />
+                </td>
+                <td className="actions">
+                  <button className="edit-btn" onClick={() => handleEdit(p)}>✏️</button>
+                  <button className="delete-btn" onClick={() => handleDelete(p.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))
           )}
-
-          {filteredProducts.map((p) => (
-            <tr key={p.id}>
-              <td>{p.id}</td>
-              <td>{p.name}</td>
-              <td>{p.category}</td>
-              <td>{p.type || "-"}</td>
-              <td>{formatAmount(p.cost_price)}</td>
-              <td>{formatAmount(p.selling_price)}</td>
-              <td>{new Date(p.created_at).toLocaleString()}</td>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={p.is_active}
-                  onChange={() => handleToggleActive(p)}
-                />
-              </td>
-              <td className="actions">
-                <button className="edit-btn" onClick={() => handleEdit(p)}>✏️</button>
-                <button className="delete-btn" onClick={() => handleDelete(p.id)}>🗑️</button>
-              </td>
-            </tr>
-          ))}
         </tbody>
       </table>
 

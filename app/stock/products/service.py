@@ -123,16 +123,22 @@ def get_products(
     current_user,
     category: Optional[str] = None,
     name: Optional[str] = None,
+    business_id: Optional[int] = None,   # ✅ NEW
     active_only: bool = False,
 ):
     query = db.query(models.Product).options(
         joinedload(models.Product.category)
     )
 
-    # 🔑 Tenant isolation (same logic as bank)
-    if "admin" in current_user.roles or \
-       "manager" in current_user.roles or \
-       "user" in current_user.roles:
+    # 🔑 TENANT ISOLATION
+    if "super_admin" in current_user.roles:
+        # Super admin can filter by business_id if provided
+        if business_id:
+            query = query.filter(models.Product.business_id == business_id)
+        # else → no filter = see all businesses
+
+    else:
+        # Normal users restricted
         query = query.filter(
             models.Product.business_id == current_user.business_id
         )

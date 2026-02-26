@@ -1,36 +1,38 @@
-// print_80mm_receipt.jsx
+// print_80mm_receipt_thermal_formatted.jsx
 export const print80mmReceipt = ({
-  SHOP_NAME,
-  invoice,
-  invoiceDate,
-  customerName,
-  customerPhone,
-  refNo,
-  paymentMethod,
-  amountPaid,
-  grossTotal,
-  totalDiscount,
-  netTotal,
-  balance,
-  items,
-  amountInWords,
-  formatCurrency
+  SHOP_NAME = "SHOP",
+  invoice = "-",
+  invoiceDate = "-",
+  customerName = "-",
+  customerPhone = "-",
+  refNo = "-",
+  paymentMethod = "-",
+  amountPaid = 0,
+  grossTotal = 0,
+  totalDiscount = 0,
+  netTotal = 0,
+  balance = 0,
+  items = [],
+  amountInWords = ""
 }) => {
-  const printWindow = window.open("", "_blank", "width=320,height=600");
+  const printWindow = window.open("", "_blank");
 
-  // Map items into rows for thermal receipt
+  // Helper to format numbers with commas
+  const formatNumber = (num) => Number(num).toLocaleString();
+
+  // Map items into rows with formatted figures
   const itemsHtml = items
     .map(
       (item) => `
-      <tr>
-        <td style="width:35%">${item.product_name}</td>
-        <td style="width:10%; text-align:center;">${item.quantity}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.selling_price)}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.gross_amount)}</td>
-        <td style="width:10%; text-align:right;">${formatCurrency(item.discount || 0)}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.net_amount)}</td>
-      </tr>
-    `
+        <tr>
+          <td style="width:35%">${item.product_name}</td>
+          <td style="width:10%; text-align:center;">${item.quantity}</td>
+          <td style="width:15%; text-align:right;">${formatNumber(item.selling_price)}</td>
+          <td style="width:15%; text-align:right;">${formatNumber(item.gross_amount)}</td>
+          <td style="width:10%; text-align:right;">${formatNumber(item.discount || 0)}</td>
+          <td style="width:15%; text-align:right;">${formatNumber(item.net_amount)}</td>
+        </tr>
+      `
     )
     .join("");
 
@@ -39,40 +41,52 @@ export const print80mmReceipt = ({
       <head>
         <title>Receipt-80mm</title>
         <style>
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
           body {
-            font-family: monospace;
-            font-size: 10px;
+            font-family: monospace, Arial, sans-serif;
+            font-size: 9px; /* smaller font */
             padding: 5px;
+            margin: 0;
+            width: 80mm;
           }
           .center { text-align: center; }
           .bold { font-weight: bold; }
           hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
-          table { width: 100%; border-collapse: collapse; }
+          table { width: 100%; border-collapse: collapse; font-size: 9px; }
           th { text-align: left; font-weight: bold; padding-bottom: 2px; }
           td { padding: 1px 0; }
           .total-line {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
+            font-size: 9px; /* smaller font */
             margin-top: 2px;
           }
           .footer {
             margin-top: 5px;
             text-align: center;
-            font-size: 9px;
+            font-size: 8px; /* smaller footer font */
+          }
+          @media print {
+            body { width: 80mm; }
+            table, th, td { font-size: 9px; }
+            hr { margin: 2px 0; }
           }
         </style>
       </head>
       <body>
-        <div class="center bold">${SHOP_NAME}</div>
+        <div class="center bold">${SHOP_NAME.toUpperCase()}</div>
         <div class="center">SALES RECEIPT</div>
         <hr />
 
         <div>Invoice: ${invoice}</div>
         <div>Date: ${invoiceDate}</div>
-        <div>Customer: ${customerName || "-"}</div>
-        <div>Phone: ${customerPhone || "-"}</div>
-        <div>Ref No: ${refNo || "-"}</div>
+        <div>Customer: ${customerName}</div>
+        <div>Phone: ${customerPhone}</div>
+        <div>Ref No: ${refNo}</div>
         <div>
           Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}
         </div>
@@ -99,32 +113,32 @@ export const print80mmReceipt = ({
 
         <div class="total-line">
           <span>Gross Total:</span>
-          <span>${formatCurrency(grossTotal)}</span>
+          <span>${formatNumber(grossTotal)}</span>
         </div>
 
         <div class="total-line">
           <span>Total Discount:</span>
-          <span>- ${formatCurrency(totalDiscount)}</span>
+          <span>- ${formatNumber(totalDiscount)}</span>
         </div>
 
         <div class="total-line">
           <span>Net Total:</span>
-          <span>${formatCurrency(netTotal)}</span>
+          <span>${formatNumber(netTotal)}</span>
         </div>
 
         <div class="total-line">
           <span>Paid:</span>
-          <span>${formatCurrency(amountPaid)}</span>
+          <span>${formatNumber(amountPaid)}</span>
         </div>
 
         <div class="total-line">
           <span>Balance:</span>
-          <span>${formatCurrency(balance)}</span>
+          <span>${formatNumber(balance)}</span>
         </div>
 
         <hr />
 
-        <div style="margin-top:4px; font-size:9px;">
+        <div style="margin-top:4px; font-size:8px;">
           <strong>Amount in Words:</strong><br/>
           ${amountInWords}
         </div>

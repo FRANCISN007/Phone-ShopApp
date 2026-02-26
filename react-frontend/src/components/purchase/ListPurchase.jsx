@@ -3,20 +3,22 @@ import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./ListPurchase.css";
 
 const ListPurchase = () => {
+  /* ================= STATE ================= */
   const [purchases, setPurchases] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
   const [show, setShow] = useState(true);
 
   /* ================= FILTER STATES ================= */
-  const [vendorId, setVendorId] = useState("");
-  const [productId, setProductId] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [productId, setProductId] = useState("");
+  const [vendorId, setVendorId] = useState("");
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
 
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
   const formatDate = (d) => d.toISOString().split("T")[0];
-
   const [startDate, setStartDate] = useState(formatDate(firstDay));
   const [endDate, setEndDate] = useState(formatDate(today));
 
@@ -29,7 +31,12 @@ const ListPurchase = () => {
     quantity: "",
     cost_price: "",
     vendor_id: "",
+    business_id: "",
   });
+
+  /* ================= ROLE ================= */
+  const roles = JSON.parse(localStorage.getItem("user_roles") || "[]");
+  const isSuperAdmin = roles.includes("super_admin");
 
   /* ================= COMPUTED ================= */
   const grandTotal = purchases.reduce(
@@ -38,53 +45,98 @@ const ListPurchase = () => {
   );
 
   /* ================= FETCH DATA ================= */
-  const fetchPurchases = useCallback(async () => {
+  const fetchCurrentUser = async () => {
     try {
-      const params = {};
-      if (invoiceNo) params.invoice_no = invoiceNo;
-      if (productId) params.product_id = productId;
-      if (vendorId) params.vendor_id = vendorId;
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
-
-      const res = await axiosWithAuth().get("/purchase/", { params });
-      setPurchases(res.data);
-    } catch {
-      console.error("Failed to load purchases");
+      const res = await axiosWithAuth().get("/auth/me");
+      if (res.data?.business && !isSuperAdmin) {
+        setSelectedBusinessId(res.data.business.id);
+        setBusinesses([res.data.business]); // admin sees only their business
+      }
+    } catch (err) {
+      console.error("Failed to fetch current user info", err);
     }
-  }, [invoiceNo, productId, vendorId, startDate, endDate]);
+  };
+
+  /* ================= FETCH BUSINESS ================= */
+  const fetchBusinesses = async () => {
+    try {
+      const res = await axiosWithAuth().get("/business/simple");
+      const data = Array.isArray(res.data) ? res.data : [];
+      setBusinesses(data);
+
+      // If not selected yet, set default selection
+      if (!selectedBusinessId) {
+        if (!isSuperAdmin && data.length > 0) {
+          setSelectedBusinessId(data[0].id); // admin default
+        } else {
+          setSelectedBusinessId(""); // super admin default
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch businesses", err);
+      setBusinesses([]);
+    }
+  };
+
 
   const fetchVendors = async () => {
     try {
       const res = await axiosWithAuth().get("/vendor/simple");
-      setVendors(res.data);
-    } catch {
-      console.error("Failed to load vendors");
+      setVendors(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch vendors", err);
+      setVendors([]);
     }
   };
 
   const fetchProductsSimple = async () => {
     try {
       const res = await axiosWithAuth().get("/stock/products/simple");
-      setAllProducts(res.data);
-    } catch {
-      console.error("Failed to load products");
+      setAllProducts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch products", err);
+      setAllProducts([]);
     }
   };
 
+  const fetchPurchases = useCallback(async () => {
+    try {
+      const params = {};
+      if (invoiceNo) params.invoice_no = invoiceNo;
+      if (productId) params.product_id = productId;
+      if (vendorId) params.vendor_id = vendorId;
+      if (selectedBusinessId) params.business_id = selectedBusinessId;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const res = await axiosWithAuth().get("/purchase/", { params });
+      setPurchases(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch purchases", err);
+      setPurchases([]);
+    }
+  }, [invoiceNo, productId, vendorId, selectedBusinessId, startDate, endDate]);
+
+  /* ================= INITIAL LOAD ================= */
   useEffect(() => {
-    fetchPurchases();
+    fetchCurrentUser();
+    fetchBusinesses();
     fetchVendors();
     fetchProductsSimple();
+  }, []);
+
+
+  useEffect(() => {
+    fetchPurchases();
   }, [fetchPurchases]);
 
   /* ================= FILTER ACTIONS ================= */
   const applyFilters = () => fetchPurchases();
-
   const resetFilters = () => {
     setInvoiceNo("");
     setVendorId("");
     setProductId("");
+    setSelectedBusinessId(isSuperAdmin ? "" : businesses[0]?.id || "");
     setStartDate(formatDate(firstDay));
     setEndDate(formatDate(today));
     fetchPurchases();
@@ -93,7 +145,6 @@ const ListPurchase = () => {
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this purchase?")) return;
-
     try {
       await axiosWithAuth().delete(`/purchase/${id}`);
       fetchPurchases();
@@ -111,6 +162,7 @@ const ListPurchase = () => {
       quantity: Number(p.quantity),
       cost_price: Number(p.cost_price),
       vendor_id: p.vendor_id,
+      business_id: p.business_id || selectedBusinessId || "",
     });
     setShowEdit(true);
   };
@@ -130,7 +182,6 @@ const ListPurchase = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-
     try {
       await axiosWithAuth().put(`/purchase/${editData.id}`, {
         invoice_no: editData.invoice_no,
@@ -138,6 +189,7 @@ const ListPurchase = () => {
         quantity: Number(editData.quantity),
         cost_price: Number(editData.cost_price),
         vendor_id: editData.vendor_id ? Number(editData.vendor_id) : null,
+        business_id: editData.business_id ? Number(editData.business_id) : null,
       });
       setShowEdit(false);
       fetchPurchases();
@@ -162,7 +214,6 @@ const ListPurchase = () => {
           onChange={(e) => setInvoiceNo(e.target.value)}
         />
 
-        {/* SIMPLE PRODUCT SELECT */}
         <select value={productId} onChange={(e) => setProductId(e.target.value)}>
           <option value="">All Products</option>
           {allProducts.map((p) => (
@@ -177,8 +228,30 @@ const ListPurchase = () => {
           ))}
         </select>
 
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        {/* ================= BUSINESS SELECT ================= */}
+        <select
+          value={selectedBusinessId}
+          onChange={(e) => setSelectedBusinessId(e.target.value)}
+        >
+          <option value="">
+            {isSuperAdmin ? "All Businesses" : "Select Business"}
+          </option>
+          {businesses.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+
+
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
 
         <button onClick={applyFilters}>Apply</button>
         <button onClick={resetFilters}>Reset</button>
@@ -201,28 +274,35 @@ const ListPurchase = () => {
           </tr>
         </thead>
         <tbody>
-          {purchases.map((p) => (
-            <tr key={p.id}>
-              <td>{p.id}</td>
-              <td>{p.invoice_no}</td>
-              <td>{p.purchase_date}</td>
-              <td>{p.product_name}</td>
-              <td>{p.vendor_name}</td>
-              <td>{p.quantity}</td>
-              <td>{Number(p.cost_price).toLocaleString("en-NG")}</td>
-              <td>{Number(p.total_cost).toLocaleString("en-NG")}</td>
-              <td>{p.current_stock}</td>
-              <td>
-                <button onClick={() => handleEditOpen(p)}>✏️</button>
-                <button onClick={() => handleDelete(p.id)}>🗑️</button>
-              </td>
+          {purchases.length === 0 ? (
+            <tr>
+              <td colSpan={10} style={{ textAlign: "center" }}>No purchases found.</td>
             </tr>
-          ))}
-
-          <tr className="purchase-grand-total-row">
-            <td colSpan="6">GRAND TOTAL</td>
-            <td colSpan="4">₦{grandTotal.toLocaleString("en-NG")}</td>
-          </tr>
+          ) : (
+            purchases.map((p) => (
+              <tr key={p.id}>
+                <td>{p.id}</td>
+                <td>{p.invoice_no}</td>
+                <td>{p.purchase_date}</td>
+                <td>{p.product_name}</td>
+                <td>{p.vendor_name}</td>
+                <td>{p.quantity}</td>
+                <td>{Number(p.cost_price).toLocaleString("en-NG")}</td>
+                <td>{Number(p.total_cost).toLocaleString("en-NG")}</td>
+                <td>{p.current_stock}</td>
+                <td>
+                  <button onClick={() => handleEditOpen(p)}>✏️</button>
+                  <button onClick={() => handleDelete(p.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))
+          )}
+          {purchases.length > 0 && (
+            <tr className="purchase-grand-total-row">
+              <td colSpan="6">GRAND TOTAL</td>
+              <td colSpan="4">₦{grandTotal.toLocaleString("en-NG")}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -231,27 +311,15 @@ const ListPurchase = () => {
         <div className="modal-overlay">
           <div className="modal">
             <h3>Edit Purchase</h3>
-
             <form onSubmit={handleEditSubmit}>
               <label>
                 Invoice Number
-                <input
-                  type="text"
-                  name="invoice_no"
-                  value={editData.invoice_no}
-                  onChange={handleEditChange}
-                  required
-                />
+                <input type="text" name="invoice_no" value={editData.invoice_no} onChange={handleEditChange} required />
               </label>
 
               <label>
                 Product
-                <select
-                  name="product_id"
-                  value={editData.product_id}
-                  onChange={handleEditChange}
-                  required
-                >
+                <select name="product_id" value={editData.product_id} onChange={handleEditChange} required>
                   <option value="">-- Select Product --</option>
                   {allProducts.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -261,33 +329,17 @@ const ListPurchase = () => {
 
               <label>
                 Quantity
-                <input
-                  type="number"
-                  name="quantity"
-                  value={editData.quantity}
-                  onChange={handleEditChange}
-                  required
-                />
+                <input type="number" name="quantity" value={editData.quantity} onChange={handleEditChange} required />
               </label>
 
               <label>
                 Cost Price
-                <input
-                  type="number"
-                  name="cost_price"
-                  value={editData.cost_price}
-                  onChange={handleEditChange}
-                  required
-                />
+                <input type="number" name="cost_price" value={editData.cost_price} onChange={handleEditChange} required />
               </label>
 
               <label>
                 Vendor
-                <select
-                  name="vendor_id"
-                  value={editData.vendor_id}
-                  onChange={handleEditChange}
-                >
+                <select name="vendor_id" value={editData.vendor_id} onChange={handleEditChange}>
                   <option value="">-- Select Vendor --</option>
                   {vendors.map((v) => (
                     <option key={v.id} value={v.id}>{v.business_name}</option>
@@ -295,11 +347,19 @@ const ListPurchase = () => {
                 </select>
               </label>
 
+              <label>
+                Business
+                <select name="business_id" value={editData.business_id} onChange={handleEditChange}>
+                  <option value="">-- Select Business --</option>
+                  {businesses.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </label>
+
               <div className="modal-actions">
                 <button type="submit" className="save-btn">Update</button>
-                <button type="button" className="cancel-btn" onClick={() => setShowEdit(false)}>
-                  Cancel
-                </button>
+                <button type="button" className="cancel-btn" onClick={() => setShowEdit(false)}>Cancel</button>
               </div>
             </form>
           </div>

@@ -61,12 +61,13 @@ def list_purchases_route(
     vendor_id: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
+    business_id: Optional[int] = Query(None),  # ✅ NEW FILTER
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),  # ✅ ADD THIS
+    current_user = Depends(get_current_user),
 ):
     purchases = purchase_service.list_purchases(
         db=db,
-        current_user=current_user,  # ✅ PASS USER
+        current_user=current_user,
         skip=skip,
         limit=limit,
         invoice_no=invoice_no,
@@ -74,14 +75,12 @@ def list_purchases_route(
         vendor_id=vendor_id,
         start_date=start_date,
         end_date=end_date,
+        business_id=business_id,  # ✅ PASS TO SERVICE
     )
 
     result = []
-
     for p in purchases:
-        stock_entry = inventory_service.get_inventory_orm_by_product(
-            db, p.product_id
-        )
+        stock_entry = inventory_service.get_inventory_orm_by_product(db, p.product_id)
         current_stock = stock_entry.current_stock if stock_entry else 0
 
         result.append({
@@ -93,6 +92,7 @@ def list_purchases_route(
 
     return result
 
+    
 
 @router.get("/{purchase_id}", response_model=schemas.PurchaseOut)
 def get_purchase(

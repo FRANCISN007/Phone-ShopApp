@@ -99,6 +99,10 @@ const POSCardPage = () => {
 
   const [loadingInvoice, setLoadingInvoice] = useState(false);
 
+  const [businesses, setBusinesses] = useState([]);  // for super admin
+  const [businessId, setBusinessId] = useState(null);  // selected business
+
+
   const [receiptFormat, setReceiptFormat] = useState("80mm");
 
   
@@ -282,7 +286,21 @@ const handleLoadInvoice = async (invoiceNo) => {
       .get("/bank/simple")
       .then((res) => setBanks(res.data))
       .catch(() => setBanks([]));
+
+    // ✅ fetch businesses if user is super admin
+    const currentUserRoles = JSON.parse(localStorage.getItem("user_roles") || "[]");
+    if (currentUserRoles.includes("super_admin")) {
+      axiosWithAuth(token)
+        .get("/business/simple")  // assuming backend endpoint returns {id, name}
+        .then((res) => setBusinesses(res.data))
+        .catch(() => setBusinesses([]));
+    }
   }, []);
+
+
+  
+
+  
 
   // =========================
   // CART LOGIC
@@ -425,7 +443,10 @@ const handleLoadInvoice = async (invoiceNo) => {
           selling_price: i.selling_price,
           discount: i.discount || 0,
         })),
+        // ✅ only include for super admin
+        ...(businessId && { business_id: businessId }),
       };
+
 
       const saleRes = await axiosWithAuth(token).post("/sales/", salePayload);
       const invoiceNo = saleRes.data.invoice_no;
@@ -436,7 +457,8 @@ const handleLoadInvoice = async (invoiceNo) => {
         ...(paymentMethod !== "cash" && { bank_id: bankId }),
       };
 
-      await axiosWithAuth(token).post(`/payments/sale/${invoiceNo}`, paymentPayload);
+      await axiosWithAuth(token).post(`/payments/${invoiceNo}/payments`, paymentPayload);
+
 
       handlePrintReceipt(invoiceNo);
 
@@ -528,6 +550,23 @@ const handleLoadInvoice = async (invoiceNo) => {
                   <option value="A4">A4</option>
                 </select>
               </div>
+
+              {businesses.length > 0 && (
+                <div className="business-select">
+                  <label>Business</label>
+                  <select
+                    value={businessId || ""}
+                    onChange={(e) => setBusinessId(Number(e.target.value))}
+                    disabled={reprintMode}
+                  >
+                    <option value="">-- Select Business --</option>
+                    {businesses.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
 
               <input
                 type="text"

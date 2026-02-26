@@ -117,7 +117,7 @@ const App = () => {
               <Route path="revenueitem" element={<RevenueItem />} />
               <Route path="profitloss" element={<ProfitLoss />} />
               <Route path="bankmanagement" element={<CreateBank />} />
-              <Route path="backup" element={<backup />} />
+              <Route path="backup" element={<Backup />} />
             </Route>
 
             {/* MAINTENANCE / USERS */}

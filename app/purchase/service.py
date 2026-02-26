@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import  HTTPException
 from sqlalchemy.exc import IntegrityError
+from typing import List, Optional
 
 from app.purchase import models as purchase_models, schemas as purchase_schemas
 from app.stock.inventory import service as inventory_service
@@ -104,64 +105,50 @@ def create_purchase(db, purchase, current_user):
 
 from datetime import datetime, timedelta
 
+# ------------------------------
+# List Purchases Service
+# ------------------------------
 def list_purchases(
     db: Session,
     current_user,
     skip: int = 0,
     limit: int = 100,
-    invoice_no: str | None = None,
-    product_id: int | None = None,
-    vendor_id: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
+    invoice_no: Optional[str] = None,
+    product_id: Optional[int] = None,
+    vendor_id: Optional[int] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    business_id: Optional[int] = None,  # ✅ NEW PARAM
 ):
     query = db.query(purchase_models.Purchase)
 
     # 🔐 SaaS Tenant Isolation
-    if "admin" in current_user.roles or \
-       "manager" in current_user.roles or \
-       "user" in current_user.roles:
+    if "admin" in current_user.roles or "manager" in current_user.roles or "user" in current_user.roles:
         query = query.filter(
             purchase_models.Purchase.business_id == current_user.business_id
         )
+    elif business_id:
+        # ✅ Super admin can filter by any business
+        query = query.filter(purchase_models.Purchase.business_id == business_id)
 
     # ===============================
-    # Filters
+    # Other Filters
     # ===============================
-
     if invoice_no:
-        query = query.filter(
-            purchase_models.Purchase.invoice_no.ilike(f"%{invoice_no}%")
-        )
-
+        query = query.filter(purchase_models.Purchase.invoice_no.ilike(f"%{invoice_no}%"))
     if product_id:
-        query = query.filter(
-            purchase_models.Purchase.product_id == product_id
-        )
-
+        query = query.filter(purchase_models.Purchase.product_id == product_id)
     if vendor_id:
-        query = query.filter(
-            purchase_models.Purchase.vendor_id == vendor_id
-        )
-
+        query = query.filter(purchase_models.Purchase.vendor_id == vendor_id)
     if start_date:
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        query = query.filter(
-            purchase_models.Purchase.purchase_date >= start_dt
-        )
-
+        query = query.filter(purchase_models.Purchase.purchase_date >= start_dt)
     if end_date:
         end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
-        query = query.filter(
-            purchase_models.Purchase.purchase_date < end_dt
-        )
+        query = query.filter(purchase_models.Purchase.purchase_date < end_dt)
 
-    return (
-        query.order_by(purchase_models.Purchase.purchase_date.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return query.order_by(purchase_models.Purchase.purchase_date.desc()).offset(skip).limit(limit).all()
+
 
 
 

@@ -87,8 +87,10 @@ const PosSales = ({ onClose }) => {
      Currency Formatter
   ================================ */
   const formatCurrency = (amount) => {
-    return `N${Number(amount || 0).toLocaleString("en-NG")}`;
+    return Number(amount || 0).toLocaleString("en-NG");
   };
+
+
 
 
   const handlePrintPreview = () => {
@@ -169,13 +171,12 @@ const PosSales = ({ onClose }) => {
 
   if (key === "productId") {
     const product = products.find((p) => p.id === Number(value));
+
     newItems[index].sellingPrice = product
       ? product.selling_price || 0
       : 0;
-    newItems[index].sellingPriceFormatted = product
-      ? product.selling_price_formatted || formatCurrency(product.selling_price)
-      : "0";
   }
+
 
   setSaleItems(newItems);
 };

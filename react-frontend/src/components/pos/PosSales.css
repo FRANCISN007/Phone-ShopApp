@@ -370,10 +370,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 800;
-  font-size: 16px;
+  font-weight: 500;
+  font-size: 18px;
   color: #dc2626;
 }
+
+
+.balance-wrapper label {
+  font-size: 18px;   /* change to any size you want */
+  font-weight: 600;  /* optional */
+}
+
 
 
 /* ===============================

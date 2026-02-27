@@ -8,6 +8,10 @@ from zoneinfo import ZoneInfo
 from app.database import Base
 
 
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
+
 class Business(Base):
     __tablename__ = "businesses"
 
@@ -24,7 +28,11 @@ class Business(Base):
 
     # SaaS control (removed is_active - now dynamic via method)
     #created_at = Column(DateTime, default=datetime.utcnow)
-    created_at = datetime.now(ZoneInfo("Africa/Lagos"))
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(LAGOS_TZ),
+        nullable=False
+    )
 
     # Core relationships
     users = relationship("User", back_populates="business", cascade="all, delete-orphan")

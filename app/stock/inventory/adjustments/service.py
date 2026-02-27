@@ -22,6 +22,12 @@ from app.users.permissions import role_required
 from app.users.schemas import UserDisplaySchema
 from app.users.auth import get_current_user
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
 
 
 
@@ -122,7 +128,7 @@ def create_adjustment(
 
 def list_adjustments(
     db: Session,
-    current_user: UserDisplaySchema,
+    current_user,
     skip: int = 0,
     limit: int = 100,
     start_date: Optional[date] = None,
@@ -133,7 +139,8 @@ def list_adjustments(
     Tenant-aware list of stock adjustments.
     Enriches with product_name and adjusted_by_name.
     """
-    # 1. Base query with eager loading + joins for enrichment
+
+    # ─── 1. Base query with joins ─────────────────────────────
     query = (
         db.query(
             models.StockAdjustment,
@@ -155,41 +162,37 @@ def list_adjustments(
         )
     )
 
-    # 2. Tenant isolation
-    if "super_admin" in current_user.roles:
-        if business_id is not None:
-            query = query.filter(models.StockAdjustment.business_id == business_id)
-    else:
-        if not current_user.business_id:
+    # ─── 2. Tenant isolation ──────────────────────────────────
+    if "super_admin" not in getattr(current_user, "roles", []):
+        if not getattr(current_user, "business_id", None):
             raise HTTPException(
                 status_code=403,
                 detail="Current user does not belong to any business"
             )
-        query = query.filter(
-            models.StockAdjustment.business_id == current_user.business_id
-        )
+        query = query.filter(models.StockAdjustment.business_id == current_user.business_id)
+    elif business_id is not None:
+        query = query.filter(models.StockAdjustment.business_id == business_id)
 
-    # 3. Date range filter
+    # ─── 3. Date range filter (timezone-aware) ──────────────
     if start_date:
-        start_dt = datetime.combine(start_date, time.min)
+        start_dt = datetime.combine(start_date, time.min).replace(tzinfo=LAGOS_TZ)
         query = query.filter(models.StockAdjustment.adjusted_at >= start_dt)
-
     if end_date:
-        end_dt = datetime.combine(end_date, time.max)
+        end_dt = datetime.combine(end_date, time.max).replace(tzinfo=LAGOS_TZ)
         query = query.filter(models.StockAdjustment.adjusted_at <= end_dt)
 
-    # 4. Execute + pagination + ordering
+    # ─── 4. Execute with ordering + pagination ──────────────
+    # Use column itself; SQLAlchemy will handle datetime sorting
     results = (
         query
-        .order_by(models.StockAdjustment.adjusted_at.desc())
+        .order_by(models.StockAdjustment.adjusted_at)  # ascending order by default
         .offset(skip)
         .limit(limit)
         .all()
     )
 
-    # 5. Build enriched response objects
+    # ─── 5. Build enriched response ─────────────────────────
     adjustments = []
-
     for adj, product_name, adjusted_by_name in results:
         adjustments.append(
             schemas.StockAdjustmentOut(
@@ -207,8 +210,6 @@ def list_adjustments(
         )
 
     return adjustments
-
-
 
 
 

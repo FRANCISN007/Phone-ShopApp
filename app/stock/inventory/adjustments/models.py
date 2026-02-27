@@ -1,8 +1,16 @@
 # app/stock/inventory/adjustments/models.py
 from sqlalchemy import Column, Integer, Float, ForeignKey, String, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
 from app.database import Base
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+
+
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
 
 
 class StockAdjustment(Base):
@@ -41,8 +49,12 @@ class StockAdjustment(Base):
         nullable=True
     )
 
-    adjusted_at = Column(DateTime, default=datetime.utcnow)
-
+    #adjusted_at = Column(DateTime, default=datetime.utcnow)
+    adjusted_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(LAGOS_TZ)  # timezone-aware default
+    )
     # Relationships
     product = relationship("Product")
     inventory = relationship("Inventory")

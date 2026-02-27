@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, Float, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+from zoneinfo import ZoneInfo
+
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -35,7 +37,8 @@ class Payment(Base):
 
     payment_date = Column(DateTime, default=datetime.utcnow)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    #created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = datetime.now(ZoneInfo("Africa/Lagos"))
 
     # Relationships
     sale = relationship(

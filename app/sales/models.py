@@ -2,6 +2,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Identity
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.database import Base
 from sqlalchemy import text
 
@@ -35,7 +36,8 @@ class Sale(Base):
     total_amount = Column(Float, default=0)
 
     sold_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    sold_at = Column(DateTime, default=datetime.utcnow)
+    #sold_at = Column(DateTime, default=datetime.utcnow)
+    sold_at = datetime.now(ZoneInfo("Africa/Lagos"))
 
     # Relationships
     items = relationship(

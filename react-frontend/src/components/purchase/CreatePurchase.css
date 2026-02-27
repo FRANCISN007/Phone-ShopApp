@@ -136,6 +136,7 @@
 ================================= */
 .product-search {
   position: relative;
+
 }
 
 .product-dropdown {
@@ -152,8 +153,15 @@
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.06);
 }
 
-.product-option {
+.product-search input {
+  width: 300px;   /* increase as you like */
   padding: 6px 8px;
+  font-size: 16px;
+}
+
+
+.product-option {
+  padding: 10px 8px;
   font-size: 12px;
   cursor: pointer;
 }

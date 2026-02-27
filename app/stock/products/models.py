@@ -1,8 +1,12 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.database import Base
 from sqlalchemy import Index
+
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
 
 
 
@@ -34,7 +38,12 @@ class Product(Base):
     # Visibility flag
     is_active = Column(Boolean, default=True, nullable=False, index=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    #created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(LAGOS_TZ)
+    )
 
     # Relationships
     business = relationship("Business", back_populates="products")

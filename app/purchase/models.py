@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+from zoneinfo import ZoneInfo
+
 
 class Purchase(Base):
     __tablename__ = "purchases"
@@ -20,7 +22,12 @@ class Purchase(Base):
     quantity = Column(Integer, nullable=False)
     cost_price = Column(Float, nullable=False)
     total_cost = Column(Float, nullable=False)
-    purchase_date = Column(DateTime, default=datetime.utcnow)
+    #purchase_date = Column(DateTime, default=datetime.utcnow)
+    
+    purchase_date = Column(
+    DateTime(timezone=True),
+    default=lambda: datetime.now(ZoneInfo("Africa/Lagos"))
+)
 
     # Relationships
     product = relationship("Product")

@@ -32,6 +32,11 @@ from sqlalchemy import text
 from app.purchase.models import Purchase
 from app.purchase import  models as purchase_models
 
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
 
 
 
@@ -566,6 +571,8 @@ def get_sale_by_invoice_no(
 
 
 
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
 def list_sales(
     db: Session,
     current_user: UserDisplaySchema,
@@ -576,26 +583,24 @@ def list_sales(
     business_id: Optional[int] = None,
 ) -> schemas.SalesListResponse:
     """
-    Tenant-aware sales listing.
+    Tenant-aware sales listing with timezone-aware filtering.
     Enforces business isolation except for super_admin.
     """
+
     # ─── 1. Build base query with eager loading ───────────────────────
     query = (
-        db.query(models.Sale)
+        db.query(models.Sale)  # full model
         .options(
-            joinedload(models.Sale.items)
-                .joinedload(models.SaleItem.product),
+            joinedload(models.Sale.items).joinedload(models.SaleItem.product),
             joinedload(models.Sale.payments),
         )
     )
 
     # ─── 2. Apply tenant isolation ────────────────────────────────────
     if "super_admin" in current_user.roles:
-        # Super admin can see everything, or filter by specific business
         if business_id is not None:
             query = query.filter(models.Sale.business_id == business_id)
     else:
-        # Normal users → only their own business
         if not current_user.business_id:
             raise HTTPException(
                 status_code=403,
@@ -603,23 +608,17 @@ def list_sales(
             )
         query = query.filter(models.Sale.business_id == current_user.business_id)
 
-    # ─── 3. Date filters ──────────────────────────────────────────────
+    # ─── 3. Date filters (timezone-aware) ─────────────────────────────
     if start_date:
-        start_datetime = datetime.combine(start_date, time.min)
+        start_datetime = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
         query = query.filter(models.Sale.sold_at >= start_datetime)
 
     if end_date:
-        end_datetime = datetime.combine(end_date, time.max)
+        end_datetime = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
         query = query.filter(models.Sale.sold_at <= end_datetime)
 
-    # ─── 4. Ordering + pagination ─────────────────────────────────────
-    sales = (
-        query
-        .order_by(models.Sale.sold_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    # ─── 4. Pagination only (no ordering) ────────────────────────────
+    sales = query.offset(skip).limit(limit).all()
 
     # ─── 5. Build enriched response ───────────────────────────────────
     sales_list: List[schemas.SaleOut2] = []
@@ -630,12 +629,10 @@ def list_sales(
     for sale in sales:
         total_amount = float(sale.total_amount or 0.0)
 
-        # Payments aggregation
         payments = sale.payments or []
         total_paid = sum(float(p.amount_paid or 0) for p in payments)
         balance_due = total_amount - total_paid
 
-        # Payment status logic
         if total_paid == 0:
             payment_status = "pending"
         elif balance_due > 0:
@@ -643,7 +640,6 @@ def list_sales(
         else:
             payment_status = "completed"
 
-        # Enriched items
         items = [
             schemas.SaleItemOut2(
                 id=item.id,
@@ -659,7 +655,6 @@ def list_sales(
             for item in (sale.items or [])
         ]
 
-        # Build sale response object
         sales_list.append(
             schemas.SaleOut2(
                 id=sale.id,
@@ -672,12 +667,11 @@ def list_sales(
                 total_paid=total_paid,
                 balance_due=balance_due,
                 payment_status=payment_status,
-                sold_at=sale.sold_at,
+                sold_at=sale.sold_at.astimezone(LAGOS_TZ),
                 items=items,
             )
         )
 
-        # Accumulate totals for summary
         total_sales_amount += total_amount
         total_paid_sum += total_paid
         total_balance_sum += balance_due
@@ -693,6 +687,10 @@ def list_sales(
         sales=sales_list,
         summary=summary
     )
+
+
+
+
 
 def update_sale(
     db: Session,
@@ -942,26 +940,25 @@ def staff_sales_report(
     """
     Tenant-aware staff sales report.
     Enriches each sale with staff_name, product_names, payment totals, etc.
+    Sorted by sold_at descending (latest first).
     """
-    # ─── 1. Build base query ─────────────────────────────────────────
+
+    # ─── 1. Base query ─────────────────────────────────────────────
     query = (
         db.query(models.Sale)
         .join(users_models.User, models.Sale.sold_by == users_models.User.id, isouter=True)
         .options(
-            joinedload(models.Sale.items)
-                .joinedload(models.SaleItem.product),
-            joinedload(models.Sale.payments),       # if you need payments
-            joinedload(models.Sale.user)            # for staff_name
+            joinedload(models.Sale.items).joinedload(models.SaleItem.product),
+            joinedload(models.Sale.payments),
+            joinedload(models.Sale.user)  # for staff_name
         )
     )
 
-    # ─── 2. Tenant isolation ─────────────────────────────────────────
+    # ─── 2. Tenant isolation ───────────────────────────────────────
     if "super_admin" in current_user.roles:
-        # Super admin sees everything, unless filtered
         if business_id is not None:
             query = query.filter(models.Sale.business_id == business_id)
     else:
-        # Manager/Admin → only their business
         if not current_user.business_id:
             raise HTTPException(
                 status_code=403,
@@ -969,43 +966,37 @@ def staff_sales_report(
             )
         query = query.filter(models.Sale.business_id == current_user.business_id)
 
-    # ─── 3. Staff filter ─────────────────────────────────────────────
+    # ─── 3. Staff filter ──────────────────────────────────────────
     if staff_id is not None:
         query = query.filter(models.Sale.sold_by == staff_id)
 
-    # ─── 4. Date filters ─────────────────────────────────────────────
+    # ─── 4. Date filters (timezone-aware) ────────────────────────
     if start_date:
-        query = query.filter(
-            models.Sale.sold_at >= datetime.combine(start_date, time.min)
-        )
+        start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at >= start_dt)
+
     if end_date:
-        query = query.filter(
-            models.Sale.sold_at <= datetime.combine(end_date, time.max)
-        )
+        end_dt = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at <= end_dt)
 
-    # ─── 5. Execute + ordering ───────────────────────────────────────
-    sales = (
-        query
-        .order_by(models.Sale.sold_at.desc())
-        .all()
-    )
+    # ─── 5. Execute query (no SQL desc() for Python datetime) ─────
+    sales = query.all()
 
-    # ─── 6. Enrich each sale for response ────────────────────────────
+    # ─── 6. Sort in Python by sold_at descending ──────────────────
+    sales.sort(key=lambda x: x.sold_at, reverse=True)
+
+    # ─── 7. Enrich each sale for response ────────────────────────
     result = []
 
     for sale in sales:
-        # Attach payment totals (assuming your helper exists)
-        _attach_payment_totals(sale)   # ← keep your existing function
+        _attach_payment_totals(sale)  # your existing helper
 
-        # Default values
         sale.customer_name = sale.customer_name or "Walk-in"
         sale.customer_phone = sale.customer_phone or "-"
         sale.ref_no = sale.ref_no or "-"
 
-        # Staff name (from joined User)
         staff_name = sale.user.username if sale.user else "-"
 
-        # Enrich items
         items = [
             schemas.SaleItemOut(
                 id=item.id,
@@ -1021,7 +1012,6 @@ def staff_sales_report(
             for item in sale.items
         ]
 
-        # Build SaleOutStaff object
         enriched_sale = schemas.SaleOutStaff(
             id=sale.id,
             invoice_no=sale.invoice_no,
@@ -1034,10 +1024,7 @@ def staff_sales_report(
             staff_name=staff_name,
             sold_at=sale.sold_at,
             items=items,
-            # If SaleOutStaff has payment fields, add them here:
-            # total_paid=...,
-            # balance_due=...,
-            # payment_status=...
+            # Add payment fields here if needed
         )
 
         result.append(enriched_sale)
@@ -1046,10 +1033,14 @@ def staff_sales_report(
 
 
 
+
 from datetime import datetime, timedelta
 
 from sqlalchemy import cast, Date
 from datetime import datetime, date
+
+
+from zoneinfo import ZoneInfo
 
 def outstanding_sales_service(
     db: Session,
@@ -1061,11 +1052,12 @@ def outstanding_sales_service(
 ) -> schemas.OutstandingSalesResponse:
     """
     Tenant-aware outstanding sales report.
-    Returns only sales with balance > 0.
+    Returns only sales with balance > 0, newest transactions first.
     """
-    today = datetime.now().date()
 
-    # Default: current month
+    today = datetime.now(LAGOS_TZ).date()
+
+    # Default to current month if no date range provided
     if not start_date and not end_date:
         start_date = today.replace(day=1)
         end_date = today
@@ -1077,7 +1069,6 @@ def outstanding_sales_service(
             joinedload(models.Sale.items).joinedload(models.SaleItem.product),
             joinedload(models.Sale.payments)
         )
-        .filter(models.Sale.sold_at.isnot(None))
     )
 
     # ─── 2. Tenant isolation ──────────────────────────────────────────
@@ -1092,21 +1083,17 @@ def outstanding_sales_service(
             )
         query = query.filter(models.Sale.business_id == current_user.business_id)
 
-    # ─── 3. Date range filter ─────────────────────────────────────────
+    # ─── 3. Date range filter (timezone-aware) ───────────────────────
     if start_date:
-        query = query.filter(
-            cast(models.Sale.sold_at, Date) >= start_date
-        )
+        start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at >= start_dt)
     if end_date:
-        query = query.filter(
-            cast(models.Sale.sold_at, Date) <= end_date
-        )
+        end_dt = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at <= end_dt)
 
     # ─── 4. Customer name filter ──────────────────────────────────────
     if customer_name:
-        query = query.filter(
-            models.Sale.customer_name.ilike(f"%{customer_name}%")
-        )
+        query = query.filter(models.Sale.customer_name.ilike(f"%{customer_name}%"))
 
     # ─── 5. Execute query ─────────────────────────────────────────────
     sales = query.all()
@@ -1118,17 +1105,13 @@ def outstanding_sales_service(
     balance_sum = 0.0
 
     for sale in sales:
-        # Use net_amount from items (most accurate total)
         total_amount = sum(float(item.net_amount or 0) for item in sale.items)
-
         total_paid = sum(float(p.amount_paid or 0) for p in (sale.payments or []))
         balance = total_amount - total_paid
 
-        # Skip fully paid sales
         if balance <= 0:
-            continue
+            continue  # Skip fully paid sales
 
-        # Enrich items
         items = [
             schemas.OutstandingSaleItem(
                 id=item.id,
@@ -1136,15 +1119,14 @@ def outstanding_sales_service(
                 product_id=item.product_id,
                 product_name=item.product.name if item.product else None,
                 quantity=item.quantity or 0,
-                selling_price=float(item.selling_price or 0.0),
-                gross_amount=float(item.gross_amount or 0.0),
-                discount=float(item.discount or 0.0),
-                net_amount=float(item.net_amount or 0.0),
+                selling_price=float(item.selling_price or 0),
+                gross_amount=float(item.gross_amount or 0),
+                discount=float(item.discount or 0),
+                net_amount=float(item.net_amount or 0),
             )
             for item in sale.items
         ]
 
-        # Build sale object
         sales_list.append(
             schemas.OutstandingSale(
                 id=sale.id,
@@ -1156,7 +1138,8 @@ def outstanding_sales_service(
                 total_amount=total_amount,
                 total_paid=total_paid,
                 balance_due=balance,
-                items=items
+                items=items,
+                sold_at=sale.sold_at.astimezone(LAGOS_TZ)  # Lagos timezone for display and sorting
             )
         )
 
@@ -1164,7 +1147,10 @@ def outstanding_sales_service(
         paid_sum += total_paid
         balance_sum += balance
 
-    # ─── 7. Summary ───────────────────────────────────────────────────
+    # ─── 7. Sort by sold_at descending (newest first) ───────────────
+    sales_list.sort(key=lambda x: x.sold_at, reverse=True)
+
+    # ─── 8. Summary ───────────────────────────────────────────────────
     summary = schemas.OutstandingSummary(
         sales_sum=sales_sum,
         paid_sum=paid_sum,
@@ -1235,13 +1221,12 @@ def sales_analysis(
 
     # ─── 3. Date filters ──────────────────────────────────────────────
     if start_date:
-        query = query.filter(
-            models.Sale.sold_at >= datetime.combine(start_date, time.min)
-        )
+        start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at >= start_dt)
+
     if end_date:
-        query = query.filter(
-            models.Sale.sold_at <= datetime.combine(end_date, time.max)
-        )
+        end_dt = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at <= end_dt)
 
     # ─── 4. Product filter ────────────────────────────────────────────
     if product_id:
@@ -1323,6 +1308,7 @@ def get_sales_by_customer(
     Tenant-aware sales list filtered by customer name (partial match).
     Enriches each sale with items, payment totals, status, etc.
     """
+
     # ─── 1. Base query with eager loading ─────────────────────────────
     query = (
         db.query(models.Sale)
@@ -1345,33 +1331,29 @@ def get_sales_by_customer(
             )
         query = query.filter(models.Sale.business_id == current_user.business_id)
 
-    # ─── 3. Date filters ──────────────────────────────────────────────
+    # ─── 3. Date filters (timezone-aware) ────────────────────────────
     if start_date:
-        query = query.filter(
-            models.Sale.sold_at >= datetime.combine(start_date, time.min)
-        )
+        start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at >= start_dt)
     if end_date:
-        query = query.filter(
-            models.Sale.sold_at <= datetime.combine(end_date, time.max)
-        )
+        end_dt = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
+        query = query.filter(models.Sale.sold_at <= end_dt)
 
-    # ─── 4. Execute + ordering ────────────────────────────────────────
-    sales = (
-        query
-        .order_by(models.Sale.sold_at.desc())
-        .all()
-    )
+    # ─── 4. Execute query ─────────────────────────────────────────────
+    sales = query.all()
 
-    # ─── 5. Enrich and build response ─────────────────────────────────
+    # ─── 5. Sort in Python by sold_at descending ──────────────────────
+    sales.sort(key=lambda x: x.sold_at, reverse=True)
+
+    # ─── 6. Enrich and build response ────────────────────────────────
     sales_list = []
 
     for sale in sales:
-        # Default values
         customer_name_display = sale.customer_name or "Walk-in"
         customer_phone = sale.customer_phone or "-"
         ref_no = sale.ref_no or "-"
 
-        # Items + calculations
+        # Enrich items
         items_list = []
         total_amount = 0.0
         total_discount = 0.0
@@ -1401,7 +1383,6 @@ def get_sales_by_customer(
         total_paid = sum(float(p.amount_paid or 0) for p in (sale.payments or []))
         balance_due = total_amount - total_paid
 
-        # Payment status
         if balance_due <= 0:
             payment_status = "completed"
         elif total_paid == 0:
@@ -1428,7 +1409,6 @@ def get_sales_by_customer(
         )
 
     return sales_list
-
 
 
 

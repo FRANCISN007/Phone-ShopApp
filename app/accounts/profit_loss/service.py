@@ -12,6 +12,10 @@ from app.stock.category import models as category_models
 from app.users.schemas import UserDisplaySchema
 from app.accounts.profit_loss.schemas import ProfitLossResponse
 
+from zoneinfo import ZoneInfo
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
+
 
 def get_profit_and_loss(
     db: Session,
@@ -24,6 +28,7 @@ def get_profit_and_loss(
     Generate Profit & Loss report with tenant isolation.
     Uses historical cost_price from SaleItem → correct gross profit.
     """
+
     today = datetime.utcnow()
 
     # Default: current month
@@ -32,10 +37,12 @@ def get_profit_and_loss(
     if end_date is None:
         end_date = date(today.year, today.month, today.day)
 
-    start_dt = datetime.combine(start_date, time.min)
-    end_dt = datetime.combine(end_date, time.max)
+    # ─── 1. Make timezone-aware datetimes ─────────────────────────────
+    start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
+    end_dt   = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
 
-    # Tenant filter
+
+    # Tenant filters
     sale_filter = []
     expense_filter = []
 
@@ -72,7 +79,7 @@ def get_profit_and_loss(
     revenue = {row.category: float(row.revenue or 0) for row in revenue_rows}
     total_revenue = sum(revenue.values())
 
-    # ─── Cost of Sales (historical from SaleItem) ─────────────────────
+    # ─── Cost of Sales ───────────────────────────────────────────────
     cos_query = (
         db.query(
             func.sum(
@@ -110,10 +117,10 @@ def get_profit_and_loss(
     expenses = {row.account_type: float(row.total or 0) for row in expense_rows}
     total_expenses = sum(expenses.values())
 
-    # ─── Net Profit ───────────────────────────────────────────────────
+    # ─── Net Profit ──────────────────────────────────────────────────
     net_profit = gross_profit - total_expenses
 
-    # ─── Structured response ──────────────────────────────────────────
+    # ─── Response ───────────────────────────────────────────────────
     return ProfitLossResponse(
         period={
             "start_date": start_dt,

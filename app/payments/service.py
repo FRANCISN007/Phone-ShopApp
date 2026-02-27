@@ -173,6 +173,12 @@ def create_payment(
 
 
 
+
+from zoneinfo import ZoneInfo
+
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
 def list_payments(
     db: Session,
     current_user: UserDisplaySchema,
@@ -185,9 +191,10 @@ def list_payments(
     business_id: Optional[int] = None
 ) -> List[schemas.PaymentOut]:
     """
-    Tenant-aware list of payments with filters.
+    Tenant-aware list of payments with timezone-aware filtering.
     Enriches each payment with bank_name, created_by_name, customer_name, total_amount.
     """
+
     # ─── 1. Base query with eager loading ─────────────────────────────
     query = (
         db.query(models.Payment)
@@ -217,11 +224,11 @@ def list_payments(
         )
 
     if start_date:
-        start_dt = datetime.combine(start_date, time.min)
+        start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
         query = query.filter(models.Payment.created_at >= start_dt)
 
     if end_date:
-        end_dt = datetime.combine(end_date, time.max)
+        end_dt = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
         query = query.filter(models.Payment.created_at <= end_dt)
 
     if status:
@@ -235,15 +242,11 @@ def list_payments(
             models.Payment.payment_method.ilike(f"%{payment_method.lower()}%")
         )
 
-    # ─── 4. Execute + ordering ────────────────────────────────────────
-    payments = (
-        query
-        .order_by(models.Payment.created_at.desc())
-        .all()
-    )
+    # ─── 4. Execute query (ordering optional) ────────────────────────
+    payments = query.offset(0).limit(1000).all()  # you can add pagination if needed
 
     # ─── 5. Enrich response objects ───────────────────────────────────
-    result = []
+    result: List[schemas.PaymentOut] = []
 
     for p in payments:
         enriched = schemas.PaymentOut(
@@ -255,7 +258,7 @@ def list_payments(
             reference_no=p.reference_no,
             payment_date=p.payment_date,
             created_by=p.created_by,
-            created_at=p.created_at,
+            created_at=p.created_at.astimezone(LAGOS_TZ) if p.created_at else None,  # Lagos timezone
             balance_due=float(p.balance_due or 0),
             status=p.status,
 
@@ -268,6 +271,9 @@ def list_payments(
         result.append(enriched)
 
     return result
+
+
+
 
 def list_payments_by_sale(
     db: Session,

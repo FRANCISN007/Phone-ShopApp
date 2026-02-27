@@ -2,6 +2,8 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship, Session
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from app.database import Base
 
@@ -21,7 +23,8 @@ class Business(Base):
     owner_username = Column(String, nullable=True, index=True)
 
     # SaaS control (removed is_active - now dynamic via method)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    #created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = datetime.now(ZoneInfo("Africa/Lagos"))
 
     # Core relationships
     users = relationship("User", back_populates="business", cascade="all, delete-orphan")

@@ -209,6 +209,19 @@ def create_expense(
 
 
 
+
+from zoneinfo import ZoneInfo
+from typing import Optional, Dict, Any
+from sqlalchemy import func, desc
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
+
+from sqlalchemy import func, desc, cast, Date
+
+
+
+
 def list_expenses(
     db: Session,
     current_user: UserDisplaySchema,
@@ -219,11 +232,8 @@ def list_expenses(
     account_type: Optional[str] = None,
     business_id: Optional[int] = None
 ) -> Dict[str, Any]:
-    """
-    Tenant-aware list of expenses with filters and summary.
-    Enriches each expense with vendor_name, bank_name, created_by_username.
-    """
-    # 1. Base query with eager loading
+
+    # ─── 1. Base query ───────────────────────────────────────────────
     query = (
         db.query(models.Expense)
         .options(
@@ -234,7 +244,7 @@ def list_expenses(
         .filter(models.Expense.is_active == True)
     )
 
-    # 2. Tenant isolation
+    # ─── 2. Tenant isolation ─────────────────────────────────────────
     if "super_admin" in current_user.roles:
         if business_id is not None:
             query = query.filter(models.Expense.business_id == business_id)
@@ -246,36 +256,42 @@ def list_expenses(
             )
         query = query.filter(models.Expense.business_id == current_user.business_id)
 
-    # 3. Date range filter (inclusive end date)
+    # ─── 3. Date filters (use plain date, not tz-aware datetime) ─────
     if start_date:
-        start_dt = datetime.combine(start_date, time.min)
-        query = query.filter(models.Expense.expense_date >= start_dt)
-
+        query = query.filter(cast(models.Expense.expense_date, Date) >= start_date)
     if end_date:
-        end_dt = datetime.combine(end_date, time.max)
-        query = query.filter(models.Expense.expense_date <= end_dt)
+        query = query.filter(cast(models.Expense.expense_date, Date) <= end_date)
 
-    # 4. Account type filter (case-insensitive, trimmed)
+    # ─── 4. Account type filter ──────────────────────────────────────
     if account_type:
         query = query.filter(
             func.lower(func.trim(models.Expense.account_type)) == account_type.lower().strip()
         )
 
-    # 5. Execute + pagination + ordering
+    # ─── 5. Total expenses safely ────────────────────────────────────
+    total_query = db.query(func.coalesce(func.sum(models.Expense.amount), 0.0)) \
+        .filter(models.Expense.is_active == True)
+
+    if start_date:
+        total_query = total_query.filter(cast(models.Expense.expense_date, Date) >= start_date)
+    if end_date:
+        total_query = total_query.filter(cast(models.Expense.expense_date, Date) <= end_date)
+    if business_id:
+        total_query = total_query.filter(models.Expense.business_id == business_id)
+
+    total_expenses = total_query.scalar() or 0.0
+
+    # ─── 6. Fetch paginated results with ordering ────────────────────
     expenses = (
         query
-        .order_by(models.Expense.expense_date.desc(), models.Expense.created_at.desc())
+        .order_by(desc(models.Expense.expense_date), desc(models.Expense.created_at))
         .offset(skip)
         .limit(limit)
         .all()
     )
 
-    # 6. Calculate total expenses (only matching records)
-    total_expenses = query.with_entities(func.sum(models.Expense.amount)).scalar() or 0.0
-
-    # 7. Enrich and build response list
+    # ─── 7. Enrich results for display ───────────────────────────────
     enriched_expenses = []
-
     for exp in expenses:
         enriched_expenses.append(
             schemas.ExpenseOut(
@@ -288,10 +304,10 @@ def list_expenses(
                 amount=float(exp.amount),
                 payment_method=exp.payment_method,
                 bank_id=exp.bank_id,
-                expense_date=exp.expense_date,
+                expense_date=exp.expense_date.astimezone(LAGOS_TZ) if exp.expense_date else None,
                 status=exp.status,
                 is_active=exp.is_active,
-                created_at=exp.created_at,
+                created_at=exp.created_at.astimezone(LAGOS_TZ) if exp.created_at else None,
                 created_by=exp.created_by,
                 created_by_username=exp.creator.username if exp.creator else None,
                 bank_name=exp.bank.name if exp.bank else None,
@@ -299,11 +315,15 @@ def list_expenses(
             )
         )
 
+    # ─── 8. Return response ──────────────────────────────────────────
     return {
         "total_expenses": float(total_expenses),
         "expenses": enriched_expenses,
         "count": len(enriched_expenses)
     }
+
+
+
 
 def get_expense_by_id(
     db: Session,

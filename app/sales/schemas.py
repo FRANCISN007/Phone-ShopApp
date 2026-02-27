@@ -260,6 +260,7 @@ class OutstandingSale(BaseModel):
     balance_due: float
 
     items: List[OutstandingSaleItem]
+    sold_at: datetime  # ✅ add this field
 
     class Config:
         from_attributes = True

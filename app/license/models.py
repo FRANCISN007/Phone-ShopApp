@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
+from zoneinfo import ZoneInfo
 
 
 class LicenseKey(Base):
@@ -13,7 +14,9 @@ class LicenseKey(Base):
 
     # License control flags
     is_active = Column(Boolean, default=True, index=True)  # manual deactivation possible
-    created_at = Column(DateTime, default=datetime.utcnow)
+    #created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = datetime.now(ZoneInfo("Africa/Lagos"))
+
     expiration_date = Column(DateTime, nullable=False, index=True)
 
     # Multi-tenant link

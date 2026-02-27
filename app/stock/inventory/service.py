@@ -7,10 +7,14 @@ from app.stock.inventory.models import Inventory
 from app.stock.products.models import  Product
 
 from app.purchase.models import  Purchase
+from datetime import datetime, date, time
+from zoneinfo import ZoneInfo
 
-# --------------------------
-# Read-only: list inventory
-# --------------------------
+
+LAGOS_TZ = ZoneInfo("Africa/Lagos")
+
+
+
 def list_inventory(
     db: Session,
     current_user,
@@ -18,6 +22,8 @@ def list_inventory(
     limit: int = 100,
     product_id: int | None = None,
     product_name: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ):
     # Base query: join inventory with product
     query = (
@@ -34,12 +40,10 @@ def list_inventory(
             Inventory.business_id
         )
         .join(Product, Product.id == Inventory.product_id)
-        .order_by(Inventory.id.asc())
+        .order_by(Inventory.id.asc())  # column.asc() is safe
     )
 
-    # =========================
-    # 🔐 SaaS Tenant Filter
-    # =========================
+    # Tenant Filter
     roles = getattr(current_user, "roles", [])
     if "super_admin" not in roles:
         user_business_id = getattr(current_user, "business_id", None)
@@ -50,14 +54,19 @@ def list_inventory(
             )
         query = query.filter(Inventory.business_id == user_business_id)
 
-    # =========================
     # Optional filters
-    # =========================
     if product_id is not None:
         query = query.filter(Inventory.product_id == product_id)
-
     if product_name:
         query = query.filter(Product.name.ilike(f"%{product_name}%"))
+
+    # Date filters (timezone-aware)
+    if start_date:
+        start_dt = datetime.combine(start_date, time.min, tzinfo=LAGOS_TZ)
+        query = query.filter(Inventory.created_at >= start_dt)
+    if end_date:
+        end_dt = datetime.combine(end_date, time.max, tzinfo=LAGOS_TZ)
+        query = query.filter(Inventory.created_at <= end_dt)
 
     inventory_list = query.offset(skip).limit(limit).all()
 
@@ -96,7 +105,6 @@ def list_inventory(
         "inventory": result,
         "grand_total": grand_total
     }
-
 
 
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import backgroundImage from "../assets/images/phoneshop.png";
+import backgroundImage from "../assets/images/SEASIDE.png";
 import "./HomePage.css";
 import { SHOP_NAME } from "../config/constants";
 

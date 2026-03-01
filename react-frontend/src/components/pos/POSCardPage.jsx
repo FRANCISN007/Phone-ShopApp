@@ -789,7 +789,7 @@ const handleLoadInvoice = async (invoiceNo) => {
                     )
                   }
                 >
-                  {reprintMode ? "Reprint" : "Preview"}
+                  {reprintMode ? "🖨️ Reprint" : "🖨️ Preview"}
                 </button>
 
                 <button
@@ -797,7 +797,7 @@ const handleLoadInvoice = async (invoiceNo) => {
                   disabled={cartItems.length === 0 || reprintMode}
                   onClick={handleSubmit}
                 >
-                  Complete Sale
+                  🖨️ Print Receipt
                 </button>
               </div>
 

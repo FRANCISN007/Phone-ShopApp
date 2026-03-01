@@ -99,24 +99,8 @@ const ListPurchase = () => {
       const res = await axiosWithAuth().get("/purchase/", { params });
 
       // Flatten items for table display
-      const flatPurchases = res.data.flatMap((p) =>
-        p.items.map((item) => ({
-          id: item.id,
-          invoice_no: p.invoice_no,
-          purchase_date: p.purchase_date,
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          cost_price: item.cost_price,
-          total_cost: item.total_cost,
-          current_stock: item.current_stock,
-          vendor_id: p.vendor_id,
-          vendor_name: p.vendor_name,
-          business_id: p.business_id,
-        }))
-      );
+      setPurchases(res.data);
 
-      setPurchases(flatPurchases);
     } catch (err) {
       console.error("Failed to fetch purchases", err);
       setPurchases([]);
@@ -159,16 +143,23 @@ const ListPurchase = () => {
   };
 
   /* ================= EDIT ================= */
-  const handleEditOpen = (p) => {
+  const handleEditOpen = (purchase) => {
     setEditData({
-      id: p.id,
-      invoice_no: p.invoice_no,
-      items: [{ product_id: p.product_id, quantity: p.quantity, cost_price: p.cost_price }],
-      vendor_id: p.vendor_id || "",
-      business_id: p.business_id || "",
+      id: purchase.id,
+      invoice_no: purchase.invoice_no,
+      vendor_id: purchase.vendor_id || "",
+      business_id: purchase.business_id || "",
+      items: purchase.items.map((item) => ({
+        id: item.id,   // IMPORTANT
+        product_id: item.product_id,
+        quantity: item.quantity,
+        cost_price: item.cost_price,
+      })),
     });
+
     setShowEdit(true);
   };
+
 
   const handleEditChange = (e, index) => {
     const { name, value } = e.target;
@@ -188,14 +179,14 @@ const ListPurchase = () => {
       const payload = {
         invoice_no: editData.invoice_no,
         vendor_id: editData.vendor_id ? Number(editData.vendor_id) : null,
-        business_id: editData.business_id ? Number(editData.business_id) : null,
         items: editData.items.map((item) => ({
-          id: item.id ? Number(item.id) : undefined, // existing items
+          id: item.id, // must send existing id
           product_id: Number(item.product_id),
           quantity: Number(item.quantity),
           cost_price: Number(item.cost_price),
         })),
       };
+
 
     await axiosWithAuth().put(`/purchase/${editData.id}`, payload);
 
@@ -268,38 +259,70 @@ const ListPurchase = () => {
             <th>Action</th>
           </tr>
         </thead>
+
         <tbody>
           {purchases.length === 0 ? (
             <tr>
-              <td colSpan={10} style={{ textAlign: "center" }}>No purchases found.</td>
+              <td colSpan={10} style={{ textAlign: "center" }}>
+                No purchases found.
+              </td>
             </tr>
           ) : (
-            purchases.map((p) => (
-              <tr key={p.id + "-" + p.product_id}>
-                <td>{p.id}</td>
-                <td>{p.invoice_no}</td>
-                <td>{p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : ""}</td>
-                <td>{p.product_name || "-"}</td>
-                <td>{p.vendor_name || "-"}</td>
-                <td>{p.quantity}</td>
-                <td>₦{Number(p.cost_price || 0).toLocaleString("en-NG")}</td>
-                <td>₦{Number(p.total_cost || 0).toLocaleString("en-NG")}</td>
-                <td>{p.current_stock ?? 0}</td>
-                <td>
-                  <button onClick={() => handleEditOpen(p)}>✏️</button>
-                  <button onClick={() => handleDelete(p.id)}>🗑️</button>
+            <>
+              {purchases.map((purchase) =>
+                purchase.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>{purchase.id}</td>
+
+                    <td>{purchase.invoice_no}</td>
+
+                    <td>
+                      {purchase.purchase_date
+                        ? new Date(purchase.purchase_date).toLocaleDateString()
+                        : ""}
+                    </td>
+
+                    <td>{item.product_name || "-"}</td>
+
+                    <td>{purchase.vendor_name || "-"}</td>
+
+                    <td>{item.quantity}</td>
+
+                    <td>
+                      ₦{Number(item.cost_price || 0).toLocaleString("en-NG")}
+                    </td>
+
+                    <td>
+                      ₦{Number(item.total_cost || 0).toLocaleString("en-NG")}
+                    </td>
+
+                    <td>{item.current_stock ?? 0}</td>
+
+                    <td>
+                      <button onClick={() => handleEditOpen(purchase)}>
+                        ✏️
+                      </button>
+
+                      <button onClick={() => handleDelete(purchase.id)}>
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+
+              {/* ===== GRAND TOTAL ROW ===== */}
+              <tr className="purchase-grand-total-row">
+                <td colSpan="6">GRAND TOTAL</td>
+                <td colSpan="4">
+                  ₦{Number(grandTotal || 0).toLocaleString("en-NG")}
                 </td>
               </tr>
-            ))
-          )}
-          {purchases.length > 0 && (
-            <tr className="purchase-grand-total-row">
-              <td colSpan="6">GRAND TOTAL</td>
-              <td colSpan="4">₦{grandTotal.toLocaleString("en-NG")}</td>
-            </tr>
+            </>
           )}
         </tbody>
       </table>
+
 
       {/* ================= EDIT MODAL ================= */}
       {showEdit && (

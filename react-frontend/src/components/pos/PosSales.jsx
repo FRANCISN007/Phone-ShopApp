@@ -736,7 +736,7 @@ const handleSubmit = async () => {
                     Print Preview
                   </button>
                   <button className="submit-btn" onClick={handleSubmit}>
-                    Complete Sale
+                    🖨️ Print Receipt
                   </button>
                 </div>
               </div>

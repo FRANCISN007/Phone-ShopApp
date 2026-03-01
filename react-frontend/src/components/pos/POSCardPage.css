@@ -495,11 +495,11 @@
 
 /* ===== COMPLETE SALE (GREEN) ===== */
 .payment-actions .complete-btn1 {
-  background: #27ae60;
+  background-color: #007bff;
 }
 
 .payment-actions .complete-btn1:hover {
-  background: #7abb95;
+  background: #1c7541;
 }
 
 /* ===== ZEBRA STRIPES FOR CART ROWS ===== */
@@ -713,4 +713,37 @@
   background: #2c2c2c;
   padding: 2px 6px;
   border-radius: 6px;
+}
+
+
+
+.print-section {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.print-btn {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.print-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.print-btn:active {
+  transform: scale(0.97);
+}
+
+.print-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }

@@ -748,3 +748,9 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+
+
+
+
+
+🖨️ Print Receipt

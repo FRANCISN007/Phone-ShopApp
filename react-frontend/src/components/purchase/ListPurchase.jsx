@@ -27,9 +27,7 @@ const ListPurchase = () => {
   const [editData, setEditData] = useState({
     id: null,
     invoice_no: "",
-    product_id: "",
-    quantity: "",
-    cost_price: "",
+    items: [], // now multiple items
     vendor_id: "",
     business_id: "",
   });
@@ -39,10 +37,7 @@ const ListPurchase = () => {
   const isSuperAdmin = roles.includes("super_admin");
 
   /* ================= COMPUTED ================= */
-  const grandTotal = purchases.reduce(
-    (acc, p) => acc + Number(p.total_cost || 0),
-    0
-  );
+  const grandTotal = purchases.reduce((acc, p) => acc + Number(p.total_cost || 0), 0);
 
   /* ================= FETCH DATA ================= */
   const fetchCurrentUser = async () => {
@@ -50,34 +45,26 @@ const ListPurchase = () => {
       const res = await axiosWithAuth().get("/auth/me");
       if (res.data?.business && !isSuperAdmin) {
         setSelectedBusinessId(res.data.business.id);
-        setBusinesses([res.data.business]); // admin sees only their business
+        setBusinesses([res.data.business]);
       }
     } catch (err) {
       console.error("Failed to fetch current user info", err);
     }
   };
 
-  /* ================= FETCH BUSINESS ================= */
   const fetchBusinesses = async () => {
     try {
       const res = await axiosWithAuth().get("/business/simple");
       const data = Array.isArray(res.data) ? res.data : [];
       setBusinesses(data);
-
-      // If not selected yet, set default selection
       if (!selectedBusinessId) {
-        if (!isSuperAdmin && data.length > 0) {
-          setSelectedBusinessId(data[0].id); // admin default
-        } else {
-          setSelectedBusinessId(""); // super admin default
-        }
+        setSelectedBusinessId(!isSuperAdmin && data.length > 0 ? data[0].id : "");
       }
     } catch (err) {
       console.error("Failed to fetch businesses", err);
       setBusinesses([]);
     }
   };
-
 
   const fetchVendors = async () => {
     try {
@@ -105,17 +92,36 @@ const ListPurchase = () => {
       if (invoiceNo) params.invoice_no = invoiceNo;
       if (productId) params.product_id = productId;
       if (vendorId) params.vendor_id = vendorId;
-      if (selectedBusinessId) params.business_id = selectedBusinessId;
+      if (isSuperAdmin && selectedBusinessId) params.business_id = selectedBusinessId;
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
 
       const res = await axiosWithAuth().get("/purchase/", { params });
-      setPurchases(Array.isArray(res.data) ? res.data : []);
+
+      // Flatten items for table display
+      const flatPurchases = res.data.flatMap((p) =>
+        p.items.map((item) => ({
+          id: item.id,
+          invoice_no: p.invoice_no,
+          purchase_date: p.purchase_date,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          cost_price: item.cost_price,
+          total_cost: item.total_cost,
+          current_stock: item.current_stock,
+          vendor_id: p.vendor_id,
+          vendor_name: p.vendor_name,
+          business_id: p.business_id,
+        }))
+      );
+
+      setPurchases(flatPurchases);
     } catch (err) {
       console.error("Failed to fetch purchases", err);
       setPurchases([]);
     }
-  }, [invoiceNo, productId, vendorId, selectedBusinessId, startDate, endDate]);
+  }, [invoiceNo, productId, vendorId, selectedBusinessId, startDate, endDate, isSuperAdmin]);
 
   /* ================= INITIAL LOAD ================= */
   useEffect(() => {
@@ -124,7 +130,6 @@ const ListPurchase = () => {
     fetchVendors();
     fetchProductsSimple();
   }, []);
-
 
   useEffect(() => {
     fetchPurchases();
@@ -158,45 +163,50 @@ const ListPurchase = () => {
     setEditData({
       id: p.id,
       invoice_no: p.invoice_no,
-      product_id: p.product_id,
-      quantity: Number(p.quantity),
-      cost_price: Number(p.cost_price),
-      vendor_id: p.vendor_id,
-      business_id: p.business_id || selectedBusinessId || "",
+      items: [{ product_id: p.product_id, quantity: p.quantity, cost_price: p.cost_price }],
+      vendor_id: p.vendor_id || "",
+      business_id: p.business_id || "",
     });
     setShowEdit(true);
   };
 
-  const handleEditChange = (e) => {
+  const handleEditChange = (e, index) => {
     const { name, value } = e.target;
-    setEditData({
-      ...editData,
-      [name]:
-        name === "quantity" || name === "cost_price"
-          ? value === ""
-            ? ""
-            : Number(value)
-          : value,
-    });
+    const newItems = [...editData.items];
+    newItems[index] = {
+      ...newItems[index],
+      [name]: name === "quantity" || name === "cost_price" ? Number(value) : value,
+    };
+    setEditData({ ...editData, items: newItems });
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      await axiosWithAuth().put(`/purchase/${editData.id}`, {
+      // Prepare payload strictly matching backend schema
+      const payload = {
         invoice_no: editData.invoice_no,
-        product_id: Number(editData.product_id),
-        quantity: Number(editData.quantity),
-        cost_price: Number(editData.cost_price),
         vendor_id: editData.vendor_id ? Number(editData.vendor_id) : null,
         business_id: editData.business_id ? Number(editData.business_id) : null,
-      });
-      setShowEdit(false);
-      fetchPurchases();
-    } catch (err) {
-      alert(err.response?.data?.detail || "Update failed");
-    }
-  };
+        items: editData.items.map((item) => ({
+          id: item.id ? Number(item.id) : undefined, // existing items
+          product_id: Number(item.product_id),
+          quantity: Number(item.quantity),
+          cost_price: Number(item.cost_price),
+        })),
+      };
+
+    await axiosWithAuth().put(`/purchase/${editData.id}`, payload);
+
+    setShowEdit(false);
+    fetchPurchases();
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.detail || "Update failed");
+  }
+};
+
 
   if (!show) return null;
 
@@ -228,30 +238,15 @@ const ListPurchase = () => {
           ))}
         </select>
 
-        {/* ================= BUSINESS SELECT ================= */}
-        <select
-          value={selectedBusinessId}
-          onChange={(e) => setSelectedBusinessId(e.target.value)}
-        >
-          <option value="">
-            {isSuperAdmin ? "All Businesses" : "Select Business"}
-          </option>
+        <select value={selectedBusinessId} onChange={(e) => setSelectedBusinessId(e.target.value)}>
+          <option value="">{isSuperAdmin ? "All Businesses" : "Select Business"}</option>
           {businesses.map((b) => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
         </select>
 
-
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
 
         <button onClick={applyFilters}>Apply</button>
         <button onClick={resetFilters}>Reset</button>
@@ -280,16 +275,16 @@ const ListPurchase = () => {
             </tr>
           ) : (
             purchases.map((p) => (
-              <tr key={p.id}>
+              <tr key={p.id + "-" + p.product_id}>
                 <td>{p.id}</td>
                 <td>{p.invoice_no}</td>
-                <td>{p.purchase_date}</td>
-                <td>{p.product_name}</td>
-                <td>{p.vendor_name}</td>
+                <td>{p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : ""}</td>
+                <td>{p.product_name || "-"}</td>
+                <td>{p.vendor_name || "-"}</td>
                 <td>{p.quantity}</td>
-                <td>{Number(p.cost_price).toLocaleString("en-NG")}</td>
-                <td>{Number(p.total_cost).toLocaleString("en-NG")}</td>
-                <td>{p.current_stock}</td>
+                <td>₦{Number(p.cost_price || 0).toLocaleString("en-NG")}</td>
+                <td>₦{Number(p.total_cost || 0).toLocaleString("en-NG")}</td>
+                <td>{p.current_stock ?? 0}</td>
                 <td>
                   <button onClick={() => handleEditOpen(p)}>✏️</button>
                   <button onClick={() => handleDelete(p.id)}>🗑️</button>
@@ -314,32 +309,36 @@ const ListPurchase = () => {
             <form onSubmit={handleEditSubmit}>
               <label>
                 Invoice Number
-                <input type="text" name="invoice_no" value={editData.invoice_no} onChange={handleEditChange} required />
+                <input type="text" name="invoice_no" value={editData.invoice_no} onChange={(e) => setEditData({...editData, invoice_no: e.target.value})} required />
               </label>
 
-              <label>
-                Product
-                <select name="product_id" value={editData.product_id} onChange={handleEditChange} required>
-                  <option value="">-- Select Product --</option>
-                  {allProducts.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </label>
+              {editData.items.map((item, index) => (
+                <div key={index} className="edit-item">
+                  <label>
+                    Product
+                    <select name="product_id" value={item.product_id} onChange={(e) => handleEditChange(e, index)} required>
+                      <option value="">-- Select Product --</option>
+                      {allProducts.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label>
-                Quantity
-                <input type="number" name="quantity" value={editData.quantity} onChange={handleEditChange} required />
-              </label>
+                  <label>
+                    Quantity
+                    <input type="number" name="quantity" value={item.quantity} onChange={(e) => handleEditChange(e, index)} required />
+                  </label>
 
-              <label>
-                Cost Price
-                <input type="number" name="cost_price" value={editData.cost_price} onChange={handleEditChange} required />
-              </label>
+                  <label>
+                    Cost Price
+                    <input type="number" name="cost_price" value={item.cost_price} onChange={(e) => handleEditChange(e, index)} required />
+                  </label>
+                </div>
+              ))}
 
               <label>
                 Vendor
-                <select name="vendor_id" value={editData.vendor_id} onChange={handleEditChange}>
+                <select name="vendor_id" value={editData.vendor_id} onChange={(e) => setEditData({...editData, vendor_id: e.target.value})}>
                   <option value="">-- Select Vendor --</option>
                   {vendors.map((v) => (
                     <option key={v.id} value={v.id}>{v.business_name}</option>
@@ -349,7 +348,7 @@ const ListPurchase = () => {
 
               <label>
                 Business
-                <select name="business_id" value={editData.business_id} onChange={handleEditChange}>
+                <select name="business_id" value={editData.business_id} onChange={(e) => setEditData({...editData, business_id: e.target.value})}>
                   <option value="">-- Select Business --</option>
                   {businesses.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>

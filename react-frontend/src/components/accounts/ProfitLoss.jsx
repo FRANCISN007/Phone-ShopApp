@@ -12,6 +12,7 @@ const ProfitLoss = ({ currentUser }) => {
     revenue: {},
     total_revenue: 0,
     cost_of_sales: 0,
+    stock_adjustment_loss: 0,   // 🔥 ADD THIS
     gross_profit: 0,
     expenses: {},
     total_expenses: 0,
@@ -153,13 +154,40 @@ const ProfitLoss = ({ currentUser }) => {
             </tr>
 
             {/* COST OF SALES */}
+            
+            {/* COST OF SALES */}
             <tr className="section-header">
               <td colSpan="2">Cost of Sales</td>
             </tr>
+
             <tr>
-              <td className="indent">Cost of Sales</td>
-              <td className="amount">({formatAmount(report.cost_of_sales)})</td>
+              <td className="indent">Cost of Sales (Sales)</td>
+              <td className="amount">
+                ({formatAmount(report.cost_of_sales)})
+              </td>
             </tr>
+
+            <tr>
+              <td className="indent">Stock Adjustment (Loss)</td>
+              <td className="amount">
+                ({formatAmount(report.stock_adjustment_loss)})
+              </td>
+            </tr>
+
+
+            <tr className="total-row">
+              <td>Total Cost of Sales</td>
+              <td className="amount">
+                (
+                {formatAmount(
+                  (report.cost_of_sales || 0) +
+                  (report.stock_adjustment_loss || 0)
+                )}
+                )
+              </td>
+            </tr>
+
+
 
             {/* GROSS PROFIT */}
             <tr className="highlight-row">

@@ -712,6 +712,7 @@ const UserManagement = () => {
                   <div>Expiring Date</div>
                   <div>Name</div>
                   <div>Owner</div>
+                  <div>Email</div>
                   <div>License</div>
                   <div>Actions</div>
                 </div>
@@ -729,6 +730,7 @@ const UserManagement = () => {
                       </div>
                       <div>{biz.name}</div>
                       <div>{biz.owner_username || "—"}</div>
+                      <div>{biz.email || "—"}</div>
                       <div>
                         {biz.license_active ? (
                           <span className="status-active">Yes</span>

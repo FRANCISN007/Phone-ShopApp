@@ -500,14 +500,13 @@
   line-height: 1.2;
 }
 
-/* Reuse the grid columns you already have for .with-business */
-.business-section .table-header.with-business {
-  grid-template-columns: 80px 140px 180px 160px 100px 360px; /* ID | Expiring Date | Name | Owner | License | Actions */
+/* header + rows */
+.business-section .table-header.with-business,
+.business-section .table-row.with-business {
+  grid-template-columns: 80px 140px 180px 160px 200px 100px 360px; 
+  /* ID | Exp Date | Name | Owner | Email | License | Actions */
 }
 
-.business-section .table-row.with-business {
-  grid-template-columns: 80px 140px 180px 160px 100px 360px; /* same as header */
-}
 
 /* Compact cell padding for business table */
 .business-section .table-row.with-business div {

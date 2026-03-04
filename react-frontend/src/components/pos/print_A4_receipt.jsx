@@ -1,35 +1,44 @@
-// print_A4_receipt_formatted.jsx
 export const printA4Receipt = ({
-  SHOP_NAME,
-  invoice,
-  invoiceDate,
-  customerName,
-  customerPhone,
-  refNo,
-  paymentMethod,
+  RECEIPT_NAME,
+  BUSINESS_ADDRESS = "",
+  BUSINESS_PHONE = "",
+  BUSINESS_LOGO = "",
+
+  invoice = "-",
+  invoiceDate = "-",
+  customerName = "-",
+  customerPhone = "-",
+  refNo = "-",
+  paymentMethod = "-",
   amountPaid = 0,
+
   grossTotal = 0,
   totalDiscount = 0,
   netTotal = 0,
   balance = 0,
   items = [],
-  amountInWords
+  amountInWords = "",
 }) => {
-  const printWindow = window.open("", "_blank", "width=800,height=600");
+  if (!RECEIPT_NAME) {
+    alert("Business name missing. Cannot print receipt.");
+    return;
+  }
 
-  // Helper to format numbers with commas
-  const formatNumber = (num) => Number(num).toLocaleString();
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  const formatNumber = (num) =>
+    `₦${Number(num || 0).toLocaleString("en-NG")}`;
 
   const itemsHtml = items
     .map(
       (item) => `
       <tr>
-        <td style="width:30%">${item.product_name}</td>
-        <td style="width:8%; text-align:center;">${item.quantity}</td>
-        <td style="width:12%; text-align:right;">${formatNumber(item.selling_price)}</td>
-        <td style="width:15%; text-align:right;">${formatNumber(item.gross_amount)}</td>
-        <td style="width:15%; text-align:right;">${formatNumber(item.discount || 0)}</td>
-        <td style="width:20%; text-align:right;">${formatNumber(item.net_amount)}</td>
+        <td>${item.product_name || ""}</td>
+        <td style="text-align:center;">${item.quantity || 0}</td>
+        <td style="text-align:right;">${formatNumber(item.selling_price)}</td>
+        <td style="text-align:right;">${formatNumber(item.gross_amount)}</td>
+        <td style="text-align:right;">${formatNumber(item.discount || 0)}</td>
+        <td style="text-align:right;">${formatNumber(item.net_amount)}</td>
       </tr>
     `
     )
@@ -38,52 +47,119 @@ export const printA4Receipt = ({
   printWindow.document.write(`
     <html>
       <head>
-        <title>Receipt-A4</title>
+        <title>Sales Receipt</title>
         <style>
-          body {
-            font-family: monospace;
-            font-size: 12px;
-            padding: 10px;
+          @media print {
+            body { margin: 0; }
           }
-          .center { text-align: center; }
-          .bold { font-weight: bold; }
-          hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
-          table { width: 100%; border-collapse: collapse; }
+
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            padding: 20px;
+            color: #000;
+          }
+
+          .header {
+            text-align: center;
+            margin-bottom: 10px;
+          }
+
+          .header h2 {
+            margin: 0;
+            text-transform: uppercase;
+          }
+
+          .logo img {
+            max-width: 120px;
+            max-height: 120px;
+            margin-bottom: 5px;
+          }
+
+          hr {
+            border: none;
+            border-top: 1px solid #000;
+            margin: 10px 0;
+          }
+
+          .info div {
+            margin: 2px 0;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+
           th {
             border-bottom: 1px solid #000;
-            padding-bottom: 4px;
+            padding: 6px 4px;
             text-align: left;
-            font-size: 11px;
+            font-size: 12px;
           }
-          td { padding: 4px 0; font-size: 11px; text-align:right; }
-          td:first-child { text-align:left; }
-          td:nth-child(2) { text-align:center; }
-          .total-line {
+
+          td {
+            padding: 6px 4px;
+            font-size: 12px;
+          }
+
+          .totals {
+            margin-top: 10px;
+            width: 300px;
+            float: right;
+          }
+
+          .totals div {
             display: flex;
             justify-content: space-between;
-            font-weight: bold;
-            margin-top: 4px;
+            margin: 4px 0;
           }
+
+          .bold {
+            font-weight: bold;
+          }
+
+          .clear {
+            clear: both;
+          }
+
           .footer {
-            margin-top: 10px;
+            margin-top: 40px;
             text-align: center;
+            font-size: 12px;
           }
         </style>
       </head>
+
       <body>
-        <div class="center bold">${SHOP_NAME}</div>
-        <div class="center">SALES RECEIPT</div>
+
+        <div class="header">
+          ${
+            BUSINESS_LOGO
+              ? `<div class="logo"><img src="${BUSINESS_LOGO}" /></div>`
+              : ""
+          }
+          <h2>${RECEIPT_NAME}</h2>
+          ${BUSINESS_ADDRESS ? `<div>${BUSINESS_ADDRESS}</div>` : ""}
+          ${BUSINESS_PHONE ? `<div>${BUSINESS_PHONE}</div>` : ""}
+          <div><strong>SALES RECEIPT</strong></div>
+        </div>
+
         <hr />
 
-        <div>Invoice: ${invoice}</div>
-        <div>Date: ${invoiceDate}</div>
-        <div>Customer: ${customerName || "-"}</div>
-        <div>Phone: ${customerPhone || "-"}</div>
-        <div>Ref No: ${refNo || "-"}</div>
-        <div>
-          Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}
+        <div class="info">
+          <div><strong>Invoice:</strong> ${invoice}</div>
+          <div><strong>Date:</strong> ${invoiceDate}</div>
+          <div><strong>Customer:</strong> ${customerName}</div>
+          <div><strong>Phone:</strong> ${customerPhone}</div>
+          <div><strong>Ref No:</strong> ${refNo}</div>
+          <div><strong>Payment:</strong> ${
+            amountPaid > 0 && paymentMethod
+              ? paymentMethod.toUpperCase()
+              : "NOT PAID"
+          }</div>
         </div>
-        <hr />
 
         <table>
           <thead>
@@ -101,36 +177,19 @@ export const printA4Receipt = ({
           </tbody>
         </table>
 
-        <hr />
-
-        <div class="total-line">
-          <span>Gross Total:</span>
-          <span>${formatNumber(grossTotal)}</span>
+        <div class="totals">
+          <div><span>Gross Total:</span><span>${formatNumber(grossTotal)}</span></div>
+          <div><span>Total Discount:</span><span>- ${formatNumber(totalDiscount)}</span></div>
+          <div class="bold"><span>Net Total:</span><span>${formatNumber(netTotal)}</span></div>
+          <div><span>Paid:</span><span>${formatNumber(amountPaid)}</span></div>
+          <div class="bold"><span>Balance:</span><span>${formatNumber(balance)}</span></div>
         </div>
 
-        <div class="total-line">
-          <span>Total Discount:</span>
-          <span>- ${formatNumber(totalDiscount)}</span>
-        </div>
-
-        <div class="total-line">
-          <span>Net Total:</span>
-          <span>${formatNumber(netTotal)}</span>
-        </div>
-
-        <div class="total-line">
-          <span>Paid:</span>
-          <span>${formatNumber(amountPaid)}</span>
-        </div>
-
-        <div class="total-line">
-          <span>Balance:</span>
-          <span>${formatNumber(balance)}</span>
-        </div>
+        <div class="clear"></div>
 
         <hr />
 
-        <div style="margin-top:6px; font-size:11px;">
+        <div>
           <strong>Amount in Words:</strong><br/>
           ${amountInWords}
         </div>
@@ -138,6 +197,7 @@ export const printA4Receipt = ({
         <div class="footer">
           Thank you for your patronage
         </div>
+
       </body>
     </html>
   `);

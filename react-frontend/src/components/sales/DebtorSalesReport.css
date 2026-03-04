@@ -125,7 +125,7 @@
 .sales-table1 td {
   padding: 3px 4px;            /* VERY important for compact rows */
   text-align: left;
-  font-size: 0.72rem;          /* smaller text */
+  font-size: 1rem;          /* smaller text */
   border: 1px solid #28a745;
   line-height: 1;            /* tighter rows */
 }

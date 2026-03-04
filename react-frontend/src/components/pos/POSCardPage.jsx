@@ -7,7 +7,7 @@ import { numberToWords } from "../../utils/numberToWords";
 
 
 import { printReceipt } from "../../components/pos/printReceipt";
-import { SHOP_NAME } from "../../config/constants";
+//import { SHOP_NAME } from "../../config/constants";
 
 
 
@@ -84,7 +84,7 @@ const POSCardPage = () => {
 
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [bankId, setBankId] = useState("");
-  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  //const [showBankDropdown, setShowBankDropdown] = useState(false);
   const [banks, setBanks] = useState([]);
 
 
@@ -332,7 +332,7 @@ const handleLoadInvoice = async (invoiceNo) => {
     // ✅ AUTO OPEN PAYMENT SESSION (only when cart was empty)
     setTimeout(() => {
       setPaymentMethod("cash");
-      setShowBankDropdown(false);
+      
       setBankId("");
       setAmountEdited(false);
     }, 0);
@@ -376,7 +376,7 @@ const handleLoadInvoice = async (invoiceNo) => {
       // ✅ reset payment session
       setPaymentMethod("cash");
       setBankId("");
-      setShowBankDropdown(false);
+      
     }
   }, [netTotal, cartItems.length, amountEdited, reprintMode]);
 
@@ -384,14 +384,26 @@ const handleLoadInvoice = async (invoiceNo) => {
 
 
   const handlePrintReceipt = (invoiceNo) => {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const business = storedUser.business;
+
+    if (!business?.name) {
+      alert("Business information missing. Please login again.");
+      return;
+    }
+
     const receiptData = {
-      SHOP_NAME,
+      RECEIPT_NAME: business.name,
+      BUSINESS_ADDRESS: business.address || "",
+      BUSINESS_PHONE: business.phone || "",
+      BUSINESS_LOGO: business.logo || "",
+
       invoice: invoiceNo,
       invoiceDate: new Date().toISOString().split("T")[0],
-      customerName,
-      customerPhone,
-      refNo,
-      paymentMethod,
+      customerName: customerName || "-",
+      customerPhone: customerPhone || "-",
+      refNo: refNo || "-",
+      paymentMethod: paymentMethod || "-",
 
       grossTotal,
       totalDiscount,
@@ -409,9 +421,6 @@ const handleLoadInvoice = async (invoiceNo) => {
         net_amount: i.qty * i.selling_price - (i.discount || 0),
       })),
 
-      formatCurrency: (amount) =>
-        `₦${Number(amount || 0).toLocaleString("en-NG")}`,
-
       amountInWords: numberToWords(netTotal),
     };
 
@@ -425,9 +434,18 @@ const handleLoadInvoice = async (invoiceNo) => {
   // =========================
   const handleSubmit = async () => {
     if (!cartItems.length) return alert("Cart is empty");
-    if (!paymentMethod) return alert("Select payment method");
-    if (amountPaid < 0) return alert("amount cannot be negative");
-    if (paymentMethod !== "cash" && !bankId) return alert("Please select a bank");
+    if (amountPaid < 0)
+      return alert("Amount cannot be negative");
+
+    // Only validate payment if amountPaid > 0
+    if (amountPaid > 0) {
+      if (!paymentMethod)
+        return alert("Select payment method");
+
+      if (paymentMethod !== "cash" && !bankId)
+        return alert("Please select a bank");
+    }
+
 
     const token = localStorage.getItem("token");
 
@@ -451,13 +469,19 @@ const handleLoadInvoice = async (invoiceNo) => {
       const saleRes = await axiosWithAuth(token).post("/sales/", salePayload);
       const invoiceNo = saleRes.data.invoice_no;
 
-      const paymentPayload = {
-        amount_paid: amountPaid,
-        payment_method: paymentMethod,
-        ...(paymentMethod !== "cash" && { bank_id: bankId }),
-      };
+      if (amountPaid > 0) {
+        const paymentPayload = {
+          amount_paid: amountPaid,
+          payment_method: paymentMethod,
+          ...(paymentMethod !== "cash" && { bank_id: bankId }),
+        };
 
-      await axiosWithAuth(token).post(`/payments/${invoiceNo}/payments`, paymentPayload);
+        await axiosWithAuth(token).post(
+          `/payments/${invoiceNo}/payments`,
+          paymentPayload
+        );
+      }
+
 
 
       handlePrintReceipt(invoiceNo);
@@ -733,15 +757,18 @@ const handleLoadInvoice = async (invoiceNo) => {
                 <label>Method</label>
                 <select
                   value={paymentMethod}
-                  disabled={reprintMode || cartItems.length === 0}
+                  disabled={
+                    reprintMode ||
+                    cartItems.length === 0 ||
+                    amountPaid === 0
+                  }
                   onChange={(e) => {
                     const method = e.target.value;
                     setPaymentMethod(method);
 
-                    const showBank = method !== "cash";
-                    setShowBankDropdown(showBank);
-
-                    if (!showBank) setBankId("");
+                    if (method === "cash") {
+                      setBankId("");
+                    }
                   }}
                 >
                   <option value="">-- Select --</option>
@@ -749,9 +776,12 @@ const handleLoadInvoice = async (invoiceNo) => {
                   <option value="transfer">Transfer</option>
                   <option value="pos">POS</option>
                 </select>
+
               </div>
 
-              {showBankDropdown && (
+              {amountPaid > 0 &&
+                paymentMethod !== "cash" && (
+
                 <div className="payment-row compact">
                   <label>Bank</label>
                   <select

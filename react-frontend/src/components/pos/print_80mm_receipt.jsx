@@ -1,6 +1,10 @@
 // print_80mm_receipt_thermal_formatted.jsx
+
 export const print80mmReceipt = ({
-  SHOP_NAME = "SHOP",
+  RECEIPT_NAME,
+  BUSINESS_ADDRESS,
+  BUSINESS_PHONE,
+  BUSINESS_LOGO,
   invoice = "-",
   invoiceDate = "-",
   customerName = "-",
@@ -15,18 +19,27 @@ export const print80mmReceipt = ({
   items = [],
   amountInWords = ""
 }) => {
+
+  // 🚨 Do not print if business name missing
+  if (!RECEIPT_NAME) {
+    alert("Business name missing. Please login again.");
+    return;
+  }
+
   const printWindow = window.open("", "_blank");
 
-  // Helper to format numbers with commas
-  const formatNumber = (num) => Number(num).toLocaleString();
+  const formatNumber = (num) =>
+    Number(num || 0).toLocaleString("en-NG", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    });
 
-  // Map items into rows with formatted figures
   const itemsHtml = items
     .map(
       (item) => `
         <tr>
-          <td style="width:35%">${item.product_name}</td>
-          <td style="width:10%; text-align:center;">${item.quantity}</td>
+          <td style="width:35%">${item.product_name || "-"}</td>
+          <td style="width:10%; text-align:center;">${item.quantity || 0}</td>
           <td style="width:15%; text-align:right;">${formatNumber(item.selling_price)}</td>
           <td style="width:15%; text-align:right;">${formatNumber(item.gross_amount)}</td>
           <td style="width:10%; text-align:right;">${formatNumber(item.discount || 0)}</td>
@@ -39,60 +52,97 @@ export const print80mmReceipt = ({
   printWindow.document.write(`
     <html>
       <head>
-        <title>Receipt-80mm</title>
+        <title>${RECEIPT_NAME} - Receipt</title>
         <style>
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
+          @page { size: 80mm auto; margin: 0; }
+
           body {
             font-family: monospace, Arial, sans-serif;
-            font-size: 9px; /* smaller font */
+            font-size: 9px;
             padding: 5px;
             margin: 0;
             width: 80mm;
           }
+
           .center { text-align: center; }
           .bold { font-weight: bold; }
-          hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
-          table { width: 100%; border-collapse: collapse; font-size: 9px; }
-          th { text-align: left; font-weight: bold; padding-bottom: 2px; }
+          .small { font-size: 8px; }
+
+          hr {
+            border: 0;
+            border-top: 1px dashed #000;
+            margin: 4px 0;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+          }
+
+          th {
+            text-align: left;
+            font-weight: bold;
+            padding-bottom: 2px;
+          }
+
           td { padding: 1px 0; }
+
           .total-line {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 9px; /* smaller font */
+            font-size: 9px;
             margin-top: 2px;
           }
+
           .footer {
-            margin-top: 5px;
+            margin-top: 6px;
             text-align: center;
-            font-size: 8px; /* smaller footer font */
+            font-size: 8px;
           }
+
+          .logo {
+            text-align: center;
+            margin-bottom: 4px;
+          }
+
+          .logo img {
+            max-width: 60px;
+            max-height: 60px;
+          }
+
           @media print {
             body { width: 80mm; }
-            table, th, td { font-size: 9px; }
-            hr { margin: 2px 0; }
           }
         </style>
       </head>
+
       <body>
-        <div class="center bold">${SHOP_NAME.toUpperCase()}</div>
-        <div class="center">SALES RECEIPT</div>
+
+        ${BUSINESS_LOGO ? `<div class="logo"><img src="${BUSINESS_LOGO}" /></div>` : ""}
+
+        <div class="center bold">${RECEIPT_NAME.toUpperCase()}</div>
+
+        ${BUSINESS_ADDRESS ? `<div class="center small">${BUSINESS_ADDRESS}</div>` : ""}
+        ${BUSINESS_PHONE ? `<div class="center small">Tel: ${BUSINESS_PHONE}</div>` : ""}
+
+        <div class="center bold" style="margin-top:4px;">SALES RECEIPT</div>
         <hr />
 
         <div>Invoice: ${invoice}</div>
         <div>Date: ${invoiceDate}</div>
         <div>Customer: ${customerName}</div>
-        <div>Phone: ${customerPhone}</div>
-        <div>Ref No: ${refNo}</div>
-        <div>
-          Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}
-        </div>
+        ${customerPhone ? `<div>Phone: ${customerPhone}</div>` : ""}
+        ${refNo ? `<div>Ref No: ${refNo}</div>` : ""}
+        <div>Payment: ${
+          amountPaid > 0 && paymentMethod
+            ? paymentMethod.toUpperCase()
+            : "NOT PAID"
+        }</div>
+
         <hr />
 
-        <!-- Table Header -->
         <table>
           <thead>
             <tr>
@@ -100,7 +150,7 @@ export const print80mmReceipt = ({
               <th style="width:10%; text-align:center;">Qty</th>
               <th style="width:15%; text-align:right;">Price</th>
               <th style="width:15%; text-align:right;">Gross</th>
-              <th style="width:10%; text-align:right;">Discount</th>
+              <th style="width:10%; text-align:right;">Disc</th>
               <th style="width:15%; text-align:right;">Net</th>
             </tr>
           </thead>
@@ -138,14 +188,15 @@ export const print80mmReceipt = ({
 
         <hr />
 
-        <div style="margin-top:4px; font-size:8px;">
+        <div class="small" style="margin-top:4px;">
           <strong>Amount in Words:</strong><br/>
-          ${amountInWords}
+          ${amountInWords || "-"}
         </div>
 
         <div class="footer">
           Thank you for your patronage
         </div>
+
       </body>
     </html>
   `);

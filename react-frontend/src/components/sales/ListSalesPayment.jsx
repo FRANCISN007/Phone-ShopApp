@@ -25,7 +25,7 @@ const ListSalesPayment = () => {
   const [currentPayment, setCurrentPayment] = useState(null);
   const [editForm, setEditForm] = useState({
     amount_paid: "",
-    discount_allowed: "",
+    //discount_allowed: "",
     payment_method: "",
     bank_id: "",
     payment_date: "",
@@ -93,7 +93,7 @@ const ListSalesPayment = () => {
     setCurrentPayment(payment);
     setEditForm({
       amount_paid: payment.amount_paid,
-      discount_allowed: payment.discount_allowed || 0,
+      //discount_allowed: payment.discount_allowed || 0,
       payment_method: payment.payment_method,
       bank_id: payment.bank_id || "",
       payment_date: payment.payment_date.split("T")[0], // date only
@@ -333,16 +333,7 @@ const ListSalesPayment = () => {
                 />
               </label>
 
-              <label>
-                Discount Allowed
-                <input
-                  type="number"
-                  step="0.01"
-                  name="discount_allowed"
-                  value={editForm.discount_allowed}
-                  onChange={handleEditChange}
-                />
-              </label>
+              
 
               <label>
                 Payment Method

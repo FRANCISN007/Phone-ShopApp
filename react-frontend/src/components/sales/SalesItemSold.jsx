@@ -7,7 +7,7 @@ import React, {
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./SalesItemSold.css";
 
-import { SHOP_NAME } from "../../config/constants";  // ✅ make sure this import exists
+//import { SHOP_NAME } from "../../config/constants";  // ✅ make sure this import exists
 import { printReceipt } from "../pos/printReceipt";
 import { numberToWords } from "../../utils/numberToWords";
 
@@ -50,37 +50,51 @@ const SalesItemSold = () => {
   const axiosInstance = useMemo(() => axiosWithAuth(), []);
 
 
-  const normalizeSaleForPrint = (sale) => ({
-    SHOP_NAME,
-    invoice: sale.invoice_no,
-    invoiceDate: sale.invoice_date,
-    customerName: sale.customer_name || "-",
-    customerPhone: sale.customer_phone || "-",
-    refNo: sale.ref_no || "-",
-    paymentMethod: sale.payment_status || "-",
+  const normalizeSaleForPrint = (sale) => {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const business = storedUser.business;
 
-    amountPaid: Number(sale.total_paid || 0),
-    grossTotal: Number(sale.gross_total || sale.total_amount || 0),
-    totalDiscount: Number(sale.total_discount || 0),
-    netTotal: Number(sale.total_amount || 0),
-    balance: Number(sale.balance_due || 0),
+    if (!business?.name) {
+      alert("Business information missing. Please login again.");
+      return null;
+    }
 
-    items: sale.items.map(i => {
-      const qty = Number(i.quantity || 0);
-      const price = Number(i.selling_price || 0);
-      const discount = Number(i.discount || 0);
-      const gross = qty * price;
+    return {
+      RECEIPT_NAME: business.name,
+      BUSINESS_ADDRESS: business.address || "",
+      BUSINESS_PHONE: business.phone || "",
+      BUSINESS_LOGO: business.logo || "",
 
-      return {
-        product_name: i.product_name || i.product?.name || "Unknown",
-        quantity: qty,
-        selling_price: price,
-        gross_amount: gross,
-        discount,
-        net_amount: gross - discount
-      };
-    })
-  });
+      invoice: sale.invoice_no,
+      invoiceDate: sale.invoice_date,
+      customerName: sale.customer_name || "-",
+      customerPhone: sale.customer_phone || "-",
+      refNo: sale.ref_no || "-",
+      paymentMethod: sale.payment_status || "-",
+
+      amountPaid: Number(sale.total_paid || 0),
+      grossTotal: Number(sale.gross_total || sale.total_amount || 0),
+      totalDiscount: Number(sale.total_discount || 0),
+      netTotal: Number(sale.total_amount || 0),
+      balance: Number(sale.balance_due || 0),
+
+      items: sale.items.map((i) => {
+        const qty = Number(i.quantity || 0);
+        const price = Number(i.selling_price || 0);
+        const discount = Number(i.discount || 0);
+        const gross = qty * price;
+
+        return {
+          product_name: i.product_name || i.product?.name || "Unknown",
+          quantity: qty,
+          selling_price: price,
+          gross_amount: gross,
+          discount,
+          net_amount: gross - discount,
+        };
+      }),
+    };
+  };
 
 
 

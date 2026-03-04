@@ -3,10 +3,12 @@ import axios from "axios";
 import "./PosSales.css";
 import { numberToWords } from "../../utils/numberToWords";
 
-import { SHOP_NAME } from "../../config/constants";
+//import { SHOP_NAME } from "../../config/constants";
 
 // At the top of PosSales.jsx
 import { printReceipt } from "../../components/pos/printReceipt";
+//import { SHOP_NAME, RECEIPT_NAME as RECEIPT_CONSTANT } from "../../config/constants";
+
 
 
 
@@ -28,14 +30,17 @@ const PosSales = ({ onClose }) => {
   const [invoiceNo, setInvoiceNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [refNo, setRefNo] = useState("");
-  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  //const [showBankDropdown, setShowBankDropdown] = useState(false);
 
   const [businesses, setBusinesses] = useState([]);  // for super admin
   const [businessId, setBusinessId] = useState(null);  // selected business
-  
+
 
 
   const [receiptFormat, setReceiptFormat] = useState("80mm"); // default
+
+
+
 
   const getGrossAmount = (item) => (item.quantity ?? 0) * (item.sellingPrice ?? 0);
 
@@ -64,10 +69,17 @@ const PosSales = ({ onClose }) => {
   
   const [amountPaid, setAmountPaid] = useState(0);
 
-  // ✅ Always keep amountPaid equal to netTotal (POSCard behavior)
+  
+
+
   useEffect(() => {
-    setAmountPaid(netTotal);
-  }, [netTotal]);
+  if (amountPaid === 0) {
+    setPaymentMethod("");
+    setBankId("");
+  
+  }
+}, [amountPaid]);
+
 
   const [productSearch, setProductSearch] = useState({});
   const [activeSearchRow, setActiveSearchRow] = useState(null);
@@ -211,42 +223,55 @@ const PosSales = ({ onClose }) => {
      Print Receipt
   ================================ */
   const handlePrintReceipt = (invoice) => {
+
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+    const business = storedUser.business;
+
+    if (!business || !business.name) {
+      alert("Business information missing. Please login again.");
+      return;
+    }
+
     const receiptData = {
-      SHOP_NAME,
+      RECEIPT_NAME: business.name,
+      BUSINESS_ADDRESS: business.address || "",
+      BUSINESS_PHONE: business.phone || "",
+      BUSINESS_LOGO: business.logo || "",
+
       invoice,
       invoiceDate,
-      customerName,
-      customerPhone,
-      refNo,
-      paymentMethod,
-      amountPaid,
-
-      grossTotal,
-      totalDiscount,
-      netTotal,
-
-      balance: netTotal - amountPaid,
+      customerName: customerName || "-",
+      customerPhone: customerPhone || "-",
+      refNo: refNo || "-",
+      paymentMethod: paymentMethod || "-",
+      amountPaid: amountPaid || 0,
+      grossTotal: grossTotal || 0,
+      totalDiscount: totalDiscount || 0,
+      netTotal: netTotal || 0,
+      balance: (netTotal || 0) - (amountPaid || 0),
 
       items: saleItems.map(item => {
-        const product = products.find(p => p.id === Number(item.productId));
+        const product = products.find(p => Number(p.id) === Number(item.productId));
         return {
-          product_name: product?.name || "",
-          quantity: item.quantity,
-          selling_price: item.sellingPrice,
-          gross_amount: getGrossAmount(item),
+          product_name: product?.name || "-",
+          quantity: item.quantity || 0,
+          selling_price: item.sellingPrice || 0,
+          gross_amount: getGrossAmount(item) || 0,
           discount: item.discount || 0,
-          net_amount: getNetAmount(item),
+          net_amount: getNetAmount(item) || 0,
         };
       }),
 
-      amountInWords: numberToWords(netTotal),
-      formatCurrency
+      amountInWords: numberToWords(netTotal || 0),
     };
 
-
-    // ✅ Use the selected format dynamically
     printReceipt(receiptFormat, receiptData);
   };
+
+
+
+
 
 
 
@@ -319,17 +344,25 @@ const handleSubmit = async () => {
     return alert("Please select a business");
   }
 
-  if (!paymentMethod) {
-    return alert("Select payment method");
-  }
-
+  // ❌ Amount cannot be negative (always validate this first)
   if (amountPaid < 0) {
     return alert("Amount cannot be negative");
   }
 
-  if (paymentMethod !== "cash" && !bankId) {
-    return alert("Please select a bank");
+  // ✅ If there is payment, then method is required
+  if (amountPaid > 0) {
+
+    if (!paymentMethod) {
+      return alert("Select payment method");
+    }
+
+    // ✅ Bank required only for non-cash methods
+    if (paymentMethod !== "cash" && !bankId) {
+      return alert("Please select a bank");
+    }
+
   }
+
 
   const token = localStorage.getItem("token");
 
@@ -373,7 +406,8 @@ const handleSubmit = async () => {
       );
     }
 
-    handlePrintReceipt(invoice);
+    //handlePrintReceipt(invoice);
+    handlePrintReceipt(invoice); // pass the actual business
 
     alert("Sale completed successfully");
 
@@ -705,11 +739,14 @@ const handleSubmit = async () => {
                   <label>Method</label>
                   <select
                     value={paymentMethod}
+                    disabled={amountPaid === 0}
                     onChange={(e) => {
                       const method = e.target.value;
                       setPaymentMethod(method);
-                      setShowBankDropdown(method !== "cash");
-                      if (method === "cash") setBankId("");
+
+                      if (method === "cash") {
+                        setBankId("");
+                      }
                     }}
                   >
                     <option value="">-- Select --</option>
@@ -717,9 +754,12 @@ const handleSubmit = async () => {
                     <option value="transfer">Transfer</option>
                     <option value="pos">POS</option>
                   </select>
+
+
                 </div>
 
-                {showBankDropdown && (
+                {amountPaid > 0 && paymentMethod !== "cash" && (
+
                   <div className="payment-row compact">
                     <label>Bank</label>
                     <select value={bankId} onChange={(e) => setBankId(e.target.value)}>

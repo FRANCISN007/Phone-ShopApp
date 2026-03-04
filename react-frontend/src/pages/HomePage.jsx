@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/images/SEASIDE.png";
 import "./HomePage.css";
-import { SHOP_NAME } from "../config/constants";
+import { WELCOME_ADDRESS } from "../config/constants";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ const HomePage = () => {
           justifyContent: "space-between",
         }}
       >
-        <div className="hotel-name-banner">{SHOP_NAME}</div>
+        <div className="hotel-name-banner">{WELCOME_ADDRESS}</div>
 
         <div className="home-card">
           <div className="hems-text">

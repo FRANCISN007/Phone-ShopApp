@@ -399,9 +399,9 @@
   border-radius: 6px;
   cursor: pointer;
 }
-.preview-btn:hover { background-color: #ee8f0a; }
+.preview-btn:hover { background-color: #1e3a8a; }
 .submit-btn {
-  background-color: #4c72ee;
+  background-color: #ee8f0a;
   color: #fff;
   border: none;
   padding: 6px 10px;

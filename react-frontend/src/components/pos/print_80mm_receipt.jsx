@@ -20,7 +20,6 @@ export const print80mmReceipt = ({
   amountInWords = ""
 }) => {
 
-  // 🚨 Do not print if business name missing
   if (!RECEIPT_NAME) {
     alert("Business name missing. Please login again.");
     return;
@@ -34,44 +33,52 @@ export const print80mmReceipt = ({
       maximumFractionDigits: 2
     });
 
-  const itemsHtml = items
-    .map(
-      (item) => `
-        <tr>
-          <td style="width:35%">${item.product_name || "-"}</td>
-          <td style="width:10%; text-align:center;">${item.quantity || 0}</td>
-          <td style="width:15%; text-align:right;">${formatNumber(item.selling_price)}</td>
-          <td style="width:15%; text-align:right;">${formatNumber(item.gross_amount)}</td>
-          <td style="width:10%; text-align:right;">${formatNumber(item.discount || 0)}</td>
-          <td style="width:15%; text-align:right;">${formatNumber(item.net_amount)}</td>
-        </tr>
-      `
-    )
-    .join("");
+  const itemsHtml = items.map((item) => `
+      <tr>
+        <td>${item.product_name || "-"}</td>
+        <td class="center">${item.quantity || 0}</td>
+        <td class="right">${formatNumber(item.selling_price)}</td>
+        <td class="right">${formatNumber(item.gross_amount)}</td>
+        <td class="right">${formatNumber(item.discount || 0)}</td>
+        <td class="right">${formatNumber(item.net_amount)}</td>
+      </tr>
+  `).join("");
 
   printWindow.document.write(`
     <html>
       <head>
         <title>${RECEIPT_NAME} - Receipt</title>
         <style>
-          @page { size: 80mm auto; margin: 0; }
+          /* 🔹 IMPORTANT FIX */
+          @page { 
+            size: 80mm auto; 
+            margin-top: 4mm;
+            margin-left: 4mm;
+            margin-right: 3mm;
+            margin-bottom: 5mm;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
 
           body {
             font-family: monospace, Arial, sans-serif;
             font-size: 9px;
-            padding: 5px;
             margin: 0;
-            width: 80mm;
+            padding: 6px 4px;   /* extra safe padding */
+            width: 76mm;        /* reduce from 80mm to avoid cutoff */
           }
 
           .center { text-align: center; }
+          .right { text-align: right; }
           .bold { font-weight: bold; }
           .small { font-size: 8px; }
 
           hr {
             border: 0;
             border-top: 1px dashed #000;
-            margin: 4px 0;
+            margin: 5px 0;
           }
 
           table {
@@ -83,37 +90,43 @@ export const print80mmReceipt = ({
           th {
             text-align: left;
             font-weight: bold;
-            padding-bottom: 2px;
+            padding-bottom: 3px;
           }
 
-          td { padding: 1px 0; }
+          td {
+            padding: 2px 0;
+            vertical-align: top;
+            word-break: break-word;
+          }
 
           .total-line {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
             font-size: 9px;
-            margin-top: 2px;
+            margin-top: 3px;
           }
 
           .footer {
-            margin-top: 6px;
+            margin-top: 8px;
             text-align: center;
             font-size: 8px;
           }
 
           .logo {
             text-align: center;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
           }
 
           .logo img {
-            max-width: 60px;
-            max-height: 60px;
+            max-width: 55px;
+            max-height: 55px;
           }
 
           @media print {
-            body { width: 80mm; }
+            body {
+              width: 76mm;
+            }
           }
         </style>
       </head>
@@ -127,7 +140,7 @@ export const print80mmReceipt = ({
         ${BUSINESS_ADDRESS ? `<div class="center small">${BUSINESS_ADDRESS}</div>` : ""}
         ${BUSINESS_PHONE ? `<div class="center small">Tel: ${BUSINESS_PHONE}</div>` : ""}
 
-        <div class="center bold" style="margin-top:4px;">SALES RECEIPT</div>
+        <div class="center bold" style="margin-top:6px;">SALES RECEIPT</div>
         <hr />
 
         <div>Invoice: ${invoice}</div>
@@ -146,12 +159,12 @@ export const print80mmReceipt = ({
         <table>
           <thead>
             <tr>
-              <th style="width:35%">Product</th>
-              <th style="width:10%; text-align:center;">Qty</th>
-              <th style="width:15%; text-align:right;">Price</th>
-              <th style="width:15%; text-align:right;">Gross</th>
-              <th style="width:10%; text-align:right;">Disc</th>
-              <th style="width:15%; text-align:right;">Net</th>
+              <th>Product</th>
+              <th class="center">Qty</th>
+              <th class="right">Price</th>
+              <th class="right">Gross</th>
+              <th class="right">Disc</th>
+              <th class="right">Net</th>
             </tr>
           </thead>
           <tbody>
@@ -188,7 +201,7 @@ export const print80mmReceipt = ({
 
         <hr />
 
-        <div class="small" style="margin-top:4px;">
+        <div class="small" style="margin-top:6px;">
           <strong>Amount in Words:</strong><br/>
           ${amountInWords || "-"}
         </div>

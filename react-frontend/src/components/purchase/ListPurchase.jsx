@@ -5,6 +5,9 @@ import "./ListPurchase.css";
 const ListPurchase = () => {
   /* ================= STATE ================= */
   const [purchases, setPurchases] = useState([]);
+  const [grossTotal, setGrossTotal] = useState(0); // ✅ NEW
+
+
   const [vendors, setVendors] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [businesses, setBusinesses] = useState([]);
@@ -36,8 +39,7 @@ const ListPurchase = () => {
   const roles = JSON.parse(localStorage.getItem("user_roles") || "[]");
   const isSuperAdmin = roles.includes("super_admin");
 
-  /* ================= COMPUTED ================= */
-  const grandTotal = purchases.reduce((acc, p) => acc + Number(p.total_cost || 0), 0);
+  
 
   /* ================= FETCH DATA ================= */
   const fetchCurrentUser = async () => {
@@ -92,20 +94,32 @@ const ListPurchase = () => {
       if (invoiceNo) params.invoice_no = invoiceNo;
       if (productId) params.product_id = productId;
       if (vendorId) params.vendor_id = vendorId;
-      if (isSuperAdmin && selectedBusinessId) params.business_id = selectedBusinessId;
+      if (isSuperAdmin && selectedBusinessId)
+        params.business_id = selectedBusinessId;
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
 
       const res = await axiosWithAuth().get("/purchase/", { params });
 
-      // Flatten items for table display
-      setPurchases(res.data);
+      // ✅ New response structure
+      setPurchases(res.data.purchases || []);
+      setGrossTotal(res.data.gross_total || 0);
 
     } catch (err) {
       console.error("Failed to fetch purchases", err);
       setPurchases([]);
+      setGrossTotal(0);
     }
-  }, [invoiceNo, productId, vendorId, selectedBusinessId, startDate, endDate, isSuperAdmin]);
+  }, [
+    invoiceNo,
+    productId,
+    vendorId,
+    selectedBusinessId,
+    startDate,
+    endDate,
+    isSuperAdmin
+  ]);
+
 
   /* ================= INITIAL LOAD ================= */
   useEffect(() => {
@@ -313,11 +327,15 @@ const ListPurchase = () => {
 
               {/* ===== GRAND TOTAL ROW ===== */}
               <tr className="purchase-grand-total-row">
-                <td colSpan="6">GRAND TOTAL</td>
-                <td colSpan="4">
-                  ₦{Number(grandTotal || 0).toLocaleString("en-NG")}
+                <td colSpan="7" style={{ textAlign: "right", fontWeight: "bold" }}>
+                   GROSS TOTAL:
                 </td>
+                <td style={{ fontWeight: "bold" }}>
+                  ₦{Number(grossTotal || 0).toLocaleString("en-NG")}
+                </td>
+                <td colSpan="2"></td>
               </tr>
+
             </>
           )}
         </tbody>

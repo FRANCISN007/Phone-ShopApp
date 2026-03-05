@@ -380,6 +380,7 @@ const UserManagement = () => {
     }
   };
 
+
   // ───────────────────────────────────────────────
   // LICENSE MANAGEMENT (super admin only)
   // ───────────────────────────────────────────────
@@ -992,19 +993,28 @@ const UserManagement = () => {
           )}
 
           {/* DELETE BUSINESS CONFIRM */}
-          {businessToDelete && (
+          {businessToDelete !== null && (
             <div className="delete-user-modal">
               <div className="modal-overlay" onClick={() => setBusinessToDelete(null)}>
-                <div className="modal-content">
+                <div
+                  className="modal-content"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button className="close-btn" onClick={() => setBusinessToDelete(null)}>✖</button>
+
                   <h3>Confirm Delete Business</h3>
                   <p>Are you sure you want to delete this business?</p>
                   <p>This action cannot be undone.</p>
+
                   <div className="modal-actions">
                     <button className="action-btn delete" onClick={handleDeleteBusiness}>
                       🗑️ Yes, Delete
                     </button>
-                    <button className="action-btn cancel" onClick={() => setBusinessToDelete(null)}>
+
+                    <button
+                      className="action-btn cancel"
+                      onClick={() => setBusinessToDelete(null)}
+                    >
                       Cancel
                     </button>
                   </div>
@@ -1012,6 +1022,44 @@ const UserManagement = () => {
               </div>
             </div>
           )}
+
+          {/* DELETE USER CONFIRM */}
+          {userToDelete && (
+            <div className="delete-user-modal">
+              <div className="modal-overlay" onClick={() => setUserToDelete(null)}>
+                <div
+                  className="modal-content"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button className="close-btn" onClick={() => setUserToDelete(null)}>
+                    ✖
+                  </button>
+
+                  <h3>Confirm Delete User</h3>
+                  <p>Are you sure you want to delete <b>{userToDelete}</b>?</p>
+                  <p>This action cannot be undone.</p>
+
+                  <div className="modal-actions">
+                    <button
+                      className="action-btn delete"
+                      onClick={handleConfirmDelete}
+                    >
+                      🗑️ Yes, Delete
+                    </button>
+
+                    <button
+                      className="action-btn cancel"
+                      onClick={() => setUserToDelete(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+
         </>
       )}
     </div>

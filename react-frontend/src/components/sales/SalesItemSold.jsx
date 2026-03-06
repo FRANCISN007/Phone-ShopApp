@@ -377,14 +377,26 @@ const SalesItemSold = () => {
 
             {items.length > 0 && (
               <tfoot>
-                <tr className="total-row">
-                  <td colSpan="7">TOTAL</td>
-                  <td className="text-right">{totals.totalQty}</td>
-                  <td></td>
-                  <td className="text-right">{formatAmount(totals.totalAmount)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
+              <tr className="total-row">
+                <td colSpan="6">TOTAL</td>
+
+                {/* Qty Total */}
+                <td className="text-left">{totals.totalQty}</td>
+
+                {/* Selling Price */}
+                <td></td>
+
+                {/* Discount */}
+                <td></td>
+
+                {/* Total Amount */}
+                <td className="text-left">{formatAmount(totals.totalAmount)}</td>
+
+                {/* Action */}
+                <td></td>
+              </tr>
+            </tfoot>
+
             )}
           </table>
         </div>

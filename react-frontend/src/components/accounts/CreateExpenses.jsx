@@ -90,9 +90,6 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
     }));
   };
 
-  // ==============================
-  // Submit form
-  // ==============================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -124,9 +121,11 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
 
     try {
       setLoading(true);
+
       await axiosWithAuth().post("/accounts/expenses/", payload);
 
       setSuccess("Expense created successfully!");
+
       setFormData({
         ref_no: "",
         vendor_id: "",
@@ -139,33 +138,37 @@ const CreateExpenses = ({ onClose, onSuccess }) => {
       });
 
       if (onSuccess) onSuccess();
-      setTimeout(() => setSuccess(""), 2000);
-    } catch (err) {
-      // ✅ Robust error extraction
-      let message = "Failed to create expense, ensure no duplicate Ref No";
 
-      if (err.response?.data) {
-        const detail = err.response.data.detail;
-        if (typeof detail === "string") {
-          message = detail;
-        } else if (Array.isArray(detail)) {
-          message = detail.join(", ");
-        } else if (typeof detail === "object" && detail !== null) {
-          message = JSON.stringify(detail);
+      setTimeout(() => setSuccess(""), 2000);
+
+    } catch (err) {
+
+      let message = "Reference No already exists for this business";
+
+      if (err.response) {
+        const data = err.response.data;
+
+        if (typeof data.detail === "string") {
+          message = data.detail;
+
+        } else if (Array.isArray(data.detail)) {
+          message = data.detail.map((e) => e.msg).join(", ");
+
+        } else if (data.message) {
+          message = data.message;
         }
       }
 
       setError(message);
 
-      // Focus reference number input for duplicate ref
       if (message.toLowerCase().includes("reference number")) {
         refInput.current?.focus();
       }
+
     } finally {
       setLoading(false);
     }
   };
-
 
 
   // ==============================

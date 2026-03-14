@@ -251,7 +251,6 @@ def create_expense(
         vendor_name=vendor.business_name if vendor else None
     )
 
-
     
 
 

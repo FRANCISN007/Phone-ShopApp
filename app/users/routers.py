@@ -390,8 +390,6 @@ def delete_user(
     db: Session = Depends(get_db),
     current_user: schemas.UserDisplaySchema = Depends(get_current_user),
 ):
-    username = username.strip().lower()
-
     roles = set(current_user.roles)
 
     # Only admin or super_admin can delete users

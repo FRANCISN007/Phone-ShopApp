@@ -163,6 +163,7 @@ def create_purchase(db, purchase, current_user):
 
 
 
+
 def list_purchases(
     db: Session,
     current_user,

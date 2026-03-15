@@ -106,6 +106,18 @@ const POSCardPage = () => {
   const [receiptFormat, setReceiptFormat] = useState("80mm");
 
   
+  // 1️⃣ Define the fetch function
+  const fetchProducts = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await axiosWithAuth(token).get("/stock/products/simple-pos", {
+        params: businessId ? { business_id: businessId } : {},
+      });
+      setProducts(res.data);
+    } catch (err) {
+      console.error("Failed to load products:", err);
+    }
+  };
   
   // =========================
     //  🔹 ADD THESE STATES FOR REPRINT
@@ -234,6 +246,10 @@ const handleLoadInvoice = async (invoiceNo) => {
 
 
 
+ // 2️⃣ Place the useEffect here
+  useEffect(() => {
+    fetchProducts();
+  }, [businessId]); // refetch whenever businessId changes
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -277,10 +293,7 @@ const handleLoadInvoice = async (invoiceNo) => {
       .then((res) => setCategories(res.data))
       .catch(() => alert("Failed to load categories"));
 
-    axiosWithAuth(token)
-      .get("/stock/products/simple-pos")
-      .then((res) => setProducts(res.data))
-      .catch(() => alert("Failed to load products"));
+    
 
     axiosWithAuth(token)
       .get("/bank/simple")
@@ -356,8 +369,9 @@ const handleLoadInvoice = async (invoiceNo) => {
   const netTotal = grossTotal - totalDiscount;
 
   const filteredProducts = activeCategory
-    ? products.filter((p) => p.category_name === activeCategory.name)
+    ? products.filter((p) => p.category_id === activeCategory.id)
     : [];
+
 
   // =========================
   // SYNC PAYMENT
@@ -501,6 +515,12 @@ const handleLoadInvoice = async (invoiceNo) => {
       else alert(detail || "Transaction failed");
     }
   };
+
+
+  const activeCategories = categories.filter((cat) =>
+  products.some((p) => p.category_id === cat.id)
+);
+
 
   return (
     <div className="poscard-container">
@@ -843,7 +863,8 @@ const handleLoadInvoice = async (invoiceNo) => {
       {/* BOTTOM */}
       <div className="poscard-items">
         <div className="category-bar">
-          {categories.map((cat) => (
+          {activeCategories.map((cat) => (
+
             <div
               key={cat.id}
               className={`category-tab ${

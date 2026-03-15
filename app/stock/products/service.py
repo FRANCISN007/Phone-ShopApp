@@ -516,14 +516,29 @@ def update_product_status(
     db: Session,
     product_id: int,
     is_active: bool,
-    current_user
+    current_user,
+    business_id: Optional[int] = None
 ):
-    query = db.query(Product).filter(Product.id == product_id)
 
-    # 🔐 Tenant isolation
-    if "super_admin" not in current_user.roles:
+    query = db.query(models.Product).options(
+        joinedload(models.Product.category)
+    ).filter(models.Product.id == product_id)
+
+    # -------- Determine tenant --------
+    if "super_admin" in current_user.roles:
+
+        if not business_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Super admin must provide business_id"
+            )
+
+        query = query.filter(models.Product.business_id == business_id)
+
+    else:
+
         query = query.filter(
-            Product.business_id == current_user.business_id
+            models.Product.business_id == current_user.business_id
         )
 
     product = query.first()
@@ -537,4 +552,3 @@ def update_product_status(
     db.refresh(product)
 
     return product
-

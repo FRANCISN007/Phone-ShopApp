@@ -3,7 +3,6 @@ import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./Backup.css";
 
 const Backup = () => {
-  const [format, setFormat] = useState("custom"); // custom | plain
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [visible, setVisible] = useState(true);
@@ -21,12 +20,9 @@ const Backup = () => {
     setMessage("");
 
     try {
-      const res = await axiosWithAuth().get(
-        `/backup/db?format=${format}`,
-        {
-          responseType: "blob", // IMPORTANT
-        }
-      );
+      const res = await axiosWithAuth().get("/backup/db", {
+        responseType: "blob",
+      });
 
       // Extract filename from headers
       const contentDisposition = res.headers["content-disposition"];
@@ -38,17 +34,16 @@ const Backup = () => {
       }
 
       if (!filename) {
-        filename =
-          format === "plain"
-            ? "database_backup.sql"
-            : "database_backup.backup";
+        filename = "database_backup.backup";
       }
 
-      // Trigger download
+      // Create download
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
+
       link.href = url;
       link.setAttribute("download", filename);
+
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -56,8 +51,9 @@ const Backup = () => {
       setMessage("Backup completed successfully.");
     } catch (error) {
       console.error(error);
+
       setMessage(
-        error?.response?.data?.error || "Backup failed. Please try again."
+        error?.response?.data?.detail || "Backup failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -68,7 +64,8 @@ const Backup = () => {
     <div className="backup-container">
       <div className="backup-wrapper">
         <div className="backup-card">
-          {/* Close button */}
+
+          {/* Close */}
           <button
             className="backup-close"
             onClick={() => setVisible(false)}
@@ -79,17 +76,9 @@ const Backup = () => {
 
           <h2>Database Backup</h2>
 
-          <div className="backup-field">
-            <label>Backup Format</label>
-            <select
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
-              disabled={loading}
-            >
-              <option value="plain">Plain SQL (.sql)</option>
-              <option value="custom">Custom (.backup)</option>
-            </select>
-          </div>
+          <p className="backup-info">
+            This will generate and download the latest database backup file.
+          </p>
 
           <button
             className="backup-btn"

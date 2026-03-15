@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
     yield
     print("Application shutdown")
 
-# Create app
+# Corrected single FastAPI instance
 app = FastAPI(
     title="SHopMan App",
     description="An API for managing shop operations including Purchase, Sales, Stock, and Payments.",
@@ -100,14 +100,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# Tenant middleware must be added BEFORE routers
+app.add_middleware(TenantMiddleware)
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, change to specific domains
+    allow_origins=["http://localhost:3000"],  # React dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.mount("/files", StaticFiles(directory="uploads"), name="files")
 
@@ -148,7 +152,7 @@ app.include_router(profit_loss_router, prefix="/accounts/profit_loss", tags=["Ac
 
 
 app.include_router(backup_router)
-app.include_router(restore_router, prefix="/backup", tags=["Restore"])  
+app.include_router(restore_router, prefix="/backup", tags=["Restore"])
 
 
 

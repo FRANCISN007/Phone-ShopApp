@@ -134,22 +134,25 @@
 .pos-sales-table th {
   background: #f1f5f9;
   font-weight: 700;
+  font-size: 16px;
   text-align: left;
 }
 
 /* COLUMN WIDTHS */
 .pos-sales-table th:nth-child(1),
-.pos-sales-table td:nth-child(1) { width: 35%; text-align: left; }
+.pos-sales-table td:nth-child(1) { width: 15%; text-align: left; }
 .pos-sales-table th:nth-child(2),
-.pos-sales-table td:nth-child(2) { width: 10%; text-align: center; }
+.pos-sales-table td:nth-child(2) { width: 18%; text-align: left; }
 .pos-sales-table th:nth-child(3),
-.pos-sales-table td:nth-child(3) { width: 15%; text-align: right; }
+.pos-sales-table td:nth-child(3) { width: 6%; text-align: center; }
 .pos-sales-table th:nth-child(4),
-.pos-sales-table td:nth-child(4) { width: 15%; text-align: right; font-weight: 700; color: #111827; font-size: 14px; }
+.pos-sales-table td:nth-child(4) { width: 10%; text-align: right; }
 .pos-sales-table th:nth-child(5),
-.pos-sales-table td:nth-child(5) { width: 10%; text-align: right; }
+.pos-sales-table td:nth-child(5) { width: 15%; text-align: right; font-weight: 700; color: #111827; font-size: 14px; }
 .pos-sales-table th:nth-child(6),
-.pos-sales-table td:nth-child(6) { width: 15%; text-align: right; font-weight: 700; color: #111827; font-size: 14px; }
+.pos-sales-table td:nth-child(6) { width: 10%; text-align: right; }
+.pos-sales-table th:nth-child(7),
+.pos-sales-table td:nth-child(7) { width: 15%; text-align: right; font-weight: 700; color: #111827; font-size: 14px; }
 
 /* ZEBRA STRIPING */
 .pos-sales-table tbody tr:nth-child(odd) { background-color: #f9fafb; }
@@ -162,8 +165,8 @@
   width: 100%;
   border: none;
   background: transparent;
-  padding: 2px;
-  font-size: 14px;
+  padding: 0px;
+  font-size: 16px;
   text-align: inherit;
 }
 
@@ -437,29 +440,14 @@
   padding: 4px 6px;
 }
 
-/* Gross total display */
-.gross-total-cell {
-  text-align: right;
-  font-weight: 700;
-}
-
-.gross-total-label {
-  font-size: 11px;
-  color: #374151;
-  text-transform: uppercase;
-}
-
-.gross-total-value {
-  font-size: 16px;
-  color: #111827;
-}
 
 
 /* Net Total Cell */
 .gross-total-cell {
   text-align: right;
   padding: 12px 19px;
-  background: #f9fafb;            /* light neutral background */
+  background: #f9fafb;  
+  font-size: 18px;            /* light neutral background */
   border-top: 2px solid #e5e7eb;   /* subtle separation */
 }
 
@@ -467,7 +455,7 @@
 .gross-total-inline {
   display: inline-block;
   padding: 10px 12px;
-  font-size: 16px;                /* clear but not oversized */
+  font-size: 18px;                /* clear but not oversized */
   font-weight: 700;
   color: #09ff00;                 /* dark green (money tone) */
   background: #000000;            /* soft green background */

@@ -16,12 +16,25 @@ const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||
   `http://${window.location.hostname}:8000`;
 
+
 const PosSales = ({ onClose }) => {
+
+  const createEmptyRow = () => ({
+    productId: "",
+    quantity: 1,
+    sellingPrice: 0,
+    discount: 0
+  });
+
+   const [saleItems, setSaleItems] = useState(
+    Array.from({ length: 6 }, createEmptyRow)
+  );
+
   const [products, setProducts] = useState([]);
   const [banks, setBanks] = useState([]);
-  const [saleItems, setSaleItems] = useState([
-    { productId: "", quantity: 1, sellingPrice: 0, discount: 0 }
-  ]);
+
+  
+
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -46,30 +59,38 @@ const PosSales = ({ onClose }) => {
 
   const getNetAmount = (item) => getGrossAmount(item) - (item.discount ?? 0);
 
+
+  const validItems = saleItems.filter(item => item.productId);
+
+
   
   /* ===============================
      Total
   ================================ */
-  const grossTotal = saleItems.reduce(
+  const grossTotal = validItems.reduce(
     (acc, item) => acc + getGrossAmount(item),
     0
   );
 
-  const totalDiscount = saleItems.reduce(
+  const totalDiscount = validItems.reduce(
     (acc, item) => acc + (item.discount || 0),
     0
   );
 
-  const netTotal = saleItems.reduce(
+  const netTotal = validItems.reduce(
     (acc, item) => acc + getNetAmount(item),
     0
   );
 
 
+
+
   
   const [amountPaid, setAmountPaid] = useState(0);
 
-  
+
+
+
 
 
   useEffect(() => {
@@ -152,6 +173,39 @@ const PosSales = ({ onClose }) => {
   return () => document.removeEventListener("click", closeDropdown);
 }, []);
 
+  
+  const handleBarcodeScan = (rowIndex, barcodeValue) => {
+    if (!barcodeValue) return;
+
+    const product = products.find(
+      (p) => p.barcode && p.barcode.toString() === barcodeValue.toString()
+    );
+
+    if (!product) {
+      alert("Product not found for scanned barcode");
+      return;
+    }
+
+    const newItems = [...saleItems];
+
+    newItems[rowIndex] = {
+      ...newItems[rowIndex],
+      productId: product.id,
+      sellingPrice: product.selling_price || 0,
+      quantity: 1,
+    };
+
+    setSaleItems(newItems);
+
+    // 🔥 MOVE TO NEXT ROW (smooth scanning flow)
+    const nextRow = rowIndex + 1;
+
+    if (nextRow >= saleItems.length) {
+      setSaleItems([...newItems, createEmptyRow()]);
+    }
+  };
+
+
 
 
   const getFilteredProducts = (rowIndex) => {
@@ -171,11 +225,9 @@ const PosSales = ({ onClose }) => {
      Add / Update / Remove Items
   ================================ */
   const addItem = () => {
-    setSaleItems([
-      ...saleItems,
-      { productId: "", quantity: 1, sellingPrice: 0, discount: 0 },
-    ]);
+    setSaleItems([...saleItems, createEmptyRow()]);
   };
+
 
   const updateItem = (index, key, value) => {
   const newItems = [...saleItems];
@@ -207,7 +259,8 @@ const PosSales = ({ onClose }) => {
   =============================== */
   const resetForm = () => {
     // Reset everything except invoice
-    setSaleItems([{ productId: "", quantity: 1, sellingPrice: 0 }]);
+    setSaleItems(Array.from({ length: 6 }, createEmptyRow));
+
     setCustomerName("");
     setCustomerPhone("");
     setPaymentMethod(""); // ✅ reset to blank
@@ -251,7 +304,10 @@ const PosSales = ({ onClose }) => {
       netTotal: netTotal || 0,
       balance: (netTotal || 0) - (amountPaid || 0),
 
-      items: saleItems.map(item => {
+      items: saleItems
+        .filter(item => item.productId)
+        .map(item => {
+
         const product = products.find(p => Number(p.id) === Number(item.productId));
         return {
           product_name: product?.name || "-",
@@ -276,33 +332,26 @@ const PosSales = ({ onClose }) => {
 
 
 const validateSale = () => {
-  if (!saleItems.length) {
+  const validItems = saleItems.filter(item => item.productId);
+
+  if (!validItems.length) {
     alert("Add at least one product");
     return false;
   }
 
-  for (let i = 0; i < saleItems.length; i++) {
-    const item = saleItems[i];
+  for (let i = 0; i < validItems.length; i++) {
+    const item = validItems[i];
 
-    // ✅ Product
-    if (!item.productId) {
-      alert(`Product not selected on row ${i + 1}`);
-      return false;
-    }
-
-    // ✅ Quantity
     if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
       alert(`Invalid quantity on row ${i + 1}`);
       return false;
     }
 
-    // ✅ Selling price
     if (!Number.isFinite(item.sellingPrice) || item.sellingPrice <= 0) {
       alert(`Invalid selling price on row ${i + 1}`);
       return false;
     }
 
-    // ✅ Discount
     const discount = Number(item.discount) || 0;
     const gross = item.quantity * item.sellingPrice;
 
@@ -317,15 +366,14 @@ const validateSale = () => {
     }
   }
 
-  // ✅ Net total must be positive
   if (!Number.isFinite(netTotal) || netTotal <= 0) {
     alert("Net total must be greater than zero");
     return false;
   }
 
-
   return true;
 };
+
 
 
 
@@ -372,12 +420,15 @@ const handleSubmit = async () => {
       customer_name: customerName.trim() || "Walk-in",
       customer_phone: customerPhone.trim() || null,
       ref_no: refNo.trim() || null,
-      items: saleItems.map(item => ({
-        product_id: Number(item.productId),
-        quantity: item.quantity,
-        selling_price: item.sellingPrice,
-        discount: item.discount || 0,
-      })),
+      items: saleItems
+        .filter(item => item.productId)  // ✅ remove empty rows
+        .map(item => ({
+          product_id: Number(item.productId),
+          quantity: item.quantity,
+          selling_price: item.sellingPrice,
+          discount: item.discount || 0,
+        })),
+
       // ✅ EXACTLY LIKE POSCARD
       ...(businessId && { business_id: businessId }),
     };
@@ -519,6 +570,7 @@ const handleSubmit = async () => {
     <table className="pos-sales-table">
       <thead>
         <tr>
+          <th>Barcode</th>   {/* NEW */}
           <th>Product</th>
           <th>Qty</th>
           <th>Price</th>
@@ -534,6 +586,19 @@ const handleSubmit = async () => {
         
         {saleItems.map((item, index) => (
           <tr key={index}>
+
+            <td>
+              <input
+                type="text"
+                placeholder="Scan barcode..."
+                value={
+                  products.find(p => p.id === Number(item.productId))?.barcode || ""
+                }
+                onChange={(e) => handleBarcodeScan(index, e.target.value)}
+              />
+            </td>
+
+
             <td>
               <div
                 className="product-search-wrapper"
@@ -690,7 +755,7 @@ const handleSubmit = async () => {
         </td>
 
         {/* Empty cells */}
-        <td colSpan="4"></td>
+        <td colSpan="5"></td>
 
         {/* 🔢 NET TOTAL — Net column */}
         <td className="gross-total-cell">

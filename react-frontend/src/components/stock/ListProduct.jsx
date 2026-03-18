@@ -335,6 +335,7 @@ const ListProduct = () => {
 
           <tr>
             <th>ID</th>
+            <th>Barcode</th>
             <th>Name</th>
             <th>Category</th>
             <th>Type</th>
@@ -368,6 +369,7 @@ const ListProduct = () => {
               <tr key={p.id}>
 
                 <td>{p.id}</td>
+                <td>{p.barcode}</td>
 
                 <td>{p.name}</td>
 
@@ -423,13 +425,9 @@ const ListProduct = () => {
 
 
       {/* Edit Modal */}
-
       {editProduct && (
-
         <div className="modal-overlay">
-
           <div className="modal">
-
             <h3>Edit Product</h3>
 
             <form
@@ -438,120 +436,92 @@ const ListProduct = () => {
                 handleUpdateProduct();
               }}
             >
-
+              {/* Barcode */}
               <div className="form-group">
-                <label>Name *</label>
-
+                <label>Barcode *</label>
                 <input
                   type="text"
-                  value={editProduct.name}
+                  value={editProduct.barcode || ""}
                   onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      name: e.target.value
-                    })
+                    setEditProduct({ ...editProduct, barcode: e.target.value })
                   }
                   required
                 />
               </div>
 
-
+              {/* Name */}
               <div className="form-group">
-
-                <label>Category *</label>
-
-                <select
-                  value={editProduct.category}
+                <label>Name *</label>
+                <input
+                  type="text"
+                  value={editProduct.name || ""}
                   onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      category: e.target.value
-                    })
+                    setEditProduct({ ...editProduct, name: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              {/* Category */}
+              <div className="form-group">
+                <label>Category *</label>
+                <select
+                  value={editProduct.category || ""}
+                  onChange={(e) =>
+                    setEditProduct({ ...editProduct, category: e.target.value })
                   }
                   required
                 >
-
-                  <option value="">
-                    -- Select Category --
-                  </option>
-
-                  {categories.map(cat => (
-                    <option
-                      key={cat.id}
-                      value={cat.name}
-                    >
+                  <option value="">-- Select Category --</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
                       {cat.name}
                     </option>
                   ))}
-
                 </select>
-
               </div>
 
-
+              {/* Type */}
               <div className="form-group">
-
                 <label>Type</label>
-
                 <input
                   type="text"
                   value={editProduct.type || ""}
                   onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      type: e.target.value
-                    })
+                    setEditProduct({ ...editProduct, type: e.target.value })
                   }
                 />
-
               </div>
 
-
+              {/* Cost Price */}
               <div className="form-group">
-
                 <label>Cost Price</label>
-
                 <input
                   type="text"
-                  value={editProduct.cost_price}
+                  value={editProduct.cost_price || ""}
                   onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      cost_price: e.target.value
-                    })
+                    setEditProduct({ ...editProduct, cost_price: e.target.value })
                   }
                 />
-
               </div>
 
-
+              {/* Selling Price */}
               <div className="form-group">
-
                 <label>Selling Price</label>
-
                 <input
                   type="text"
-                  value={editProduct.selling_price}
+                  value={editProduct.selling_price || ""}
                   onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      selling_price: e.target.value
-                    })
+                    setEditProduct({ ...editProduct, selling_price: e.target.value })
                   }
                 />
-
               </div>
 
-
+              {/* Modal Actions */}
               <div className="modal-actions">
-
-                <button
-                  type="submit"
-                  className="save-btn"
-                >
+                <button type="submit" className="save-btn">
                   Save
                 </button>
-
                 <button
                   type="button"
                   className="cancel-btn"
@@ -559,16 +529,12 @@ const ListProduct = () => {
                 >
                   Cancel
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
-
       )}
+
 
     </div>
   );

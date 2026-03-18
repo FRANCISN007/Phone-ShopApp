@@ -165,6 +165,7 @@ const ListPurchase = () => {
       business_id: purchase.business_id || "",
       items: purchase.items.map((item) => ({
         id: item.id,   // IMPORTANT
+        barcode: item.barcode,
         product_id: item.product_id,
         quantity: item.quantity,
         cost_price: item.cost_price,
@@ -264,6 +265,7 @@ const ListPurchase = () => {
             <th>ID</th>
             <th>Invoice</th>
             <th>Date</th>
+            <th>Barcode</th>
             <th>Product</th>
             <th>Vendor</th>
             <th>Qty</th>
@@ -295,9 +297,9 @@ const ListPurchase = () => {
                         ? new Date(purchase.purchase_date).toLocaleDateString()
                         : ""}
                     </td>
-
+                    <td>{item.barcode || "-"}</td>
                     <td>{item.product_name || "-"}</td>
-
+                    
                     <td>{purchase.vendor_name || "-"}</td>
 
                     <td>{item.quantity}</td>
@@ -327,7 +329,7 @@ const ListPurchase = () => {
 
               {/* ===== GRAND TOTAL ROW ===== */}
               <tr className="purchase-grand-total-row">
-                <td colSpan="7" style={{ textAlign: "right", fontWeight: "bold" }}>
+                <td colSpan="8" style={{ textAlign: "right", fontWeight: "bold" }}>
                    GROSS TOTAL:
                 </td>
                 <td style={{ fontWeight: "bold" }}>
@@ -347,64 +349,137 @@ const ListPurchase = () => {
         <div className="modal-overlay">
           <div className="modal">
             <h3>Edit Purchase</h3>
-            <form onSubmit={handleEditSubmit}>
+            <form onSubmit={handleEditSubmit} className="edit-purchase-form">
+
+              {/* Invoice Number */}
               <label>
                 Invoice Number
-                <input type="text" name="invoice_no" value={editData.invoice_no} onChange={(e) => setEditData({...editData, invoice_no: e.target.value})} required />
+                <input
+                  type="text"
+                  name="invoice_no"
+                  value={editData.invoice_no}
+                  onChange={(e) =>
+                    setEditData({ ...editData, invoice_no: e.target.value })
+                  }
+                  required
+                />
               </label>
 
+              {/* Items */}
               {editData.items.map((item, index) => (
-                <div key={index} className="edit-item">
+                <div key={index} className="edit-item-grid">
+                  {/* Barcode (readonly) */}
+                  <label>
+                    Barcode
+                    <input
+                      type="text"
+                      name="barcode"
+                      value={item.barcode || ""}
+                      readOnly
+                      className="readonly-input"
+                    />
+                  </label>
+
+                  {/* Product */}
                   <label>
                     Product
-                    <select name="product_id" value={item.product_id} onChange={(e) => handleEditChange(e, index)} required>
+                    <select
+                      name="product_id"
+                      value={item.product_id}
+                      onChange={(e) => handleEditChange(e, index)}
+                      required
+                    >
                       <option value="">-- Select Product --</option>
                       {allProducts.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
                       ))}
                     </select>
                   </label>
 
+                  {/* Quantity */}
                   <label>
                     Quantity
-                    <input type="number" name="quantity" value={item.quantity} onChange={(e) => handleEditChange(e, index)} required />
+                    <input
+                      type="number"
+                      name="quantity"
+                      value={item.quantity}
+                      onChange={(e) => handleEditChange(e, index)}
+                      required
+                    />
                   </label>
 
+                  {/* Cost Price */}
                   <label>
                     Cost Price
-                    <input type="number" name="cost_price" value={item.cost_price} onChange={(e) => handleEditChange(e, index)} required />
+                    <input
+                      type="number"
+                      name="cost_price"
+                      value={item.cost_price}
+                      onChange={(e) => handleEditChange(e, index)}
+                      required
+                    />
                   </label>
                 </div>
               ))}
 
+              {/* Vendor */}
               <label>
                 Vendor
-                <select name="vendor_id" value={editData.vendor_id} onChange={(e) => setEditData({...editData, vendor_id: e.target.value})}>
+                <select
+                  name="vendor_id"
+                  value={editData.vendor_id}
+                  onChange={(e) =>
+                    setEditData({ ...editData, vendor_id: e.target.value })
+                  }
+                >
                   <option value="">-- Select Vendor --</option>
                   {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>{v.business_name}</option>
+                    <option key={v.id} value={v.id}>
+                      {v.business_name}
+                    </option>
                   ))}
                 </select>
               </label>
 
+              {/* Business */}
               <label>
                 Business
-                <select name="business_id" value={editData.business_id} onChange={(e) => setEditData({...editData, business_id: e.target.value})}>
+                <select
+                  name="business_id"
+                  value={editData.business_id}
+                  onChange={(e) =>
+                    setEditData({ ...editData, business_id: e.target.value })
+                  }
+                >
                   <option value="">-- Select Business --</option>
                   {businesses.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </select>
               </label>
 
+              {/* Actions */}
               <div className="modal-actions">
-                <button type="submit" className="save-btn">Update</button>
-                <button type="button" className="cancel-btn" onClick={() => setShowEdit(false)}>Cancel</button>
+                <button type="submit" className="save-btn">
+                  Update
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => setShowEdit(false)}
+                >
+                  Cancel
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };

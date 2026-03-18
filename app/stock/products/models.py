@@ -56,40 +56,36 @@ class Product(Base):
 
     __table_args__ = (
 
-        # Existing constraint
-        UniqueConstraint(
-            "name",
-            "category_id",
-            "business_id",
-            name="uq_product_name_category_business"
-        ),
+    # ----------------- UNIQUE CONSTRAINTS -----------------
 
-        # SKU must be unique per business
-        UniqueConstraint(
-            "sku",
-            "business_id",
-            name="uq_product_sku_business"
-        ),
+    UniqueConstraint(
+        "name",
+        "category_id",
+        "business_id",
+        name="uq_product_name_category_business"
+    ),
 
-        # Barcode must be unique per business
-        UniqueConstraint(
-            "barcode",
-            "business_id",
-            name="uq_product_barcode_business"
-        ),
+    UniqueConstraint(
+        "sku",
+        "business_id",
+        name="uq_product_sku_business"
+    ),
 
-        # Fast POS loading
-        Index("idx_product_business_active", "business_id", "is_active"),
+    UniqueConstraint(
+        "barcode",
+        "business_id",
+        name="uq_product_barcode_business"
+    ),
 
-        Index("idx_product_business_category", "business_id", "category_id"),
+    # ----------------- INDEXES -----------------
 
-        Index("idx_product_business_name", "business_id", "name"),
+    Index("idx_product_business_active", "business_id", "is_active"),
 
-        # Fast barcode scanning
-        Index("idx_product_business_barcode", "business_id", "barcode"),
-    )
+    Index("idx_product_business_category", "business_id", "category_id"),
 
+    Index("idx_product_business_name", "business_id", "name"),
 
-    __table_args__ = (
-        UniqueConstraint("barcode", "business_id", name="uq_barcode_business"),
-    )
+    # ✅ THIS is your barcode performance index
+    Index("idx_product_barcode_business", "barcode", "business_id"),
+
+)

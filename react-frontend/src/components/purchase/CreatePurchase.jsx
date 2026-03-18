@@ -12,6 +12,7 @@ const stripCommas = (value) => value.replace(/,/g, "");
 
 /* ========= Empty Row ========= */
 const emptyRow = {
+  barcode: "",
   productQuery: "",
   productId: "",
   products: [],
@@ -88,6 +89,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
     const updated = [...rows];
     updated[index].productId = product.id;
     updated[index].productQuery = product.name;
+    updated[index].barcode = product.barcode || "";
     updated[index].products = [];
     setRows(updated);
   };
@@ -114,6 +116,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
       .filter((r) => r.productId && r.quantity && r.unitPrice)
       .map((r) => ({
         product_id: Number(r.productId),
+        barcode: r.barcode || null, // ✅ send barcode to backend
         quantity: Number(r.quantity),
         cost_price: Number(r.unitPrice),
       }));
@@ -162,7 +165,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
       {message && <p className="message">{message}</p>}
 
       <form onSubmit={handleSubmit} className="purchase-form">
-        <div className="form-grid">
+        <div className="top-row">
           {/* Vendor */}
           <div className="form-group">
             <label>Vendor</label>
@@ -196,6 +199,8 @@ const CreatePurchase = ({ onClose, currentUser }) => {
             />
           </div>
 
+
+
           {/* Business (Super Admin Only) */}
           {isSuperAdmin && (
             <div className="form-group">
@@ -213,6 +218,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
         {/* ITEMS TABLE */}
         <div className="purchase-items-table">
           <div className="table-header">
+            <span>Barcode</span> {/* ✅ New Column */}
             <span>Product</span>
             <span>Qty</span>
             <span>Unit Cost</span>
@@ -222,6 +228,15 @@ const CreatePurchase = ({ onClose, currentUser }) => {
 
           {rows.map((row, index) => (
             <div className="table-row" key={index}>
+              {/* Barcode */}
+              <input
+                type="text"
+                value={row.barcode}
+                placeholder="Scan or enter barcode"
+                onChange={(e) => handleRowChange(index, "barcode", e.target.value)}
+              />
+
+              {/* Product Search */}
               <div className="product-search">
                 <input
                   type="text"
@@ -241,7 +256,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
                         className="product-option"
                         onClick={() => handleProductSelect(index, p)}
                       >
-                        {p.name}
+                        {p.barcode ? `[${p.barcode}] ` : ""}{p.name} {/* ✅ show barcode */}
                       </div>
                     ))}
                   </div>
@@ -250,10 +265,12 @@ const CreatePurchase = ({ onClose, currentUser }) => {
 
               <input
                 type="number"
+                className="qty-input"
                 value={row.quantity}
                 onChange={(e) => handleRowChange(index, "quantity", e.target.value)}
                 required
               />
+
 
               <input
                 type="text"
@@ -262,7 +279,15 @@ const CreatePurchase = ({ onClose, currentUser }) => {
                 required
               />
 
-              <input type="text" value={formatNumber(row.total)} readOnly />
+              
+
+              <input
+                type="text"
+                className="total-input"
+                value={formatNumber(row.total)}
+                readOnly
+              />
+
 
               <button type="button" className="remove-btn" onClick={() => removeRow(index)}>
                 ✖

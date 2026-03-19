@@ -631,8 +631,12 @@ const UserManagement = () => {
           {resetUser && (
             <div className="reset-password-modal">
               <div className="modal-overlay" onClick={() => setResetUser(null)}>
-                <div className="modal-content">
+                <div
+                  className="modal-content"
+                  onClick={(e) => e.stopPropagation()} // ✅ prevent closing
+                >
                   <button className="close-btn" onClick={() => setResetUser(null)}>✖</button>
+
                   <h3>Reset Password for {resetUser.username}</h3>
 
                   <label>New Password:</label>
@@ -653,7 +657,11 @@ const UserManagement = () => {
                     <button className="action-btn save" onClick={submitResetPassword}>
                       ✅ Reset Password
                     </button>
-                    <button className="action-btn cancel" onClick={() => setResetUser(null)}>
+
+                    <button
+                      className="action-btn cancel"
+                      onClick={() => setResetUser(null)}
+                    >
                       Cancel
                     </button>
                   </div>
@@ -661,6 +669,7 @@ const UserManagement = () => {
               </div>
             </div>
           )}
+
 
           {/* EDIT ROLES FORM */}
           {selectedAction === "update" && editingUser && (

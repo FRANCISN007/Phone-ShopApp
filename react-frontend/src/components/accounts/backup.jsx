@@ -53,7 +53,7 @@ const Backup = () => {
       console.error(error);
 
       setMessage(
-        error?.response?.data?.detail || "Backup failed. Please try again."
+        error?.response?.data?.detail || "Backup failed. insufficient permission."
       );
     } finally {
       setLoading(false);

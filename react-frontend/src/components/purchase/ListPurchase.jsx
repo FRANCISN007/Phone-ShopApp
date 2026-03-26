@@ -42,31 +42,36 @@ const ListPurchase = () => {
   
 
   /* ================= FETCH DATA ================= */
-  const fetchCurrentUser = async () => {
-    try {
-      const res = await axiosWithAuth().get("/auth/me");
-      if (res.data?.business && !isSuperAdmin) {
-        setSelectedBusinessId(res.data.business.id);
-        setBusinesses([res.data.business]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch current user info", err);
-    }
-  };
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const res = await axiosWithAuth().get("/auth/me");
 
-  const fetchBusinesses = async () => {
-    try {
-      const res = await axiosWithAuth().get("/business/simple");
-      const data = Array.isArray(res.data) ? res.data : [];
-      setBusinesses(data);
-      if (!selectedBusinessId) {
-        setSelectedBusinessId(!isSuperAdmin && data.length > 0 ? data[0].id : "");
+        const userBusiness = res.data?.business;
+
+        if (!isSuperAdmin && userBusiness) {
+          setSelectedBusinessId(userBusiness.id);
+          setBusinesses([userBusiness]);
+          return;
+        }
+
+        const bizRes = await axiosWithAuth().get("/business/simple");
+        const data = Array.isArray(bizRes.data) ? bizRes.data : [];
+
+        setBusinesses(data);
+
+        if (data.length > 0 && !selectedBusinessId) {
+          setSelectedBusinessId(data[0].id);
+        }
+      } catch (err) {
+        console.error("Init failed", err);
       }
-    } catch (err) {
-      console.error("Failed to fetch businesses", err);
-      setBusinesses([]);
-    }
-  };
+    };
+
+    init();
+  }, []);
+
+
 
   const fetchVendors = async () => {
     try {
@@ -94,8 +99,10 @@ const ListPurchase = () => {
       if (invoiceNo) params.invoice_no = invoiceNo;
       if (productId) params.product_id = productId;
       if (vendorId) params.vendor_id = vendorId;
-      if (isSuperAdmin && selectedBusinessId)
-        params.business_id = selectedBusinessId;
+      if (selectedBusinessId) {
+          params.business_id = selectedBusinessId;
+        }
+
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
 
@@ -123,15 +130,22 @@ const ListPurchase = () => {
 
   /* ================= INITIAL LOAD ================= */
   useEffect(() => {
-    fetchCurrentUser();
-    fetchBusinesses();
     fetchVendors();
     fetchProductsSimple();
   }, []);
 
+
   useEffect(() => {
     fetchPurchases();
-  }, [fetchPurchases]);
+  }, [
+    invoiceNo,
+    productId,
+    vendorId,
+    selectedBusinessId,
+    startDate,
+    endDate,
+    isSuperAdmin
+  ]);
 
   /* ================= FILTER ACTIONS ================= */
   const applyFilters = () => fetchPurchases();

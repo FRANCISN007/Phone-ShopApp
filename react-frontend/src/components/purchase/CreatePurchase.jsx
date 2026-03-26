@@ -51,6 +51,38 @@ const CreatePurchase = ({ onClose, currentUser }) => {
     }
   };
 
+
+  const scanBarcode = async (index, barcode) => {
+    if (!barcode) return;
+
+    try {
+      const res = await axiosWithAuth().get(`/stock/products/scan/${barcode}`, {
+        params: {
+          business_id: businessId || undefined,
+        },
+      });
+
+      const product = res.data;
+
+      const updated = [...rows];
+      updated[index].productId = product.id;
+      updated[index].productQuery = product.name;
+      updated[index].barcode = product.barcode || barcode;
+      updated[index].products = [];
+
+      setRows(updated);
+    } catch (err) {
+      console.error("Barcode scan failed", err);
+
+      // optional: clear if not found
+      const updated = [...rows];
+      updated[index].productId = "";
+      updated[index].productQuery = "";
+      setRows(updated);
+    }
+  };
+
+
   const fetchBusinesses = async () => {
     try {
       const res = await axiosWithAuth().get("/business/simple");
@@ -233,8 +265,26 @@ const CreatePurchase = ({ onClose, currentUser }) => {
                 type="text"
                 value={row.barcode}
                 placeholder="Scan or enter barcode"
-                onChange={(e) => handleRowChange(index, "barcode", e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleRowChange(index, "barcode", value);
+
+                  if (value.length >= 6) {
+                    scanBarcode(index, value);
+                  }
+                }}
+                onBlur={(e) => scanBarcode(index, e.target.value)}
+
+                // ✅ ADD IT HERE
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    scanBarcode(index, row.barcode);
+                  }
+                }}
               />
+
+
 
               {/* Product Search */}
               <div className="product-search">

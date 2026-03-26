@@ -45,7 +45,7 @@ const ListPurchase = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const res = await axiosWithAuth().get("/auth/me");
+        const res = await axiosWithAuth().get("/users/me");
 
         const userBusiness = res.data?.business;
 
@@ -75,7 +75,12 @@ const ListPurchase = () => {
 
   const fetchVendors = async () => {
     try {
-      const res = await axiosWithAuth().get("/vendor/simple");
+      const res = await axiosWithAuth().get("/vendor/simple", {
+        params: {
+          business_id: selectedBusinessId || undefined,
+        },
+      });
+
       setVendors(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch vendors", err);
@@ -83,15 +88,23 @@ const ListPurchase = () => {
     }
   };
 
+
+
   const fetchProductsSimple = async () => {
     try {
-      const res = await axiosWithAuth().get("/stock/products/simple");
+      const res = await axiosWithAuth().get("/stock/products/simple", {
+        params: {
+          business_id: selectedBusinessId || undefined,
+        },
+      });
+
       setAllProducts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch products", err);
       setAllProducts([]);
     }
   };
+
 
   const fetchPurchases = useCallback(async () => {
     try {
@@ -128,11 +141,14 @@ const ListPurchase = () => {
   ]);
 
 
-  /* ================= INITIAL LOAD ================= */
+  /* ================= LOAD ON BUSINESS CHANGE ================= */
   useEffect(() => {
-    fetchVendors();
-    fetchProductsSimple();
-  }, []);
+    if (selectedBusinessId) {
+      fetchProductsSimple();
+      fetchVendors();
+    }
+  }, [selectedBusinessId]);
+
 
 
   useEffect(() => {

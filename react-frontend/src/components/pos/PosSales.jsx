@@ -653,26 +653,39 @@ const handleSubmit = async () => {
               <input
                 type="text"
                 placeholder="Scan barcode..."
-                value={item.barcode || ""}   // ✅ HERE
+                value={item.barcode || ""}
                 onChange={(e) => {
                   const value = e.target.value;
 
                   const newItems = [...saleItems];
                   newItems[index].barcode = value;
-
-                  // reset error flag when user types again
                   newItems[index].barcodeErrorShown = false;
 
                   setSaleItems(newItems);
 
-                  // ✅ CALL SCAN ONLY WHEN LENGTH IS VALID
-                  if (value.length >= 4) {
-                    handleBarcodeScan(index, value);
+                  // ✅ AUTO FETCH (for manual typing)
+                  if (value.length >= 6) {   // adjust based on your barcode length
+                    clearTimeout(newItems[index].barcodeTimer);
+
+                    newItems[index].barcodeTimer = setTimeout(() => {
+                      handleBarcodeScan(index, value.trim());
+                    }, 300); // debounce
                   }
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
 
-                
+                    const barcodeValue = e.target.value.trim();
+
+                    if (barcodeValue.length < 6) return;
+
+                    handleBarcodeScan(index, barcodeValue);
+                  }
+                }}
               />
+
+
 
 
             </td>

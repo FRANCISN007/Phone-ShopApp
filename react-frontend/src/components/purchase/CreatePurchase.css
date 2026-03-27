@@ -12,7 +12,11 @@
   font-family: "Segoe UI", Tahoma, sans-serif;
   position: relative;
   color: #111827;
+
+overflow: visible !important;   /* 🔥 VERY IMPORTANT */
 }
+
+
 
 .create-purchase-container h2 {
   font-size: 22px;
@@ -98,13 +102,20 @@
    PURCHASE ITEMS TABLE
 ================================= */
 .purchase-items-table {
+  overflow: visible !important;   /* 🔥 force it */
   width: 100%;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
-  overflow-x: auto;
-  margin-bottom: 15px;
 }
+
+
+
+.table-row {
+  position: relative;   /* ✅ allows dropdown positioning */
+  overflow: visible;    /* ✅ prevents clipping */
+}
+
 
 /* TABLE HEADER */
 .table-header {
@@ -369,4 +380,51 @@
   .top-row {
     flex-direction: column;
   }
+}
+
+
+
+.product-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.product-search-wrapper input {
+  width: 100%;
+}
+
+/* 🔥 POS STYLE DROPDOWN */
+.product-search-dropdown {
+  position: absolute;
+  top: 100%;            /* directly below input */
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 99999;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* ITEMS */
+.product-search-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* HOVER LIKE POS */
+.product-search-item:hover {
+  background: #f5f5f5;
+}
+
+/* OPTIONAL: SCROLLBAR CLEAN */
+.product-search-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.product-search-dropdown::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
 }

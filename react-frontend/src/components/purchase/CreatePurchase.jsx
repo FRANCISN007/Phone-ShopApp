@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./CreatePurchase.css";
 
@@ -28,6 +28,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
   const [vendors, setVendors] = useState([]);
   const [businesses, setBusinesses] = useState([]);
   const [rows, setRows] = useState([{ ...emptyRow }]);
+
   const [vendorId, setVendorId] = useState("");
   const [businessId, setBusinessId] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
@@ -35,12 +36,25 @@ const CreatePurchase = ({ onClose, currentUser }) => {
   const [message, setMessage] = useState("");
   const [visible, setVisible] = useState(true);
 
+  const [activeSearchRow, setActiveSearchRow] = useState(null);
+
+
+  // ✅ CACHE ALL PRODUCTS (KEY FIX)
+  const [allProducts, setAllProducts] = useState([]);
+
   /* ===================== Fetch Data ===================== */
   useEffect(() => {
     fetchVendors();
     if (isSuperAdmin) fetchBusinesses();
     setPurchaseDate(new Date().toISOString().split("T")[0]);
   }, []);
+
+
+
+  // reload products when business changes
+  useEffect(() => {
+    fetchProducts();
+  }, [businessId]);
 
   const fetchVendors = async () => {
     try {
@@ -52,15 +66,65 @@ const CreatePurchase = ({ onClose, currentUser }) => {
   };
 
 
+  useEffect(() => {
+    const closeDropdown = () => setActiveSearchRow(null);
+    document.addEventListener("click", closeDropdown);
+    return () => document.removeEventListener("click", closeDropdown);
+  }, []);
+
+
+
+  const fetchBusinesses = async () => {
+    try {
+      const res = await axiosWithAuth().get("/business/simple");
+      setBusinesses(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setBusinesses([]);
+    }
+  };
+
+  // 🔥 LOAD ALL PRODUCTS ONCE (FAST LIKE POS)
+  const fetchProducts = async () => {
+    try {
+      const res = await axiosWithAuth().get("/stock/products/simple", {
+        params: { business_id: businessId || undefined },
+      });
+      setAllProducts(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setAllProducts([]);
+    }
+  };
+
+  /* ===================== FAST LOCAL SEARCH ===================== */
+  const searchProducts = (index, query) => {
+    const q = (query || "").toLowerCase();
+
+    const filtered = allProducts
+      .filter((p) =>
+        !q ||   // 🔥 show ALL when empty (like POS)
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.barcode || "").includes(q)
+      )
+      .slice(0, 10);
+
+    const updated = [...rows];
+    updated[index].products = filtered;
+    setRows(updated);
+  };
+
+
+
+  /* ===================== Barcode Scan ===================== */
   const scanBarcode = async (index, barcode) => {
     if (!barcode) return;
 
     try {
-      const res = await axiosWithAuth().get(`/stock/products/scan/${barcode}`, {
-        params: {
-          business_id: businessId || undefined,
-        },
-      });
+      const res = await axiosWithAuth().get(
+        `/stock/products/scan/${barcode}`,
+        {
+          params: { business_id: businessId || undefined },
+        }
+      );
 
       const product = res.data;
 
@@ -74,7 +138,6 @@ const CreatePurchase = ({ onClose, currentUser }) => {
     } catch (err) {
       console.error("Barcode scan failed", err);
 
-      // optional: clear if not found
       const updated = [...rows];
       updated[index].productId = "";
       updated[index].productQuery = "";
@@ -82,36 +145,17 @@ const CreatePurchase = ({ onClose, currentUser }) => {
     }
   };
 
-
-  const fetchBusinesses = async () => {
-    try {
-      const res = await axiosWithAuth().get("/business/simple");
-      setBusinesses(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setBusinesses([]);
-    }
-  };
-
-  const searchProducts = async (index, query) => {
-    if (!query || query.length < 2) return;
-    try {
-      const res = await axiosWithAuth().get("/stock/products/search", {
-        params: { query, business_id: businessId || undefined },
-      });
-      const updated = [...rows];
-      updated[index].products = Array.isArray(res.data) ? res.data : [];
-      setRows(updated);
-    } catch {}
-  };
-
   /* ===================== Row Handlers ===================== */
   const handleRowChange = (index, field, value) => {
     const updated = [...rows];
+
     if (field === "unitPrice") value = stripCommas(value);
+
     updated[index][field] = value;
 
     const qty = parseFloat(updated[index].quantity) || 0;
     const price = parseFloat(updated[index].unitPrice) || 0;
+
     updated[index].total = qty * price;
 
     setRows(updated);
@@ -127,7 +171,8 @@ const CreatePurchase = ({ onClose, currentUser }) => {
   };
 
   const addRow = () => setRows([...rows, { ...emptyRow }]);
-  const removeRow = (index) => setRows(rows.filter((_, i) => i !== index));
+  const removeRow = (index) =>
+    setRows(rows.filter((_, i) => i !== index));
 
   /* ===================== Submit ===================== */
   const handleSubmit = async (e) => {
@@ -148,7 +193,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
       .filter((r) => r.productId && r.quantity && r.unitPrice)
       .map((r) => ({
         product_id: Number(r.productId),
-        barcode: r.barcode || null, // ✅ send barcode to backend
+        barcode: r.barcode || null,
         quantity: Number(r.quantity),
         cost_price: Number(r.unitPrice),
       }));
@@ -168,11 +213,12 @@ const CreatePurchase = ({ onClose, currentUser }) => {
       });
 
       setMessage("✅ Purchase saved successfully");
+
       setRows([{ ...emptyRow }]);
       setVendorId("");
       setInvoiceNo("");
-      setPurchaseDate(new Date().toISOString().split("T")[0]);
       setBusinessId("");
+      setPurchaseDate(new Date().toISOString().split("T")[0]);
     } catch (err) {
       setMessage(err.response?.data?.detail || "❌ Failed to save purchase");
     }
@@ -184,15 +230,19 @@ const CreatePurchase = ({ onClose, currentUser }) => {
   );
 
   if (!visible) return null;
+
   const handleClose = () => {
     if (onClose) onClose();
     else setVisible(false);
   };
 
-  /* ===================== Render ===================== */
+  /* ===================== RENDER ===================== */
   return (
     <div className="create-purchase-container">
-      <button className="close-btn" onClick={handleClose}>✖</button>
+      <button className="close-btn" onClick={handleClose}>
+        ✖
+      </button>
+
       <h2>Add New Purchase</h2>
       {message && <p className="message">{message}</p>}
 
@@ -201,15 +251,20 @@ const CreatePurchase = ({ onClose, currentUser }) => {
           {/* Vendor */}
           <div className="form-group">
             <label>Vendor</label>
-            <select value={vendorId} onChange={(e) => setVendorId(e.target.value)}>
+            <select
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value)}
+            >
               <option value="">Select Vendor</option>
               {vendors.map((v) => (
-                <option key={v.id} value={v.id}>{v.business_name || v.name}</option>
+                <option key={v.id} value={v.id}>
+                  {v.business_name || v.name}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Purchase Date */}
+          {/* Date */}
           <div className="form-group">
             <label>Purchase Date</label>
             <input
@@ -220,7 +275,7 @@ const CreatePurchase = ({ onClose, currentUser }) => {
             />
           </div>
 
-          {/* Invoice Number */}
+          {/* Invoice */}
           <div className="form-group">
             <label>Invoice Number</label>
             <input
@@ -231,26 +286,30 @@ const CreatePurchase = ({ onClose, currentUser }) => {
             />
           </div>
 
-
-
-          {/* Business (Super Admin Only) */}
+          {/* Business */}
           {isSuperAdmin && (
             <div className="form-group">
               <label>Business</label>
-              <select value={businessId} onChange={(e) => setBusinessId(e.target.value)} required>
+              <select
+                value={businessId}
+                onChange={(e) => setBusinessId(e.target.value)}
+                required
+              >
                 <option value="">Select Business</option>
                 {businesses.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
                 ))}
               </select>
             </div>
           )}
         </div>
 
-        {/* ITEMS TABLE */}
+        {/* ITEMS */}
         <div className="purchase-items-table">
           <div className="table-header">
-            <span>Barcode</span> {/* ✅ New Column */}
+            <span>Barcode</span>
             <span>Product</span>
             <span>Qty</span>
             <span>Unit Cost</span>
@@ -267,15 +326,14 @@ const CreatePurchase = ({ onClose, currentUser }) => {
                 placeholder="Scan or enter barcode"
                 onChange={(e) => {
                   const value = e.target.value;
+
                   handleRowChange(index, "barcode", value);
 
-                  if (value.length >= 6) {
+                  if (value.length >= 8) {
                     scanBarcode(index, value);
                   }
                 }}
                 onBlur={(e) => scanBarcode(index, e.target.value)}
-
-                // ✅ ADD IT HERE
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -284,73 +342,100 @@ const CreatePurchase = ({ onClose, currentUser }) => {
                 }}
               />
 
+              {/* Product Search (FAST LOCAL) */}
+              <div
+                className="product-search-wrapper"
+                onClick={(e) => e.stopPropagation()}  // 🔥 VERY IMPORTANT
+              >
 
-
-              {/* Product Search */}
-              <div className="product-search">
                 <input
                   type="text"
-                  value={row.productQuery}
+                  value={
+                    activeSearchRow === index
+                      ? row.productQuery
+                      : row.productQuery
+                  }
                   placeholder="Search product..."
-                  onChange={(e) => {
-                    handleRowChange(index, "productQuery", e.target.value);
-                    searchProducts(index, e.target.value);
+                  onFocus={() => {
+                    setActiveSearchRow(index);
+                    searchProducts(index, row.productQuery);
                   }}
-                  required
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleRowChange(index, "productQuery", value);
+                    searchProducts(index, value);
+                  }}
                 />
-                {row.products.length > 0 && (
-                  <div className="product-dropdown">
-                    {row.products.map((p) => (
+
+
+                {activeSearchRow === index && row.products.length > 0 && (
+
+                  <div className="product-search-dropdown">
+                    {row.products.slice(0, 50).map((p) => (
                       <div
                         key={p.id}
-                        className="product-option"
+                        className="product-search-item"
                         onClick={() => handleProductSelect(index, p)}
                       >
-                        {p.barcode ? `[${p.barcode}] ` : ""}{p.name} {/* ✅ show barcode */}
+                        {p.barcode ? `[${p.barcode}] ` : ""}
+                        {p.name}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
+
               <input
                 type="number"
-                className="qty-input"
                 value={row.quantity}
-                onChange={(e) => handleRowChange(index, "quantity", e.target.value)}
+                onChange={(e) =>
+                  handleRowChange(index, "quantity", e.target.value)
+                }
                 required
               />
-
 
               <input
                 type="text"
                 value={formatNumber(row.unitPrice)}
-                onChange={(e) => handleRowChange(index, "unitPrice", e.target.value)}
+                onChange={(e) =>
+                  handleRowChange(index, "unitPrice", e.target.value)
+                }
                 required
               />
 
-              
-
               <input
                 type="text"
-                className="total-input"
                 value={formatNumber(row.total)}
                 readOnly
               />
 
-
-              <button type="button" className="remove-btn" onClick={() => removeRow(index)}>
+              <button
+                type="button"
+                className="remove-btn"
+                onClick={() => removeRow(index)}
+              >
                 ✖
               </button>
             </div>
           ))}
         </div>
 
-        <button type="button" className="add-row-btn" onClick={addRow}>+ Add Item</button>
+        <button
+          type="button"
+          className="add-row-btn"
+          onClick={addRow}
+        >
+          + Add Item
+        </button>
 
-        <div className="invoice-total"><strong>Total:</strong> {formatNumber(invoiceTotal)}</div>
+        <div className="invoice-total">
+          <strong>Total:</strong> {formatNumber(invoiceTotal)}
+        </div>
 
-        <button type="submit" className="submit-button">Add Purchase</button>
+        <button type="submit" className="submit-button">
+          Add Purchase
+        </button>
       </form>
     </div>
   );

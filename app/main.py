@@ -113,6 +113,9 @@ app.add_middleware(
 )
 
 
+
+
+
 app.mount("/files", StaticFiles(directory="uploads"), name="files")
 
 

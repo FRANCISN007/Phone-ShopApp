@@ -25,6 +25,7 @@ if not SQLALCHEMY_DATABASE_URL:
 
 print(f"🔍 Using database host: {SQLALCHEMY_DATABASE_URL.split('@')[-1]}")
 
+
 # ============================================================
 # ⚙️ SQLAlchemy Engine with Connection Pooling
 # ============================================================

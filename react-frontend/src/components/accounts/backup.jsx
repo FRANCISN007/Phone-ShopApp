@@ -20,41 +20,62 @@ const Backup = () => {
     setMessage("");
 
     try {
-      const res = await axiosWithAuth().get("/backup/db", {
+      const axios = axiosWithAuth(); // IMPORTANT: create once per request
+
+      const res = await axios.get("/backup/db", {
         responseType: "blob",
       });
 
-      // Extract filename from headers
-      const contentDisposition = res.headers["content-disposition"];
-      let filename;
+      // -----------------------------
+      // Extract filename safely
+      // -----------------------------
+      const contentDisposition = res.headers?.["content-disposition"];
+      let filename = "database_backup.backup";
 
       if (contentDisposition) {
-        const match = contentDisposition.match(/filename="?(.+)"?/);
-        filename = match?.[1];
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
       }
 
-      if (!filename) {
-        filename = "database_backup.backup";
-      }
+      // -----------------------------
+      // Create download safely
+      // -----------------------------
+      const blob = new Blob([res.data]);
+      const url = window.URL.createObjectURL(blob);
 
-      // Create download
-      const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
-
       link.href = url;
       link.setAttribute("download", filename);
 
       document.body.appendChild(link);
       link.click();
+
       link.remove();
+      window.URL.revokeObjectURL(url);
 
-      setMessage("Backup completed successfully.");
+      setMessage("✅ Backup completed successfully.");
     } catch (error) {
-      console.error(error);
+      console.error("BACKUP ERROR:", error);
 
-      setMessage(
-        error?.response?.data?.detail || "Backup failed. insufficient permission."
-      );
+      // -----------------------------
+      // SMART ERROR HANDLING
+      // -----------------------------
+      let errorMessage = "Backup failed. Please try again.";
+
+      if (!error?.response) {
+        errorMessage =
+          "Network/CORS error: backend not reachable or blocked by browser.";
+      } else if (error.response?.status === 403) {
+        errorMessage = "Permission denied: super admin required.";
+      } else if (error.response?.status >= 500) {
+        errorMessage = "Server error during backup.";
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+
+      setMessage(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -65,7 +86,6 @@ const Backup = () => {
       <div className="backup-wrapper">
         <div className="backup-card">
 
-          {/* Close */}
           <button
             className="backup-close"
             onClick={() => setVisible(false)}

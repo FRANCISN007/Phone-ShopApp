@@ -286,20 +286,26 @@ const PosSales = ({ onClose }) => {
 
 
   const updateItem = (index, key, value) => {
-  const newItems = [...saleItems];
-  newItems[index][key] = value;
+    const newItems = [...saleItems];
+    newItems[index][key] = value;
 
-  if (key === "productId") {
-    const product = products.find((p) => p.id === Number(value));
+    if (key === "productId") {
+      const product = products.find((p) => p.id === Number(value));
 
-    newItems[index].sellingPrice = product
-      ? product.selling_price || 0
-      : 0;
-  }
+      if (product) {
+        newItems[index].sellingPrice = product.selling_price || 0;
 
+        // ✅ ADD THIS LINE (VERY IMPORTANT)
+        newItems[index].barcode = product.barcode || "";
+      } else {
+        newItems[index].sellingPrice = 0;
+        newItems[index].barcode = "";
+      }
+    }
 
-  setSaleItems(newItems);
-};
+    setSaleItems(newItems);
+  };
+
 
 
   const removeItem = (index) => {

@@ -12,6 +12,8 @@ const axiosWithAuth = () => {
   // Create axios instance
   const instance = axios.create({
     baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:8000",
+    
+
     headers: {
       Authorization: token ? `Bearer ${token}` : "",
       ...(licenseKey ? { "X-License-Key": licenseKey } : {}),

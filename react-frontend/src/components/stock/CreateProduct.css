@@ -1,153 +1,93 @@
-/* Container */
 .stock-page {
   display: flex;
   justify-content: center;
-  padding: 0px;
-  position: relative;
+  padding: 1px;
 }
 
-/* Product Card */
 .stock-card {
-  position: relative; /* needed for close button */
-  background: #ddd7d7;
-  width: 420px;
+  position: relative;
+  background: #fff;
+  width: 500px;
+  max-width: 95%;
   padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
 
-/* Close Button */
 .card-close {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   background: #f44336;
   color: #fff;
   border: none;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
   border-radius: 50%;
   width: 28px;
   height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  z-index: 20;
+  cursor: pointer;
 }
 
-.card-close:hover {
-  background: #d32f2f;
-}
-
-/* Heading */
 .stock-card h2 {
   text-align: center;
-  margin-bottom: 10px;
-  color: #333;
+  margin-bottom: 15px;
 }
 
-/* Form */
-.stock-card .form-group {
+/* ✅ GRID */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* FULL WIDTH */
+.form-group.full {
+  grid-column: span 2;
+}
+
+.form-group {
   display: flex;
   flex-direction: column;
   margin-bottom: 10px;
 }
 
-.stock-card .form-group label {
-  margin-bottom: 0px;
-  font-weight: 600;
-  color: #444;
-}
-
-.stock-card .form-group input,
-.stock-card .form-group select {
+.form-group input,
+.form-group select {
   padding: 8px;
   border-radius: 6px;
-  border: 1px solid #d6caca;
-  font-size: 14px;
+  border: 1px solid #ddd;
 }
 
-.stock-card .form-group input:focus,
-.stock-card .form-group select:focus {
-  outline: none;
-  border-color: #4a90e2;
-}
-
-/* Submit Button */
-.stock-card button[type="submit"] {
+/* BUTTON */
+button[type="submit"] {
   width: 100%;
   padding: 12px;
-  border: none;
-  border-radius: 6px;
+  margin-top: 10px;
   background: #4a90e2;
   color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.stock-card button[type="submit"]:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
-/* Alerts */
-.stock-card .alert {
-  padding: 10px;
-  margin-bottom: 15px;
+  border: none;
   border-radius: 6px;
-  font-size: 14px;
 }
 
-.stock-card .alert.error {
+/* ALERTS */
+.alert {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+.alert.error {
   background: #ffe1e1;
   color: #a40000;
 }
 
-/* ================= Success Modal ================= */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.35);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-in-out;
+.alert.success {
+  background: #e6f7ec;
+  color: #1b7a3c;
 }
 
-
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-
-.autocomplete-wrapper {
-  position: relative;
-}
-
-.autocomplete-dropdown {
-  position: absolute;
-  width: 100%;
-  background: white;
-  border: 1px solid #ddd;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 1000;
-}
-
-.autocomplete-item {
-  padding: 8px;
-  cursor: pointer;
-}
-
-.autocomplete-item:hover {
-  background: #f1f1f1;
+/* MOBILE */
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }

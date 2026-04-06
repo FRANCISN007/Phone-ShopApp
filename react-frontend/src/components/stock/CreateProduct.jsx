@@ -3,6 +3,8 @@ import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./CreateProduct.css";
 
 const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
+  const [visible, setVisible] = useState(true);
+
   const [form, setForm] = useState({
     name: "",
     category: "",
@@ -21,13 +23,9 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const modalTimerRef = useRef(null);
 
-  /* ===============================
-     FETCH CATEGORIES
-  =============================== */
   useEffect(() => {
     axiosWithAuth()
       .get("/stock/category/simple")
@@ -35,9 +33,6 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
       .catch(() => setError("Cannot load categories"));
   }, []);
 
-  /* ===============================
-     FETCH BUSINESSES (SUPER ADMIN)
-  =============================== */
   useEffect(() => {
     if (!isSuperAdmin) return;
 
@@ -46,6 +41,14 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
       .then((res) => setBusinesses(res.data || []))
       .catch(() => setError("Cannot load businesses"));
   }, [isSuperAdmin]);
+
+  useEffect(() => {
+    return () => {
+      if (modalTimerRef.current) {
+        clearTimeout(modalTimerRef.current);
+      }
+    };
+  }, []);
 
   const filteredBusinesses = businesses.filter((b) =>
     b.name.toLowerCase().includes(businessSearch.toLowerCase())
@@ -56,9 +59,13 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ===============================
-     SUBMIT
-  =============================== */
+  const handleClose = () => {
+    if (onClose) onClose();
+    else setVisible(false);
+  };
+
+  if (!visible) return null;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -78,18 +85,23 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
         category: form.category.trim(),
         type: form.type || null,
         cost_price: form.cost_price ? Number(form.cost_price) : null,
-        selling_price: form.selling_price ? Number(form.selling_price) : null,
+        selling_price: form.selling_price
+          ? Number(form.selling_price)
+          : null,
         sku: form.sku || null,
         barcode: form.barcode || null,
-        ...(isSuperAdmin && form.business_id && {
-          business_id: Number(form.business_id),
-        }),
+        ...(isSuperAdmin &&
+          form.business_id && {
+            business_id: Number(form.business_id),
+          }),
       };
 
-      const res = await axiosWithAuth().post("/stock/products/", payload);
+      const res = await axiosWithAuth().post(
+        "/stock/products/",
+        payload
+      );
 
       setSuccess(`Product "${res.data.name}" created successfully`);
-      setShowSuccessModal(true);
 
       setForm({
         name: "",
@@ -103,7 +115,6 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
       });
 
       modalTimerRef.current = setTimeout(() => {
-        setShowSuccessModal(false);
         setSuccess("");
       }, 2000);
     } catch (err) {
@@ -116,18 +127,25 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
   return (
     <div className="stock-page">
       <div className="stock-card">
-        <button className="card-close" onClick={onClose}>✖</button>
+        <button
+          type="button"
+          className="card-close"
+          onClick={handleClose}
+        >
+          ✖
+        </button>
 
         <h2>Create Product</h2>
 
         {error && <div className="alert error">{error}</div>}
+        {success && <div className="alert success">{success}</div>}
 
         <form onSubmit={handleSubmit}>
-
           {/* BUSINESS */}
           {isSuperAdmin && (
-            <div className="form-group">
+            <div className="form-group full">
               <label>Business *</label>
+
               <input
                 type="text"
                 placeholder="Search business..."
@@ -151,73 +169,75 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
             </div>
           )}
 
-          {/* NAME */}
-          <div className="form-group">
-            <label>Name *</label>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
+          {/* GRID START */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Name *</label>
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Category *</label>
+              <select
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* CATEGORY */}
-          <div className="form-group">
-            <label>Category *</label>
-            <select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Type</label>
+              <input name="type" value={form.type} onChange={handleChange} />
+            </div>
+
+            <div className="form-group">
+              <label>SKU</label>
+              <input name="sku" value={form.sku} onChange={handleChange} />
+            </div>
           </div>
 
-          {/* TYPE */}
-          <div className="form-group">
-            <label>Type</label>
-            <input name="type" value={form.type} onChange={handleChange} />
+          <div className="form-row">
+            <div className="form-group">
+              <label>Barcode</label>
+              <input name="barcode" value={form.barcode} onChange={handleChange} />
+            </div>
+
+            <div className="form-group">
+              <label>Cost Price</label>
+              <input
+                type="number"
+                name="cost_price"
+                value={form.cost_price}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
-          {/* SKU */}
-          <div className="form-group">
-            <label>SKU</label>
-            <input name="sku" value={form.sku} onChange={handleChange} />
-          </div>
-
-          {/* BARCODE */}
-          <div className="form-group">
-            <label>Barcode</label>
-            <input name="barcode" value={form.barcode} onChange={handleChange} />
-          </div>
-
-          {/* COST */}
-          <div className="form-group">
-            <label>Cost Price</label>
-            <input
-              type="number"
-              name="cost_price"
-              value={form.cost_price}
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* SELLING */}
-          <div className="form-group">
-            <label>Selling Price</label>
-            <input
-              type="number"
-              name="selling_price"
-              value={form.selling_price}
-              onChange={handleChange}
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label>Selling Price</label>
+              <input
+                type="number"
+                name="selling_price"
+                value={form.selling_price}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <button type="submit" disabled={loading}>
@@ -225,15 +245,6 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
           </button>
         </form>
       </div>
-
-      {showSuccessModal && (
-        <div className="modal-overlay">
-          <div className="modal success">
-            <h3>Success</h3>
-            <p>{success}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

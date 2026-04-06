@@ -288,23 +288,20 @@ const handleLoadInvoice = async (invoiceNo) => {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    axiosWithAuth(token)
-      .get("/stock/category/simple")
+    axiosWithAuth()      .get("/stock/category/simple")
       .then((res) => setCategories(res.data))
       .catch(() => alert("Failed to load categories"));
 
     
 
-    axiosWithAuth(token)
-      .get("/bank/simple")
+    axiosWithAuth()      .get("/bank/simple")
       .then((res) => setBanks(res.data))
       .catch(() => setBanks([]));
 
     // ✅ fetch businesses if user is super admin
     const currentUserRoles = JSON.parse(localStorage.getItem("user_roles") || "[]");
     if (currentUserRoles.includes("super_admin")) {
-      axiosWithAuth(token)
-        .get("/business/simple")  // assuming backend endpoint returns {id, name}
+      axiosWithAuth()        .get("/business/simple")  // assuming backend endpoint returns {id, name}
         .then((res) => setBusinesses(res.data))
         .catch(() => setBusinesses([]));
     }

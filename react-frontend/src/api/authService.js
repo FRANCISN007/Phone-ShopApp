@@ -16,6 +16,8 @@ const testBackend = async (url) => {
   }
 };
 
+
+
 // Immediately check if backend is reachable; fallback to localhost if needed
 (async () => {
   const reachable = await testBackend(BASE_URL);

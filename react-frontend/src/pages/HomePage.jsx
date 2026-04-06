@@ -81,27 +81,35 @@ const HomePage = () => {
         </div>
 
         {/* MAIN CONTENT */}
-        <div className="home-card">
-          <div className="hems-text">
-            <span className="hems-letter">SH</span>
-            <span className="hems-letter">op</span>
-            <span className="hems-letter">M</span>
-            <span className="hems-letter">an</span>
-          </div>
+<div className="home-card">
+  <div className="hems-text">
+    <span className="hems-letter">SH</span>
+    <span className="hems-letter">op</span>
+    <span className="hems-letter">M</span>
+    <span className="hems-letter">an</span>
+  </div>
 
-          <button
-            className="proceed-button"
-            onClick={handleProceed}
-            type="button"
-          >
-            Proceed &gt;&gt;
-          </button>
-        </div>
+  {/* ✨ NEW PROFESSIONAL TEXT */}
+    <div className="welcome-text">
+      <h1>Welcome to Shopman Business World</h1>
+      <p>
+        Your trusted and reliable solution for managing and growing your business efficiently.
+      </p>
+    </div>
+
+    <button
+      className="proceed-button"
+      onClick={handleProceed}
+      type="button"
+    >
+      Proceed &gt;&gt;
+    </button>
+  </div>
+
 
         {/* FOOTER */}
         <footer className="home-footer">
-          <div>Produced & Licensed by School of Accounting Package</div>
-          <div>© 2026</div>
+          <div>Produced & Licensed by School of Accounting Package © 2026</div>
         </footer>
       </div>
     </>

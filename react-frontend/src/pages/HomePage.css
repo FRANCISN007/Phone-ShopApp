@@ -76,7 +76,7 @@ html, body {
 
   font-size: 1.2rem;
   font-weight: bold;
-  color: #61dafb;
+  color: #08c3f7;
 
   padding: 6px 16px;
   border-radius: 25px;
@@ -123,11 +123,11 @@ html, body {
 /* ================= FOOTER ================= */
 .home-footer {
   position: fixed;
-  bottom: 10px;
+  bottom: 0px;
   right: 20px;
 
-  color: #27c94a;
-  font-size: 0.9rem;
+  color: #000000;
+  font-size: 0.8rem;
   font-style: italic;
   text-align: right;
 
@@ -269,4 +269,91 @@ html, body {
     width: 200px;
     height: 200px;
   }
+}
+
+
+
+/* ================= WELCOME TEXT ================= */
+.welcome-text {
+  text-align: center;
+  margin: 20px 0 30px;
+  padding: 0 20px;
+  color: #ffffff;
+  animation: fadeInUp 1.5s ease;
+}
+
+.welcome-text h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-family: "Cinzel Decorative", serif;
+  letter-spacing: 1px;
+}
+
+.welcome-text p {
+  font-size: 20px;
+  line-height: 1.9;
+  color: #0aff02;
+  max-width: 420px;
+  margin: 0 auto;
+  font-family: "Audiowide", sans-serif;
+}
+
+/* ✨ Smooth entrance animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+
+/* ================= MOBILE BUTTON FIX ================= */
+@media (max-width: 768px) {
+  .proceed-button {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 400px;
+    padding: 14px;
+    font-size: 16px;
+    z-index: 1000;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+
+@media (max-width: 768px) {
+  .home-container {
+    padding-bottom: 100px; /* space for fixed button */
+  }
+}
+
+
+
+@media (max-width: 768px) {
+  .home-footer {
+    position: relative;
+    margin-bottom: 80px; /* push it above button */
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.8;
+  }
+}
+
+
+
+.proceed-button {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: white;
+  font-weight: bold;
+  border: none;
 }

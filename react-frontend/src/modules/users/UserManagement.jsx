@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import "./UserManagement.css";
 import getBaseUrl from "../../api/config";
+import axiosWithAuth from "../../utils/axiosWithAuth";   // ← Added for license check
 
 const API_BASE_URL = getBaseUrl();
 
@@ -52,6 +53,9 @@ const UserManagement = () => {
     duration_days: 365,
     business_id: "",
   });
+
+  // 🔥 License Alert State (Same as Dashboard)
+  const [licenseInfo, setLicenseInfo] = useState(null);
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentRoles = (Array.isArray(storedUser.roles) ? storedUser.roles : [])
@@ -109,6 +113,17 @@ const UserManagement = () => {
     }
   }, [token, isSuperAdmin]);
 
+  // 🔥 License Check Function
+  const checkLicense = async () => {
+    try {
+      const res = await axiosWithAuth().get("/license/check");
+      console.log("LICENSE RESPONSE (UserManagement):", res.data);
+      setLicenseInfo(res.data);
+    } catch (err) {
+      console.error("❌ License check failed:", err?.response?.data || err.message);
+    }
+  };
+
   useEffect(() => {
     if (!token) {
       setError("You must be logged in");
@@ -119,6 +134,14 @@ const UserManagement = () => {
       fetchBusinesses();
       fetchLicenseStatus();
     }
+
+    // 🔥 Initial license check + polling (same as Dashboard)
+    checkLicense();
+    const licenseInterval = setInterval(checkLicense, 60000);
+
+    return () => {
+      clearInterval(licenseInterval);
+    };
   }, [token, fetchUsers, fetchBusinesses, fetchLicenseStatus, isSuperAdmin]);
 
   const showPopup = (msg) => {
@@ -126,7 +149,7 @@ const UserManagement = () => {
     setTimeout(() => setPopupMsg(""), 3000);
   };
 
-  // User functions (kept from your working code)
+  // User functions
   const handleEditClick = (user) => {
     setEditingUser(user);
     setEditRoles(user.roles?.map(r => r.toLowerCase()) || []);
@@ -380,7 +403,6 @@ const UserManagement = () => {
     }
   };
 
-
   // ───────────────────────────────────────────────
   // LICENSE MANAGEMENT (super admin only)
   // ───────────────────────────────────────────────
@@ -495,6 +517,34 @@ const UserManagement = () => {
 
           {error && <div className="error">{error}</div>}
           {popupMsg && <div className="popup-inside success">{popupMsg}</div>}
+
+          {/* 🔥 LICENSE ALERT BANNER - Same as DashboardPage */}
+          {licenseInfo &&
+            licenseInfo.days_left !== null &&
+            licenseInfo.days_left <= 7 && (
+              <div
+                style={{
+                  background:
+                    licenseInfo.valid === false || licenseInfo.days_left <= 0
+                      ? "#dc2626"
+                      : "#f59e0b",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  marginBottom: "15px",
+                  fontWeight: "600",
+                  textAlign: "center",
+                  width: "98%",
+                }}
+              >
+                {licenseInfo.valid === false || licenseInfo.days_left <= 0
+                  ? "❌ License expired"
+                  : licenseInfo.message}
+                <span style={{ marginLeft: "20px" }}>
+                  ({licenseInfo.days_left} day(s) left)
+                </span>
+              </div>
+            )}
 
           {/* LIST USERS */}
           {selectedAction === "list" && (
@@ -633,7 +683,7 @@ const UserManagement = () => {
               <div className="modal-overlay" onClick={() => setResetUser(null)}>
                 <div
                   className="modal-content"
-                  onClick={(e) => e.stopPropagation()} // ✅ prevent closing
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button className="close-btn" onClick={() => setResetUser(null)}>✖</button>
 
@@ -669,7 +719,6 @@ const UserManagement = () => {
               </div>
             </div>
           )}
-
 
           {/* EDIT ROLES FORM */}
           {selectedAction === "update" && editingUser && (
@@ -917,7 +966,6 @@ const UserManagement = () => {
             </form>
           )}
 
-
           {/* LICENSE MANAGEMENT - SUPER ADMIN ONLY */}
           {isSuperAdmin && selectedAction === "license-management" && (
             <div className="license-section">
@@ -1067,7 +1115,6 @@ const UserManagement = () => {
               </div>
             </div>
           )}
-
 
         </>
       )}

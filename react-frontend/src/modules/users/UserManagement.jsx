@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import "./UserManagement.css";
 import getBaseUrl from "../../api/config";
-import axiosWithAuth from "../../utils/axiosWithAuth";   // ← Added for license check
+import axiosWithAuth from "../../utils/axiosWithAuth";
 
 const API_BASE_URL = getBaseUrl();
 
@@ -54,7 +54,7 @@ const UserManagement = () => {
     business_id: "",
   });
 
-  // 🔥 License Alert State (Same as Dashboard)
+  // 🔥 License Alert State
   const [licenseInfo, setLicenseInfo] = useState(null);
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -91,10 +91,24 @@ const UserManagement = () => {
       const res = await fetch(`${API_BASE_URL}/business/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to load businesses");
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Business fetch failed:", res.status, errorData);
+        setError(`Failed to load businesses: ${errorData.detail || res.statusText}`);
+        return;
+      }
+
       const data = await res.json();
-      setBusinesses(data.businesses || []);
+      const businessList = data.businesses || data || [];
+      
+      const sortedBusinesses = businessList.sort((a, b) => 
+        (a.name || "").localeCompare(b.name || "")
+      );
+      
+      setBusinesses(sortedBusinesses);
     } catch (err) {
+      console.error("Business fetch error:", err);
       setError("Could not load businesses");
     }
   }, [token, isSuperAdmin]);
@@ -113,7 +127,7 @@ const UserManagement = () => {
     }
   }, [token, isSuperAdmin]);
 
-  // 🔥 License Check Function
+  // 🔥 License Check for Alert Banner
   const checkLicense = async () => {
     try {
       const res = await axiosWithAuth().get("/license/check");
@@ -129,13 +143,14 @@ const UserManagement = () => {
       setError("You must be logged in");
       return;
     }
+
     fetchUsers();
     if (isSuperAdmin) {
       fetchBusinesses();
       fetchLicenseStatus();
     }
 
-    // 🔥 Initial license check + polling (same as Dashboard)
+    // License banner check + polling
     checkLicense();
     const licenseInterval = setInterval(checkLicense, 60000);
 
@@ -149,7 +164,7 @@ const UserManagement = () => {
     setTimeout(() => setPopupMsg(""), 3000);
   };
 
-  // User functions
+  // ==================== USER FUNCTIONS ====================
   const handleEditClick = (user) => {
     setEditingUser(user);
     setEditRoles(user.roles?.map(r => r.toLowerCase()) || []);
@@ -324,10 +339,7 @@ const UserManagement = () => {
     }
   };
 
-  // ───────────────────────────────────────────────
-  // BUSINESS MANAGEMENT (super admin only)
-  // ───────────────────────────────────────────────
-
+  // ==================== BUSINESS FUNCTIONS ====================
   const handleCreateBusiness = async (e) => {
     e.preventDefault();
     if (!newBusiness.name.trim() || !newBusiness.owner_username.trim()) {
@@ -403,10 +415,7 @@ const UserManagement = () => {
     }
   };
 
-  // ───────────────────────────────────────────────
-  // LICENSE MANAGEMENT (super admin only)
-  // ───────────────────────────────────────────────
-
+  // ==================== LICENSE FUNCTIONS ====================
   const handleGenerateLicense = async (e) => {
     e.preventDefault();
 
@@ -493,7 +502,6 @@ const UserManagement = () => {
                 )}
               </select>
 
-              {/* REFRESH BUTTON - Visible only to super admin */}
               {isSuperAdmin && (
                 <button 
                   className="btn refresh"
@@ -518,7 +526,7 @@ const UserManagement = () => {
           {error && <div className="error">{error}</div>}
           {popupMsg && <div className="popup-inside success">{popupMsg}</div>}
 
-          {/* 🔥 LICENSE ALERT BANNER - Same as DashboardPage */}
+          {/* 🔥 LICENSE ALERT BANNER */}
           {licenseInfo &&
             licenseInfo.days_left !== null &&
             licenseInfo.days_left <= 7 && (
@@ -681,39 +689,16 @@ const UserManagement = () => {
           {resetUser && (
             <div className="reset-password-modal">
               <div className="modal-overlay" onClick={() => setResetUser(null)}>
-                <div
-                  className="modal-content"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                   <button className="close-btn" onClick={() => setResetUser(null)}>✖</button>
-
                   <h3>Reset Password for {resetUser.username}</h3>
-
                   <label>New Password:</label>
-                  <input
-                    type="password"
-                    value={resetPassword}
-                    onChange={e => setResetPassword(e.target.value)}
-                  />
-
+                  <input type="password" value={resetPassword} onChange={e => setResetPassword(e.target.value)} />
                   <label>Confirm Password:</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                  />
-
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                   <div className="modal-actions">
-                    <button className="action-btn save" onClick={submitResetPassword}>
-                      ✅ Reset Password
-                    </button>
-
-                    <button
-                      className="action-btn cancel"
-                      onClick={() => setResetUser(null)}
-                    >
-                      Cancel
-                    </button>
+                    <button className="action-btn save" onClick={submitResetPassword}>✅ Reset Password</button>
+                    <button className="action-btn cancel" onClick={() => setResetUser(null)}>Cancel</button>
                   </div>
                 </div>
               </div>
@@ -726,7 +711,6 @@ const UserManagement = () => {
               <div className="edit-header">
                 <h4>Edit Roles: {editingUser.username}</h4>
               </div>
-
               <div className="roles-checkboxes">
                 {availableRoles.map(role => (
                   <label key={role}>
@@ -744,7 +728,6 @@ const UserManagement = () => {
                   </label>
                 ))}
               </div>
-
               <div className="form-buttons">
                 <button type="submit">Save Changes</button>
                 <button type="button" onClick={cancelEdit}>Cancel</button>
@@ -757,10 +740,7 @@ const UserManagement = () => {
             <div className="business-section">
               <div className="section-header">
                 <h3>Business Management</h3>
-                <button
-                  className="btn create"
-                  onClick={() => setSelectedAction("create-business")}
-                >
+                <button className="btn create" onClick={() => setSelectedAction("create-business")}>
                   + Create New Business
                 </button>
               </div>
@@ -886,10 +866,7 @@ const UserManagement = () => {
 
           {/* EDIT BUSINESS FORM */}
           {isSuperAdmin && selectedAction === "edit-business" && editingBusiness && (
-            <form
-              onSubmit={handleUpdateBusiness}
-              className="edit-form compact-form super-admin-form"
-            >
+            <form onSubmit={handleUpdateBusiness} className="edit-form compact-form super-admin-form">
               <div className="edit-header">
                 <h4>Edit Business (ID: {editingBusiness.id})</h4>
               </div>
@@ -899,12 +876,7 @@ const UserManagement = () => {
                 <input
                   type="text"
                   value={editingBusiness.name || ""}
-                  onChange={(e) =>
-                    setEditingBusiness({
-                      ...editingBusiness,
-                      name: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, name: e.target.value })}
                   required
                 />
               </label>
@@ -914,12 +886,7 @@ const UserManagement = () => {
                 <input
                   type="text"
                   value={editingBusiness.address || ""}
-                  onChange={(e) =>
-                    setEditingBusiness({
-                      ...editingBusiness,
-                      address: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, address: e.target.value })}
                 />
               </label>
 
@@ -928,12 +895,7 @@ const UserManagement = () => {
                 <input
                   type="text"
                   value={editingBusiness.phone || ""}
-                  onChange={(e) =>
-                    setEditingBusiness({
-                      ...editingBusiness,
-                      phone: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, phone: e.target.value })}
                 />
               </label>
 
@@ -942,12 +904,7 @@ const UserManagement = () => {
                 <input
                   type="email"
                   value={editingBusiness.email || ""}
-                  onChange={(e) =>
-                    setEditingBusiness({
-                      ...editingBusiness,
-                      email: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, email: e.target.value })}
                 />
               </label>
 
@@ -966,7 +923,7 @@ const UserManagement = () => {
             </form>
           )}
 
-          {/* LICENSE MANAGEMENT - SUPER ADMIN ONLY */}
+          {/* LICENSE MANAGEMENT */}
           {isSuperAdmin && selectedAction === "license-management" && (
             <div className="license-section">
               <div className="section-header">
@@ -1053,27 +1010,14 @@ const UserManagement = () => {
           {businessToDelete !== null && (
             <div className="delete-user-modal">
               <div className="modal-overlay" onClick={() => setBusinessToDelete(null)}>
-                <div
-                  className="modal-content"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                   <button className="close-btn" onClick={() => setBusinessToDelete(null)}>✖</button>
-
                   <h3>Confirm Delete Business</h3>
                   <p>Are you sure you want to delete this business?</p>
                   <p>This action cannot be undone.</p>
-
                   <div className="modal-actions">
-                    <button className="action-btn delete" onClick={handleDeleteBusiness}>
-                      🗑️ Yes, Delete
-                    </button>
-
-                    <button
-                      className="action-btn cancel"
-                      onClick={() => setBusinessToDelete(null)}
-                    >
-                      Cancel
-                    </button>
+                    <button className="action-btn delete" onClick={handleDeleteBusiness}>🗑️ Yes, Delete</button>
+                    <button className="action-btn cancel" onClick={() => setBusinessToDelete(null)}>Cancel</button>
                   </div>
                 </div>
               </div>
@@ -1084,38 +1028,19 @@ const UserManagement = () => {
           {userToDelete && (
             <div className="delete-user-modal">
               <div className="modal-overlay" onClick={() => setUserToDelete(null)}>
-                <div
-                  className="modal-content"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button className="close-btn" onClick={() => setUserToDelete(null)}>
-                    ✖
-                  </button>
-
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                  <button className="close-btn" onClick={() => setUserToDelete(null)}>✖</button>
                   <h3>Confirm Delete User</h3>
                   <p>Are you sure you want to delete <b>{userToDelete}</b>?</p>
                   <p>This action cannot be undone.</p>
-
                   <div className="modal-actions">
-                    <button
-                      className="action-btn delete"
-                      onClick={handleConfirmDelete}
-                    >
-                      🗑️ Yes, Delete
-                    </button>
-
-                    <button
-                      className="action-btn cancel"
-                      onClick={() => setUserToDelete(null)}
-                    >
-                      Cancel
-                    </button>
+                    <button className="action-btn delete" onClick={handleConfirmDelete}>🗑️ Yes, Delete</button>
+                    <button className="action-btn cancel" onClick={() => setUserToDelete(null)}>Cancel</button>
                   </div>
                 </div>
               </div>
             </div>
           )}
-
         </>
       )}
     </div>

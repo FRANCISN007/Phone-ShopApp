@@ -7,6 +7,17 @@ import "./DashboardPage.css";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+
+  // ✅ 🔐 AUTH GUARD (ADD THIS HERE)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  
   const location = useLocation();
 
   const [activeIndex, setActiveIndex] = useState(0);

@@ -41,7 +41,6 @@ def create_business(
 ):
     """
     Super admin creates a new business.
-    The owner_username is explicitly provided (the admin/owner of this business).
     """
     # Prevent duplicate business name
     existing = db.query(models.Business).filter(
@@ -50,95 +49,89 @@ def create_business(
     if existing:
         raise HTTPException(status_code=400, detail="Business name already exists")
 
-    # Prevent duplicate owner_username for businesses (optional but recommended)
+    # Prevent duplicate owner_username
     existing_owner = db.query(models.Business).filter(
         models.Business.owner_username == business_in.owner_username.strip()
     ).first()
     if existing_owner:
         raise HTTPException(status_code=400, detail="This username is already used as owner for another business")
 
-    # Create business with the specified owner_username
+    # Create business
     business = models.Business(
         name=business_in.name.strip(),
         address=business_in.address,
         phone=business_in.phone,
         email=business_in.email,
-        owner_username=business_in.owner_username.strip()  # ← from input, NOT current_user
+        owner_username=business_in.owner_username.strip()
     )
 
     db.add(business)
     db.commit()
     db.refresh(business)
 
-    # Safe response with computed license_active
-    biz_out = schemas.BusinessOut.from_orm(business)
-    biz_out.license_active = business.is_license_active(db)
-    # owner_username is already in biz_out from the column
+    # Get latest license info for response
+    latest_license = (
+        db.query(license_models.LicenseKey)
+        .filter(license_models.LicenseKey.business_id == business.id)
+        .order_by(license_models.LicenseKey.expiration_date.desc())
+        .first()
+    )
 
-    return biz_out
+    is_active = (
+        latest_license.is_active and latest_license.expiration_date >= now_lagos
+    ) if latest_license else False
+
+    # Return clean dict instead of mutating Pydantic object
+    return {
+        "id": business.id,
+        "name": business.name,
+        "address": business.address,
+        "phone": business.phone,
+        "email": business.email,
+        "owner_username": business.owner_username,
+        "created_at": business.created_at,
+        "license_active": is_active,
+        "expiration_date": latest_license.expiration_date if latest_license else None,
+    }
 
 
 
 @router.get("/", response_model=schemas.BusinessListResponse)
 def list_businesses(
-    active: Optional[bool] = Query(
-        None,
-        description="Filter by license active status: true (active), false (inactive/expired)"
-    ),
-    name: Optional[str] = Query(
-        None,
-        description="Search/filter by business name (partial, case-insensitive)"
-    ),
+    active: Optional[bool] = Query(None),
+    name: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: UserDisplaySchema = Depends(role_required(["super_admin", "admin"]))
 ):
-    """
-    List businesses with:
-    - License active/inactive filter (?active=true/false)
-    - Business name search (?name=xyz)
-    - Sorted by newest creation date first
-    - Real-time expiration_date from latest license
-    - owner_username from DB column
-    """
     roles = set(current_user.roles)
 
     if "super_admin" in roles:
-        # Super admin sees ALL businesses
         query = db.query(models.Business)
 
-        # Apply name search filter (partial, case-insensitive)
         if name:
             query = query.filter(
                 func.lower(models.Business.name).ilike(f"%{name.lower().strip()}%")
             )
 
-        # Apply active/inactive filter (computed from licenses)
         if active is not None:
             subquery = (
                 db.query(license_models.LicenseKey.business_id)
                 .filter(
                     license_models.LicenseKey.is_active == True,
                     license_models.LicenseKey.expiration_date >= now_lagos
-
                 )
                 .subquery()
             )
-
             if active:
                 query = query.filter(models.Business.id.in_(subquery))
             else:
                 query = query.filter(~models.Business.id.in_(subquery))
 
-        # Sort by newest first
         query = query.order_by(models.Business.created_at.desc())
-
         businesses = query.all()
 
         enriched = []
         for biz in businesses:
-            biz_out = schemas.BusinessOut.from_orm(biz)
-
-            # Latest license for active status and expiration date
             latest_license = (
                 db.query(license_models.LicenseKey)
                 .filter(license_models.LicenseKey.business_id == biz.id)
@@ -146,31 +139,34 @@ def list_businesses(
                 .first()
             )
 
-            biz_out.license_active = (
+            is_active = (
                 latest_license.is_active and latest_license.expiration_date >= now_lagos
-
             ) if latest_license else False
 
-            biz_out.expiration_date = latest_license.expiration_date if latest_license else None
-            biz_out.owner_username = biz.owner_username
+            # Create fresh dict instead of mutating Pydantic object
+            biz_dict = {
+                "id": biz.id,
+                "name": biz.name,
+                "address": biz.address,
+                "phone": biz.phone,
+                "email": biz.email,
+                "owner_username": biz.owner_username,
+                "created_at": biz.created_at,
+                "license_active": is_active,
+                "expiration_date": latest_license.expiration_date if latest_license else None,
+            }
 
-            enriched.append(biz_out)
+            enriched.append(biz_dict)
 
         return {"total": len(enriched), "businesses": enriched}
 
     else:
-        # Normal admin → only their own business
-        business = (
-            db.query(models.Business)
-            .filter(models.Business.id == current_user.business_id)
-            .first()
-        )
+        # Admin sees only their own business
+        business = db.query(models.Business).filter(
+            models.Business.id == current_user.business_id
+        ).first()
 
         if not business:
-            return {"total": 0, "businesses": []}
-
-        # Apply name filter (only if it matches their business)
-        if name and name.lower().strip() not in business.name.lower():
             return {"total": 0, "businesses": []}
 
         latest_license = (
@@ -182,24 +178,26 @@ def list_businesses(
 
         is_active = (
             latest_license.is_active and latest_license.expiration_date >= now_lagos
-
         ) if latest_license else False
 
         if active is not None and is_active != active:
             return {"total": 0, "businesses": []}
 
-        biz_out = schemas.BusinessOut.from_orm(business)
-        biz_out.license_active = is_active
-        biz_out.expiration_date = latest_license.expiration_date if latest_license else None
-        biz_out.owner_username = business.owner_username
-
-        return {
-            "total": 1,
-            "businesses": [biz_out]
-
+        biz_dict = {
+            "id": business.id,
+            "name": business.name,
+            "address": business.address,
+            "phone": business.phone,
+            "email": business.email,
+            "owner_username": business.owner_username,
+            "created_at": business.created_at,
+            "license_active": is_active,
+            "expiration_date": latest_license.expiration_date if latest_license else None,
         }
 
-
+        return {"total": 1, "businesses": [biz_dict]}
+    
+    
 
 
 from typing import List, Optional

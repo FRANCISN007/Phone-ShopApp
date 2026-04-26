@@ -13,21 +13,16 @@
 .auth-container {
   width: 100%;
   max-width: 280px; /* Compact card */
-  margin: 8px auto;
+  margin: 50px auto;
   padding: 20px;
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+  border: 1px solid #c5c5dd;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-
-.auth-container p {
-  text-align: center;
-  margin-top: 12px;
-}
-
 
 /* ====== Logo ====== */
 .auth-logo-text {
@@ -57,13 +52,14 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  
 }
 
 .auth-container input {
   width: 80%;
   align-self: center;
   padding: 8px 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid #6c9ee9;
   border-radius: 12px;
   font-size: 13px;
   background: #f9fafb;
@@ -133,7 +129,7 @@
 /* ====== Footer ====== */
 .homes-footer {
   position: fixed;
-  bottom: 10px;
+  bottom: 0px;
   right: 20px;
   color: rgb(19, 17, 17);
   font-size: 0.85rem;
@@ -245,7 +241,7 @@
 .app-title {
   font-size: 32px;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
   line-height: 1.3;
 }
 
@@ -253,31 +249,31 @@
 .app-description {
   font-size: 16px;
   opacity: 0.95;
-  margin-bottom: 5px;
-  line-height: 1.2;
+  margin-bottom: 25px;
+  line-height: 1.6;
 }
 
 /* Features List with Icons */
 .app-features {
   list-style: none;
   padding: 0;
-  margin: 0 0 15px 0;
+  margin: 0 0 25px 0;
 }
 
 .app-features li {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin: 5px 0;
-  font-size: 14px;
-  opacity: 0.8;
+  gap: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  opacity: 0.95;
 }
 
 .app-features li::before {
   content: "✔";
   font-weight: bold;
   color: #38d9a9;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 /* Tagline */
@@ -339,4 +335,96 @@
   text-align: center;
   font-weight: bold;
   margin-bottom: 15px;
+}
+
+
+
+
+
+.logo-badgelogin {
+  display: flex;
+  justify-content: center;   /* center horizontally */
+  align-items: center;
+  gap: 10px;
+
+  margin-bottom: 10px;       /* space before "Login" */
+
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #161718;
+
+  padding: 6px 16px;
+  border-radius: 25px;
+
+  background: rgba(0, 0, 0, 0.25);
+  
+  backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(97, 218, 251, 0.3);
+
+  font-family: 'Audiowide', cursive;
+}
+
+
+
+/* Icon styling */
+.logo-icon {
+  color: #2563eb;
+  font-size: 14px;
+}
+
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: none;
+  border-radius: 12px;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Hover */
+.login-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+}
+
+/* Active (click) */
+.login-btn:active {
+  transform: scale(0.98);
+}
+
+/* Disabled state */
+.login-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

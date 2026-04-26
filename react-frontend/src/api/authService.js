@@ -2,87 +2,75 @@
 import axios from "axios";
 import getBaseUrl from "./config";
 
-// ----------------------
-// BASE URL & Health Check
-// ----------------------
-let BASE_URL = getBaseUrl();
+// ✅ Resolve base URL once (no async mutation)
+const BASE_URL = getBaseUrl();
 
-const testBackend = async (url) => {
-  try {
-    const response = await fetch(`${url}/health`, { method: "GET", cache: "no-store" });
-    return response.ok;
-  } catch {
-    return false;
-  }
-};
+console.log("🌐 Auth API Base URL:", BASE_URL);
 
-
-
-// Immediately check if backend is reachable; fallback to localhost if needed
-(async () => {
-  const reachable = await testBackend(BASE_URL);
-  if (!reachable && !BASE_URL.includes("localhost")) {
-    console.warn(`⚠️ Backend not reachable at ${BASE_URL}, switching to localhost.`);
-    BASE_URL = `${window.location.protocol}//localhost:8000`;
-  }
-  console.log("✅ Using API Base URL:", BASE_URL);
-})();
-
-// ----------------------
-// Axios Client
-// ----------------------
+// ✅ Create axios client
 const authClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
-// ----------------------
-// Login User
-// ----------------------
+// ===============================
+// LOGIN
+// ===============================
 export const loginUser = async (username, password) => {
-  const formData = new URLSearchParams();
-  formData.append("username", username); // STRICT: do not change case
-  formData.append("password", password);
+  try {
+    const formData = new URLSearchParams();
+    formData.append("username", username);
+    formData.append("password", password);
 
-  // Let Axios throw errors; frontend handles them
-  const response = await authClient.post("/users/token", formData, {
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  });
+    const response = await authClient.post("/users/token", formData, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
 
-  const user = response.data;
+    const user = response.data;
 
-  // Save token & user
-  localStorage.setItem("user", JSON.stringify(user));
-  localStorage.setItem("token", user.access_token);
+    // ✅ Store session
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", user.access_token);
 
-  return user;
+    return user;
+  } catch (error) {
+    console.error("❌ Login failed:", error);
+    throw error.response?.data || { message: "Login failed" };
+  }
 };
 
-// ----------------------
-// Register User
-// ----------------------
-export const registerUser = async ({ username, password, roles, admin_password }) => {
-  const response = await authClient.post("/users/register/", {
-    username,
-    password,
-    roles, // array of roles
-    admin_password,
-  });
+// ===============================
+// REGISTER
+// ===============================
+export const registerUser = async ({
+  username,
+  password,
+  roles,
+  admin_password,
+}) => {
+  try {
+    const response = await authClient.post("/users/register/", {
+      username,
+      password,
+      roles,
+      admin_password,
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    console.error("❌ Registration failed:", error);
+    throw error.response?.data || { message: "Registration failed" };
+  }
 };
 
-// ----------------------
-// Get Current User
-// ----------------------
+// ===============================
+// SESSION HELPERS
+// ===============================
 export const getCurrentUser = () => {
   const userStr = localStorage.getItem("user");
   return userStr ? JSON.parse(userStr) : null;
 };
 
-// ----------------------
-// Logout
-// ----------------------
 export const logoutUser = () => {
   localStorage.removeItem("user");
   localStorage.removeItem("token");

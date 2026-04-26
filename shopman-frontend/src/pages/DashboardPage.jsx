@@ -13,13 +13,25 @@ const DashboardPage = () => {
   const [activeSubMenu, setActiveSubMenu] = useState(null); 
 
   const storedUser = JSON.parse(localStorage.getItem("user")) || {};
-  let roles = Array.isArray(storedUser.roles)
-    ? storedUser.roles
-    : typeof storedUser.role === "string"
-    ? [storedUser.role]
-    : [];
+
+  let roles = [];
+
+  if (Array.isArray(storedUser.roles)) {
+    roles = storedUser.roles;
+  } else if (typeof storedUser.roles === "string") {
+    roles = [storedUser.roles];
+  } else if (typeof storedUser.role === "string") {
+    roles = [storedUser.role];
+  }
+
   roles = roles.map(r => r.toLowerCase());
+
   const isAdmin = roles.includes("admin");
+  const isSuperAdmin = roles.includes("super_admin");
+
+  // ✅ MATCH BACKEND
+  const canImport = isAdmin || isSuperAdmin;
+
 
   /* ===============================
      MAIN MENU
@@ -229,7 +241,8 @@ const DashboardPage = () => {
   };
 
   const handleStockAction = action => {
-    if (action === "import" && !isAdmin) {
+    if (action === "import" && !canImport) {
+
       alert("Access denied. Admin only.");
       return;
     }
@@ -377,8 +390,12 @@ const handleAccountsAction = action => {
                 {stockSubMenu.map((sub, idx) => (
                   <div
                     key={sub.label}
-                    className={`submenu-card card-${idx + 1} ${sub.action === "import" && !isAdmin ? "disabled-card" : ""}`}
-                    onClick={() => !(sub.action === "import" && !isAdmin) && handleStockAction(sub.action)}
+                    className={`submenu-card card-${idx + 1} ${sub.action === "import" && !canImport ? "disabled-card" : ""}`}
+                    onClick={() =>
+                      !(sub.action === "import" && !canImport) &&
+                      handleStockAction(sub.action)
+                    }
+
                   >
                     <div className="submenu-icon">{sub.icon}</div>
                     <div className="submenu-label">{sub.label}</div>

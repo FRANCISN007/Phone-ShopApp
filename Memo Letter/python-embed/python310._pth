@@ -1,0 +1,10 @@
+python310.zip
+./DLLs
+./tcl
+./Lib
+
+
+
+
+# Uncomment to run site.main() automatically
+#import site

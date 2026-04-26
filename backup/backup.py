@@ -1,87 +1,159 @@
-import os
-from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse
-from dotenv import load_dotenv
-from urllib.parse import urlparse
+import os
 import subprocess
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
+from app.users.permissions import role_required
+
+# ---------------- LOAD ENV ----------------
 load_dotenv()
-router = APIRouter()
 
-# Use DB_URL2 from Shopman .env
-DB_URL = os.getenv("DB_URL2")
+# ---------------- ROUTER (SECURED) ----------------
+router = APIRouter(
+    prefix="/backup",
+    tags=["Database Backup"],
+    dependencies=[Depends(role_required(["super_admin"], bypass_admin=False))]
+)
+
+# ---------------- CONFIG ----------------
+DB_URL = os.getenv("DB_URL3")
+PG_DUMP_PATH = os.getenv("PG_DUMP_PATH", "pg_dump")
+
+if not DB_URL:
+    raise ValueError("❌ DB_URL3 is not set")
+
+# ✅ Normalize DB URL for pg_dump
+if DB_URL.startswith("postgresql+psycopg2://"):
+    DB_URL = DB_URL.replace("postgresql+psycopg2://", "postgresql://", 1)
+
+elif DB_URL.startswith("postgres://"):
+    DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
+
+print(f"🔍 Normalized DB_URL: {DB_URL}")
+
+# ---------------- BACKUP DIR ----------------
 BACKUP_DIR = os.path.join(os.getcwd(), "backup_files")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-@router.get("/backup/db")
-def backup_database(format: str = "custom"):
-    """
-    Backup PostgreSQL database for Shopman project.
-    """
+# ---------------- CLEANUP OLD BACKUPS ----------------
+def cleanup_old_backups(days: int = 7):
+    now = datetime.now()
 
-    if not DB_URL.startswith("postgresql://"):
-        return {"error": "Only PostgreSQL backups are supported."}
+    for file in os.listdir(BACKUP_DIR):
+        path = os.path.join(BACKUP_DIR, file)
 
+        if os.path.isfile(path):
+            file_time = datetime.fromtimestamp(os.path.getmtime(path))
+
+            if now - file_time > timedelta(days=days):
+                try:
+                    os.remove(path)
+                    print(f"🗑️ Deleted old backup: {file}")
+                except Exception as e:
+                    print(f"⚠️ Failed to delete {file}: {str(e)}")
+
+# ---------------- RUN BACKUP ----------------
+def run_auto_backup():
     try:
-        # -----------------------------
-        # Parse DB URL
-        # -----------------------------
-        parsed = urlparse(DB_URL)
-        db_user = parsed.username
-        db_password = parsed.password
-        db_host = parsed.hostname or "localhost"
-        db_port = parsed.port or 5432
-        db_name = parsed.path.lstrip("/")
-
-        # -----------------------------
-        # Determine file format & extension
-        # -----------------------------
-        if format == "plain":
-            file_ext = ".sql"
-            pg_format = "p"  # plain SQL
-        else:
-            file_ext = ".backup"
-            pg_format = "c"  # custom format
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{db_name}_backup_{timestamp}{file_ext}"  # dynamic based on DB name
+        filename = f"database_backup_{timestamp}.backup"
         filepath = os.path.join(BACKUP_DIR, filename)
 
-        # -----------------------------
-        # Build pg_dump command
-        # -----------------------------
-        command = [
-            r"C:\Program Files\PostgreSQL\15\bin\pg_dump.exe",
-            "-h", db_host,
-            "-p", str(db_port),
-            "-U", db_user,
-            "-F", pg_format,
+        # ✅ Best practice: use full DB URL
+        pg_dump_cmd = [
+            PG_DUMP_PATH,
+            "--dbname", DB_URL,
+            "-F", "c",
             "-f", filepath,
-            db_name
+            "--no-owner",
+            "--no-privileges"
         ]
 
-        # Pass password
         env = os.environ.copy()
-        env["PGPASSWORD"] = db_password
 
-        subprocess.run(command, env=env, check=True)
+        # ✅ Enable SSL only for remote DB
+        if "localhost" not in DB_URL and "127.0.0.1" not in DB_URL:
+            env["PGSSLMODE"] = "require"
+            print("🔐 SSL enabled (remote DB)")
+        else:
+            print("⚠️ SSL disabled (local DB)")
 
-        # -----------------------------
-        # Return file
-        # -----------------------------
-        return FileResponse(
-            path=filepath,
-            filename=filename,
-            media_type="application/octet-stream"
+        print("🚀 Running pg_dump...")
+
+        result = subprocess.run(
+            pg_dump_cmd,
+            env=env,
+            capture_output=True,
+            text=True
         )
 
-    except subprocess.CalledProcessError as e:
-        return {
-            "error": "pg_dump failed",
-            "stdout": e.stdout,
-            "stderr": e.stderr
-        }
+        if result.returncode != 0:
+            print("❌ pg_dump failed")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+            return None
+
+        if not os.path.exists(filepath):
+            print("❌ Backup file not created")
+            return None
+
+        cleanup_old_backups()
+
+        print(f"✅ Backup created: {filename}")
+        return filepath
+
+    except FileNotFoundError:
+        print("❌ pg_dump not found. Install PostgreSQL client.")
+        return None
 
     except Exception as e:
-        return {"error": str(e)}
+        print(f"❌ Backup error: {str(e)}")
+        return None
+
+# ---------------- GET LATEST BACKUP ----------------
+def get_latest_backup():
+    try:
+        files = [
+            os.path.join(BACKUP_DIR, f)
+            for f in os.listdir(BACKUP_DIR)
+            if os.path.isfile(os.path.join(BACKUP_DIR, f))
+        ]
+
+        if not files:
+            return None
+
+        files.sort(key=os.path.getmtime, reverse=True)
+        return files[0]
+
+    except Exception as e:
+        print(f"❌ Error getting latest backup: {str(e)}")
+        return None
+
+# ---------------- MANUAL BACKUP ENDPOINT ----------------
+@router.get("/db")
+def backup_database():
+    """
+    Trigger a manual backup and download the latest file.
+    Only accessible by super admin.
+    """
+
+    filepath = run_auto_backup()
+
+    # fallback if new backup failed
+    if not filepath:
+        print("⚠️ Using latest available backup...")
+        filepath = get_latest_backup()
+
+    if not filepath or not os.path.exists(filepath):
+        raise HTTPException(
+            status_code=500,
+            detail="Backup failed or file not found"
+        )
+
+    return FileResponse(
+        path=filepath,
+        filename=os.path.basename(filepath),
+        media_type="application/octet-stream"
+    )

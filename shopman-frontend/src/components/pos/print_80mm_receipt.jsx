@@ -1,93 +1,170 @@
-// print_80mm_receipt.jsx
-export const print80mmReceipt = ({
-  SHOP_NAME,
-  invoice,
-  invoiceDate,
-  customerName,
-  customerPhone,
-  refNo,
-  paymentMethod,
-  amountPaid,
-  grossTotal,
-  totalDiscount,
-  netTotal,
-  balance,
-  items,
-  amountInWords,
-  formatCurrency
-}) => {
-  const printWindow = window.open("", "_blank", "width=320,height=600");
+// print_80mm_receipt_thermal_formatted.jsx
 
-  // Map items into rows for thermal receipt
-  const itemsHtml = items
-    .map(
-      (item) => `
+export const print80mmReceipt = ({
+  RECEIPT_NAME,
+  BUSINESS_ADDRESS,
+  BUSINESS_PHONE,
+  BUSINESS_LOGO,
+  invoice = "-",
+  invoiceDate = "-",
+  customerName = "-",
+  customerPhone = "-",
+  refNo = "-",
+  paymentMethod = "-",
+  amountPaid = 0,
+  grossTotal = 0,
+  totalDiscount = 0,
+  netTotal = 0,
+  balance = 0,
+  items = [],
+  amountInWords = ""
+}) => {
+
+  if (!RECEIPT_NAME) {
+    alert("Business name missing. Please login again.");
+    return;
+  }
+
+  const printWindow = window.open("", "_blank");
+
+  const formatNumber = (num) =>
+    Number(num || 0).toLocaleString("en-NG", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    });
+
+  const itemsHtml = items.map((item) => `
       <tr>
-        <td style="width:35%">${item.product_name}</td>
-        <td style="width:10%; text-align:center;">${item.quantity}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.selling_price)}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.gross_amount)}</td>
-        <td style="width:10%; text-align:right;">${formatCurrency(item.discount || 0)}</td>
-        <td style="width:15%; text-align:right;">${formatCurrency(item.net_amount)}</td>
+        <td>${item.product_name || "-"}</td>
+        <td class="center">${item.quantity || 0}</td>
+        <td class="right">${formatNumber(item.selling_price)}</td>
+        <td class="right">${formatNumber(item.gross_amount)}</td>
+        <td class="right">${formatNumber(item.discount || 0)}</td>
+        <td class="right">${formatNumber(item.net_amount)}</td>
       </tr>
-    `
-    )
-    .join("");
+  `).join("");
 
   printWindow.document.write(`
     <html>
       <head>
-        <title>Receipt-80mm</title>
+        <title>${RECEIPT_NAME} - Receipt</title>
         <style>
-          body {
-            font-family: monospace;
-            font-size: 10px;
-            padding: 5px;
+          /* 🔹 IMPORTANT FIX */
+          @page { 
+            size: 80mm auto; 
+            margin-top: 4mm;
+            margin-left: 4mm;
+            margin-right: 3mm;
+            margin-bottom: 5mm;
           }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: monospace, Arial, sans-serif;
+            font-size: 9px;
+            margin: 0;
+            padding: 6px 4px;   /* extra safe padding */
+            width: 76mm;        /* reduce from 80mm to avoid cutoff */
+          }
+
           .center { text-align: center; }
+          .right { text-align: right; }
           .bold { font-weight: bold; }
-          hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
-          table { width: 100%; border-collapse: collapse; }
-          th { text-align: left; font-weight: bold; padding-bottom: 2px; }
-          td { padding: 1px 0; }
+          .small { font-size: 8px; }
+
+          hr {
+            border: 0;
+            border-top: 1px dashed #000;
+            margin: 5px 0;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+          }
+
+          th {
+            text-align: left;
+            font-weight: bold;
+            padding-bottom: 3px;
+          }
+
+          td {
+            padding: 2px 0;
+            vertical-align: top;
+            word-break: break-word;
+          }
+
           .total-line {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            margin-top: 2px;
-          }
-          .footer {
-            margin-top: 5px;
-            text-align: center;
             font-size: 9px;
+            margin-top: 3px;
+          }
+
+          .footer {
+            margin-top: 8px;
+            text-align: center;
+            font-size: 8px;
+          }
+
+          .logo {
+            text-align: center;
+            margin-bottom: 5px;
+          }
+
+          .logo img {
+            max-width: 55px;
+            max-height: 55px;
+          }
+
+          @media print {
+            body {
+              width: 76mm;
+            }
           }
         </style>
       </head>
+
       <body>
-        <div class="center bold">${SHOP_NAME}</div>
-        <div class="center">SALES RECEIPT</div>
+
+        ${BUSINESS_LOGO ? `<div class="logo"><img src="${BUSINESS_LOGO}" /></div>` : ""}
+
+        <div class="center bold">${RECEIPT_NAME.toUpperCase()}</div>
+
+        ${BUSINESS_ADDRESS ? `<div class="center small">${BUSINESS_ADDRESS}</div>` : ""}
+        ${BUSINESS_PHONE ? `<div class="center small">Tel: ${BUSINESS_PHONE}</div>` : ""}
+
+        <div class="center bold" style="margin-top:6px;">SALES RECEIPT</div>
         <hr />
 
         <div>Invoice: ${invoice}</div>
         <div>Date: ${invoiceDate}</div>
-        <div>Customer: ${customerName || "-"}</div>
-        <div>Phone: ${customerPhone || "-"}</div>
-        <div>Ref No: ${refNo || "-"}</div>
-        <div>
-          Payment: ${amountPaid > 0 && paymentMethod ? paymentMethod.toUpperCase() : "NOT PAID"}
-        </div>
+        <div>Customer: ${customerName}</div>
+        ${customerPhone ? `<div>Phone: ${customerPhone}</div>` : ""}
+        ${refNo ? `<div>Ref No: ${refNo}</div>` : ""}
+        <div>Payment: ${
+          amountPaid > 0 && paymentMethod
+            ? paymentMethod.toUpperCase()
+            : "NOT PAID"
+        }</div>
+
         <hr />
 
-        <!-- Table Header -->
         <table>
           <thead>
             <tr>
-              <th style="width:35%">Product</th>
-              <th style="width:10%; text-align:center;">Qty</th>
-              <th style="width:15%; text-align:right;">Price</th>
-              <th style="width:15%; text-align:right;">Gross</th>
-              <th style="width:10%; text-align:right;">Discount</th>
-              <th style="width:15%; text-align:right;">Net</th>
+              <th>Product</th>
+              <th class="center">Qty</th>
+              <th class="right">Price</th>
+              <th class="right">Gross</th>
+              <th class="right">Disc</th>
+              <th class="right">Net</th>
             </tr>
           </thead>
           <tbody>
@@ -99,39 +176,40 @@ export const print80mmReceipt = ({
 
         <div class="total-line">
           <span>Gross Total:</span>
-          <span>${formatCurrency(grossTotal)}</span>
+          <span>${formatNumber(grossTotal)}</span>
         </div>
 
         <div class="total-line">
           <span>Total Discount:</span>
-          <span>- ${formatCurrency(totalDiscount)}</span>
+          <span>- ${formatNumber(totalDiscount)}</span>
         </div>
 
         <div class="total-line">
           <span>Net Total:</span>
-          <span>${formatCurrency(netTotal)}</span>
+          <span>${formatNumber(netTotal)}</span>
         </div>
 
         <div class="total-line">
           <span>Paid:</span>
-          <span>${formatCurrency(amountPaid)}</span>
+          <span>${formatNumber(amountPaid)}</span>
         </div>
 
         <div class="total-line">
           <span>Balance:</span>
-          <span>${formatCurrency(balance)}</span>
+          <span>${formatNumber(balance)}</span>
         </div>
 
         <hr />
 
-        <div style="margin-top:4px; font-size:9px;">
+        <div class="small" style="margin-top:6px;">
           <strong>Amount in Words:</strong><br/>
-          ${amountInWords}
+          ${amountInWords || "-"}
         </div>
 
         <div class="footer">
           Thank you for your patronage
         </div>
+
       </body>
     </html>
   `);

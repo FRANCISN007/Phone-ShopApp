@@ -2,75 +2,96 @@
 import axios from "axios";
 import getBaseUrl from "./config";
 
-// ✅ Resolve base URL once (no async mutation)
-const BASE_URL = getBaseUrl();
+// ----------------------
+// BASE URL (dynamic safe version)
+// ----------------------
+const getWorkingBaseUrl = () => {
+  return getBaseUrl() || "https://shopman-backend-production.up.railway.app";
+};
 
-console.log("🌐 Auth API Base URL:", BASE_URL);
-
-// ✅ Create axios client
-const authClient = axios.create({
-  baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
-});
-
-// ===============================
-// LOGIN
-// ===============================
-export const loginUser = async (username, password) => {
+// ----------------------
+// Health Check (kept but optional use)
+// ----------------------
+const testBackend = async (url) => {
   try {
-    const formData = new URLSearchParams();
-    formData.append("username", username);
-    formData.append("password", password);
-
-    const response = await authClient.post("/users/token", formData, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const response = await fetch(`${url}/health`, {
+      method: "GET",
+      cache: "no-store",
     });
-
-    const user = response.data;
-
-    // ✅ Store session
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", user.access_token);
-
-    return user;
-  } catch (error) {
-    console.error("❌ Login failed:", error);
-    throw error.response?.data || { message: "Login failed" };
+    return response.ok;
+  } catch {
+    return false;
   }
 };
 
-// ===============================
-// REGISTER
-// ===============================
+// ----------------------
+// Axios Client (DO NOT FREEZE BASE URL)
+// ----------------------
+const createAuthClient = () => {
+  return axios.create({
+    baseURL: getWorkingBaseUrl(),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+};
+
+// ----------------------
+// Login User
+// ----------------------
+export const loginUser = async (username, password) => {
+  const authClient = createAuthClient(); // 🔥 recreated per call
+
+  const formData = new URLSearchParams();
+  formData.append("username", username);
+  formData.append("password", password);
+
+  const response = await authClient.post("/users/token", formData, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+
+  const user = response.data;
+
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("token", user.access_token);
+
+  return user;
+};
+
+// ----------------------
+// Register User
+// ----------------------
 export const registerUser = async ({
   username,
   password,
   roles,
   admin_password,
 }) => {
-  try {
-    const response = await authClient.post("/users/register/", {
-      username,
-      password,
-      roles,
-      admin_password,
-    });
+  const authClient = createAuthClient();
 
-    return response.data;
-  } catch (error) {
-    console.error("❌ Registration failed:", error);
-    throw error.response?.data || { message: "Registration failed" };
-  }
+  const response = await authClient.post("/users/register/", {
+    username,
+    password,
+    roles,
+    admin_password,
+  });
+
+  return response.data;
 };
 
-// ===============================
-// SESSION HELPERS
-// ===============================
+// ----------------------
+// Get Current User
+// ----------------------
 export const getCurrentUser = () => {
   const userStr = localStorage.getItem("user");
   return userStr ? JSON.parse(userStr) : null;
 };
 
+// ----------------------
+// Logout
+// ----------------------
 export const logoutUser = () => {
   localStorage.removeItem("user");
   localStorage.removeItem("token");

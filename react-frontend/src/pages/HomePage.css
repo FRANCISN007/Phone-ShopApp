@@ -46,7 +46,8 @@ html, body {
 .hems-text {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 0px;
+
   font-size: 4.5rem;
   font-weight: bold;
   font-family: 'Audiowide', cursive;
@@ -134,55 +135,9 @@ html, body {
   z-index: 2;
 }
 
-/* ================= CRYSTAL ================= */
-.crystal-wrapper {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
 
-  z-index: 2;
-}
 
-/* MAIN CRYSTAL (BIGGER + BETTER) */
-.crystal {
-  width: 140px;
-  height: 140px;
-
-  background: linear-gradient(135deg, #b9f2ff, #6dd5ed, #2193b0);
-
-  clip-path: polygon(
-    50% 0%,
-    80% 20%,
-    100% 50%,
-    80% 80%,
-    50% 100%,
-    20% 80%,
-    0% 50%,
-    20% 20%
-  );
-
-  animation: float 3s ease-in-out infinite, rotate 6s linear infinite;
-
-  box-shadow: 0 0 40px rgba(109, 213, 237, 0.8);
-  filter: drop-shadow(0 0 20px rgba(109,213,237,0.9));
-}
-
-/* GLOW */
-.crystal-glow {
-  position: absolute;
-  width: 240px;
-  height: 240px;
-
-  background: radial-gradient(circle, rgba(109,213,237,0.35), transparent 70%);
-  border-radius: 50%;
-
-  animation: pulse 2s ease-in-out infinite;
-}
 
 /* ================= ANIMATIONS ================= */
 @keyframes float {
@@ -260,15 +215,9 @@ html, body {
     font-size: 16px;
   }
 
-  .crystal {
-    width: 110px;
-    height: 110px;
-  }
+  
 
-  .crystal-glow {
-    width: 200px;
-    height: 200px;
-  }
+  
 }
 
 
@@ -276,7 +225,7 @@ html, body {
 /* ================= WELCOME TEXT ================= */
 .welcome-text {
   text-align: center;
-  margin: 20px 0 30px;
+  margin: 50px 0 40px;
   padding: 0 20px;
   color: #ffffff;
   animation: fadeInUp 1.5s ease;
@@ -285,7 +234,8 @@ html, body {
 .welcome-text h1 {
   font-size: 28px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin: 30px 0 40px;
+  
   font-family: "Cinzel Decorative", serif;
   letter-spacing: 1px;
 }
@@ -295,6 +245,7 @@ html, body {
   line-height: 1.9;
   color: #0aff02;
   max-width: 420px;
+  
   margin: 0 auto;
   font-family: "Audiowide", sans-serif;
 }
@@ -356,4 +307,63 @@ html, body {
   color: white;
   font-weight: bold;
   border: none;
+}
+
+
+
+
+/* ================= TOP SMALL BRAND ================= */
+.shopman-brand-top {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+}
+
+.shopman-mini-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+
+  font-family: "Audiowide", sans-serif;
+  font-size: 0.9rem;
+
+  color: #a5f3fc;
+  background: rgba(0,0,0,0.25);
+  border-radius: 20px;
+  border: 1px solid rgba(97, 218, 251, 0.3);
+
+  backdrop-filter: blur(6px);
+}
+
+.shopman-mini-logo {
+  width: 30x;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ================= CENTER BIG LOGO ================= */
+.shopman-center-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0px;
+}
+
+.shopman-center-logo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+
+  animation: spinLogo 8s linear infinite;
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.6);
+}
+
+/* spin animation */
+@keyframes spinLogo {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

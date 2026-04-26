@@ -133,7 +133,7 @@ const AddPayment = () => {
 
     try {
       await axiosWithAuth().post(
-        `/payments/sale/${selectedSale.invoice_no}`,
+        `/payments/${selectedSale.invoice_no}/payments`,
         {
           amount_paid: Number(amountPaid),
           payment_method: paymentMethod,

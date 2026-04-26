@@ -1,75 +1,68 @@
+// src/api/authService.js
 import axios from "axios";
 
-// ----------------------
-// Determine backend URL
-// ----------------------
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+/**
+ * ✅ API Base URL
+ * Priority:
+ * 1. Railway env variable
+ * 2. Local fallback
+ */
+const BASE_URL =
+  process.env.REACT_APP_API_BASE_URL ||
+  `${window.location.protocol}//${window.location.hostname}:8000`;
+
 console.log("🧪 Login API Base URL:", BASE_URL);
 
-// ----------------------
-// Create axios client
-// ----------------------
+/**
+ * ✅ Axios instance (no auth needed here)
+ */
 const authClient = axios.create({
   baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor: handle form data headers
-authClient.interceptors.request.use((config) => {
-  if (config.data instanceof FormData || config.data instanceof URLSearchParams) {
-    delete config.headers["Content-Type"]; // Let browser set boundary for form data
-  }
-  return config;
-});
-
-// Response interceptor for unified error handling
-authClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (!error.response) {
-      console.error("❌ Network or backend not reachable", error);
-      return Promise.reject({ message: "Network or backend not reachable" });
-    }
-    return Promise.reject(error.response.data || { message: "API request failed" });
-  }
-);
-
-// ----------------------
-// Login user
-// ----------------------
+/**
+ * ✅ Login user
+ */
 export const loginUser = async (username, password) => {
-  if (!username || !password) throw new Error("Username and password are required.");
-
   try {
     const formData = new URLSearchParams();
     formData.append("username", username);
     formData.append("password", password);
 
     const response = await authClient.post("/users/token", formData, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     });
 
     const user = response.data;
 
-    // Save user info and token
+    // ✅ Save full user object (important for axiosWithAuth)
     localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", user.access_token);
 
     return user;
   } catch (error) {
     console.error("❌ Login failed:", error);
-    throw error.response?.data || { message: "Login failed" };
+
+    if (error.response) {
+      throw error.response.data;
+    } else if (error.request) {
+      throw { message: "No response from server. Check backend URL." };
+    } else {
+      throw { message: "Unexpected error during login." };
+    }
   }
 };
 
-// ----------------------
-// Register user
-// ----------------------
-export const registerUser = async ({ username, password, roles, admin_password }) => {
-  if (!username || !password || !roles || !admin_password) {
-    throw new Error("All registration fields are required.");
-  }
-
+/**
+ * ✅ Register user
+ */
+export const registerUser = async ({
+  username,
+  password,
+  roles,
+  admin_password,
+}) => {
   try {
     const response = await authClient.post("/users/register/", {
       username,
@@ -81,22 +74,36 @@ export const registerUser = async ({ username, password, roles, admin_password }
     return response.data;
   } catch (error) {
     console.error("❌ Registration failed:", error);
-    throw error.response?.data || { message: "Registration failed" };
+
+    if (error.response) {
+      throw error.response.data;
+    } else if (error.request) {
+      throw { message: "No response from server. Check backend URL." };
+    } else {
+      throw { message: "Unexpected error during registration." };
+    }
   }
 };
 
-// ----------------------
-// Get current user
-// ----------------------
+/**
+ * ✅ Get current user
+ */
 export const getCurrentUser = () => {
-  const userStr = localStorage.getItem("user");
-  return userStr ? JSON.parse(userStr) : null;
+  try {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (err) {
+    console.error("❌ Error reading user:", err);
+    return null;
+  }
 };
 
-// ----------------------
-// Logout user
-// ----------------------
+
+/**
+ * ✅ Logout user
+ */
 export const logoutUser = () => {
   localStorage.removeItem("user");
-  localStorage.removeItem("token");
+  window.location.href = "/login"; // optional redirect
 };
+

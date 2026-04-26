@@ -2,7 +2,6 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./HomePage.css";
 
-
 const HomePage = () => {
   const navigate = useNavigate();
 
@@ -54,63 +53,71 @@ const HomePage = () => {
         rel="stylesheet"
       />
 
-      <div
-        className="home-container"
-        style={{
-          backgroundColor: "#344153",
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* 🌌 BACKGROUND ANIMATION */}
+      <div className="home-container">
+
+        {/* 🌌 BACKGROUND */}
         <ShootingStars />
 
         {/* 💎 CENTER CRYSTAL */}
         <Crystal />
 
-        {/* TOP TEXT */}
-        
-        {/* 🪄 LOGO */}
-        <div className="logo-badge">
-          <span className="logo-icon">◆</span>
-          <span>ShopMan</span>
+        {/* ================= TOP LEFT SMALL SHOPMAN BRAND ================= */}
+        <div className="shopman-brand-top">
+          <div className="shopman-mini-badge">
+            <img
+              src="/images/shopman-logo.jpeg"
+              alt="ShopMan"
+              className="shopman-mini-logo"
+            />
+            <span>ShopMan</span>
+          </div>
         </div>
 
-        {/* MAIN CONTENT */}
-<div className="home-card">
-  <div className="hems-text">
-    <span className="hems-letter">SH</span>
-    <span className="hems-letter">op</span>
-    <span className="hems-letter">M</span>
-    <span className="hems-letter">an</span>
-  </div>
+        {/* ================= MAIN CENTER CONTENT ================= */}
+        <div className="home-card">
 
-  {/* ✨ NEW PROFESSIONAL TEXT */}
-    <div className="welcome-text">
-      <h1>Welcome to Shopman Business World</h1>
-      <p>
-        Your trusted and reliable solution for managing and growing your business efficiently.
-      </p>
-    </div>
+          {/* BIG SPINNING LOGO IN MIDDLE */}
+          <div className="shopman-center-logo-wrapper">
+            <img
+              src="/images/shopman-logo.jpeg"
+              alt="ShopMan Logo"
+              className="shopman-center-logo"
+            />
+          </div>
 
-    <button
-      className="proceed-button"
-      onClick={handleProceed}
-      type="button"
-    >
-      Proceed &gt;&gt;
-    </button>
-  </div>
+          {/* TEXT (UNCHANGED IDEA) */}
+          <div className="hems-text">
+            <span className="hems-letter">SH</span>
+            <span className="hems-letter">op</span>
+            <span className="hems-letter">M</span>
+            <span className="hems-letter">an</span>
+          </div>
 
+          {/* WELCOME TEXT */}
+          <div className="welcome-text">
+            <h1>Welcome to Shopman Business Platform</h1>
+            <p>
+              Your trusted and reliable solution for managing and growing your business efficiently.
+            </p>
+          </div>
+
+          <button
+            className="proceed-button"
+            onClick={handleProceed}
+            type="button"
+          >
+            Proceed &gt;&gt;
+          </button>
+
+        </div>
 
         {/* FOOTER */}
         <footer className="home-footer">
-          <div>Produced & Licensed by School of Accounting Package © 2026</div>
+          <div>
+            Produced & Licensed by School of Accounting Package © 2026
+          </div>
         </footer>
+
       </div>
     </>
   );

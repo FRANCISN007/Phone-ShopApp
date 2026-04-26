@@ -1,25 +1,55 @@
-/* Font */
+/* ================= FONT ================= */
 @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap");
 
-body, html {
+/* ================= BASE ================= */
+html, body {
   height: 100%;
-  overflow-y: hidden; /* This hides vertical scroll */
+  margin: 0;
+  overflow: hidden;
+  background: #344153;
 }
 
+/* ================= LAYOUT ================= */
+.home-container {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+}
 
+/* ================= TEXT BANNER ================= */
+.hotel-name-banner {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 2rem;
+  margin-top: 20px;
+  color: #a34242;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  z-index: 2;
+}
 
+/* ================= HOME CARD ================= */
 .home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
   text-align: center;
   max-width: 600px;
+  z-index: 2;
 }
 
+/* ================= SHOPMAN TEXT ================= */
 .hems-text {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 0px;
+
   font-size: 4.5rem;
   font-weight: bold;
-  margin-bottom: 30px;
   font-family: 'Audiowide', cursive;
 }
 
@@ -27,18 +57,10 @@ body, html {
   animation: pulseColor 4s infinite;
 }
 
-.hems-letter:nth-child(1) {
-  animation-delay: 0s;
-}
-.hems-letter:nth-child(2) {
-  animation-delay: 1s;
-}
-.hems-letter:nth-child(3) {
-  animation-delay: 2s;
-}
-.hems-letter:nth-child(4) {
-  animation-delay: 3s;
-}
+.hems-letter:nth-child(1) { animation-delay: 0s; }
+.hems-letter:nth-child(2) { animation-delay: 1s; }
+.hems-letter:nth-child(3) { animation-delay: 2s; }
+.hems-letter:nth-child(4) { animation-delay: 3s; }
 
 @keyframes pulseColor {
   0%, 100% { color: #61dafb; }
@@ -47,68 +69,51 @@ body, html {
   75% { color: #abb2bf; }
 }
 
-
-
-.hotel-name-banner {
-  font-family: 'Cinzel Decorative', cursive;
-  font-size: 2rem;
-  margin-top: 20px;
-  color: #a34242;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-}
-
-.home-card {
+/* ================= LOGO ================= */
+.logo-badge {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 15px;
-}
+  gap: 10px;
 
-
-
-
-.heading-line1 {
-  font-size: 1.8rem;
-  color: #2623c7;
-  margin: 0;
-}
-
-.heading-line2 {
   font-size: 1.2rem;
-  color: #2623c7;
-  margin: 0;
+  font-weight: bold;
+  color: #08c3f7;
+
+  padding: 6px 16px;
+  border-radius: 25px;
+
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(97, 218, 251, 0.3);
+
+  font-family: 'Audiowide', cursive;
+  z-index: 2;
 }
 
-.home-footer {
-  position: fixed;
-  bottom: 10px;
-  right: 20px;
-  color: #0e0f0f;
-  font-size: 0.9rem;
-  text-align: right;
-  font-style: italic;
+.logo-icon {
+  color: #ffffff;
 }
 
-/* Remove spinner-related styles if they exist */
-.spinner-container, .spinner-ring {
-  display: none;
-}
-
-
+/* ================= PROCEED BUTTON ================= */
 .proceed-button {
-  position: fixed;             /* take it out of normal flow */
-  top: 50%;                    /* vertical center */
-  right: 20px;                 /* stick to right edge */
-  transform: translateY(-50%); /* adjust for vertical centering */
-  padding: 14px 10px;
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+
+  padding: 14px 32px;
   font-size: 18px;
   font-weight: bold;
+
   color: white;
   background-color: rgba(0, 123, 255, 0.85);
+
   border: none;
   border-radius: 8px;
+
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: 0.3s ease;
   z-index: 1000;
 }
 
@@ -116,16 +121,249 @@ body, html {
   background-color: rgb(98, 149, 204);
 }
 
-/* 📱 Responsive for phones */
+/* ================= FOOTER ================= */
+.home-footer {
+  position: fixed;
+  bottom: 0px;
+  right: 20px;
+
+  color: #000000;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: right;
+
+  z-index: 2;
+}
+
+
+
+
+
+/* ================= ANIMATIONS ================= */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(10deg); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* ================= SHOOTING STARS ================= */
+.stars-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  pointer-events: none;
+  overflow: hidden;
+
+  z-index: 0;
+}
+
+.shooting-star {
+  position: absolute;
+  top: -10px;
+
+  width: 2px;
+  height: 14px;
+
+  background: linear-gradient(180deg, #ffffff, transparent);
+  opacity: 0.85;
+
+  border-radius: 50px;
+
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh);
+    opacity: 0;
+  }
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .hems-text {
+    font-size: 3rem;
+  }
+
+  .proceed-button {
+    top: auto;
+    bottom: 20px;
+    right: 50%;
+    transform: translateX(50%);
+    width: 80%;
+    max-width: 300px;
+    font-size: 16px;
+  }
+
+  
+
+  
+}
+
+
+
+/* ================= WELCOME TEXT ================= */
+.welcome-text {
+  text-align: center;
+  margin: 50px 0 40px;
+  padding: 0 20px;
+  color: #ffffff;
+  animation: fadeInUp 1.5s ease;
+}
+
+.welcome-text h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 30px 0 40px;
+  
+  font-family: "Cinzel Decorative", serif;
+  letter-spacing: 1px;
+}
+
+.welcome-text p {
+  font-size: 20px;
+  line-height: 1.9;
+  color: #0aff02;
+  max-width: 420px;
+  
+  margin: 0 auto;
+  font-family: "Audiowide", sans-serif;
+}
+
+/* ✨ Smooth entrance animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+
+/* ================= MOBILE BUTTON FIX ================= */
 @media (max-width: 768px) {
   .proceed-button {
-    top: auto;                  /* remove vertical centering */
-    bottom: 20px;               /* move to bottom */
-    right: 50%;                 /* align center horizontally */
-    transform: translateX(50%); /* perfectly center */
-    width: 80%;                 /* wider for touch devices */
-    max-width: 300px;
-    font-size: 16px;            /* slightly smaller font */
-    padding: 12px 20px;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 400px;
+    padding: 14px;
+    font-size: 16px;
+    z-index: 1000;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   }
+}
+
+
+@media (max-width: 768px) {
+  .home-container {
+    padding-bottom: 100px; /* space for fixed button */
+  }
+}
+
+
+
+@media (max-width: 768px) {
+  .home-footer {
+    position: relative;
+    margin-bottom: 80px; /* push it above button */
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.8;
+  }
+}
+
+
+
+.proceed-button {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: white;
+  font-weight: bold;
+  border: none;
+}
+
+
+
+
+/* ================= TOP SMALL BRAND ================= */
+.shopman-brand-top {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+}
+
+.shopman-mini-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+
+  font-family: "Audiowide", sans-serif;
+  font-size: 0.9rem;
+
+  color: #a5f3fc;
+  background: rgba(0,0,0,0.25);
+  border-radius: 20px;
+  border: 1px solid rgba(97, 218, 251, 0.3);
+
+  backdrop-filter: blur(6px);
+}
+
+.shopman-mini-logo {
+  width: 30x;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ================= CENTER BIG LOGO ================= */
+.shopman-center-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0px;
+}
+
+.shopman-center-logo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+
+  animation: spinLogo 8s linear infinite;
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.6);
+}
+
+/* spin animation */
+@keyframes spinLogo {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

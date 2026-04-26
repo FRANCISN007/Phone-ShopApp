@@ -5,16 +5,36 @@ import "./CreateBank.css";
 const CreateBank = ({ onClose }) => {
   const [banks, setBanks] = useState([]);
   const [name, setName] = useState("");
+  const [businessId, setBusinessId] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const isSuperAdmin = currentUser?.roles?.includes("super_admin");
+  const isManagerOrAdmin =
+    currentUser?.roles?.includes("admin") ||
+    currentUser?.roles?.includes("manager");
 
   /* =========================
-     SAFE CLOSE HANDLER
+     CLOSE HANDLER
   ========================= */
   const handleClose = () => {
     if (onClose) onClose();
-    else window.history.back(); // fallback
+    else window.history.back();
+  };
+
+  /* =========================
+     FETCH CURRENT USER
+  ========================= */
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await axiosWithAuth().get("/users/me");
+      setCurrentUser(res.data);
+    } catch (err) {
+      console.error("Failed to fetch current user", err);
+      setCurrentUser({ roles: [] });
+    }
   };
 
   /* =========================
@@ -23,19 +43,33 @@ const CreateBank = ({ onClose }) => {
   const fetchBanks = async () => {
     try {
       setLoading(true);
+      setError("");
+
       const res = await axiosWithAuth().get("/bank/");
       setBanks(res.data);
-      setError("");
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load banks");
+      setError(
+        err.response?.data?.detail ||
+          `Failed to load banks (${err.response?.status || "Unknown"})`
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchBanks();
   }, []);
+
+  /* =========================
+     RESET FORM
+  ========================= */
+  const resetForm = () => {
+    setName("");
+    setBusinessId("");
+    setEditingId(null);
+  };
 
   /* =========================
      CREATE / UPDATE BANK
@@ -48,18 +82,35 @@ const CreateBank = ({ onClose }) => {
       return;
     }
 
+    if (isSuperAdmin && !editingId && !businessId) {
+      alert("Super admin must provide a Business ID");
+      return;
+    }
+
     try {
-      if (editingId) {
-        await axiosWithAuth().put(`/bank/${editingId}`, { name });
-      } else {
-        await axiosWithAuth().post("/bank/", { name });
+      setLoading(true);
+
+      const payload = { name: name.trim() };
+
+      // Only super_admin sends business_id
+      if (isSuperAdmin && !editingId) {
+        payload.business_id = parseInt(businessId, 10);
       }
 
-      setName("");
-      setEditingId(null);
+      if (editingId) {
+        await axiosWithAuth().put(`/bank/${editingId}`, {
+          name: payload.name,
+        });
+      } else {
+        await axiosWithAuth().post("/bank/", payload);
+      }
+
+      resetForm();
       fetchBanks();
     } catch (err) {
       alert(err.response?.data?.detail || "Operation failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,6 +120,7 @@ const CreateBank = ({ onClose }) => {
   const handleEdit = (bank) => {
     setEditingId(bank.id);
     setName(bank.name);
+    setBusinessId(bank.business_id || "");
   };
 
   /* =========================
@@ -87,31 +139,45 @@ const CreateBank = ({ onClose }) => {
 
   return (
     <div className="create-bank-container compact">
+      <button className="close-btn" onClick={handleClose}>
+        ✕
+      </button>
 
-      {/* CLOSE BUTTON */}
-      <button className="close-btn" onClick={handleClose}>✕</button>
+      <h2 className="create-bank-title">
+        Manage Banks
+        {isSuperAdmin && (
+          <span className="super-badge">Super Admin Mode</span>
+        )}
+      </h2>
 
-      <h2 className="create-bank-title">Manage Banks</h2>
-
-      {/* ================= CREATE / EDIT FORM ================= */}
+      {/* ================= FORM ================= */}
       <form className="compact-form" onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Enter New Bank name"
+          placeholder="Enter Bank name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
-        <button type="submit">{editingId ? "Update" : "Create"}</button>
+        {isSuperAdmin && !editingId && (
+          <input
+            type="number"
+            placeholder="Business ID"
+            value={businessId}
+            onChange={(e) => setBusinessId(e.target.value)}
+            className="business-id-input"
+          />
+        )}
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Saving..." : editingId ? "Update" : "Create"}
+        </button>
 
         {editingId && (
           <button
             type="button"
             className="cancel-btn"
-            onClick={() => {
-              setEditingId(null);
-              setName("");
-            }}
+            onClick={resetForm}
           >
             Cancel
           </button>
@@ -128,34 +194,53 @@ const CreateBank = ({ onClose }) => {
             <tr>
               <th>#</th>
               <th>Bank Name</th>
+              {isSuperAdmin && <th>Business ID</th>}
               <th>Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {banks.length === 0 && !loading ? (
               <tr>
-                <td colSpan="3" className="empty-row">No banks found</td>
+                <td
+                  colSpan={isSuperAdmin ? 4 : 3}
+                  className="empty-row"
+                >
+                  No banks found
+                </td>
               </tr>
             ) : (
               banks.map((bank, index) => (
                 <tr key={bank.id}>
                   <td>{index + 1}</td>
                   <td>{bank.name}</td>
+
+                  {isSuperAdmin && (
+                    <td className="business-id-cell">
+                      {bank.business_id || "—"}
+                    </td>
+                  )}
+
                   <td className="action-cell">
-                    <button
-                      className="icon-btn edit-btn"
-                      title="Edit"
-                      onClick={() => handleEdit(bank)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="icon-btn delete-btn"
-                      title="Delete"
-                      onClick={() => handleDelete(bank.id)}
-                    >
-                      🗑️
-                    </button>
+                    {(isSuperAdmin || isManagerOrAdmin) && (
+                      <>
+                        <button
+                          className="icon-btn edit-btn"
+                          title="Edit"
+                          onClick={() => handleEdit(bank)}
+                        >
+                          ✏️
+                        </button>
+
+                        <button
+                          className="icon-btn delete-btn"
+                          title="Delete"
+                          onClick={() => handleDelete(bank.id)}
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))

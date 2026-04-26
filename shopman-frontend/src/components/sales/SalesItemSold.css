@@ -132,6 +132,12 @@
   font-weight: bold;
 }
 
+
+.text-left {
+  text-align: left;
+}
+
+
 .sales-item-table tfoot td {
   border-top: 3px solid #155724;
   padding: 4px 6px;

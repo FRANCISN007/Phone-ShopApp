@@ -7,7 +7,7 @@ import { numberToWords } from "../../utils/numberToWords";
 
 
 import { printReceipt } from "../../components/pos/printReceipt";
-import { SHOP_NAME } from "../../config/constants";
+//import { SHOP_NAME } from "../../config/constants";
 
 
 
@@ -84,7 +84,7 @@ const POSCardPage = () => {
 
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [bankId, setBankId] = useState("");
-  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  //const [showBankDropdown, setShowBankDropdown] = useState(false);
   const [banks, setBanks] = useState([]);
 
 
@@ -99,9 +99,25 @@ const POSCardPage = () => {
 
   const [loadingInvoice, setLoadingInvoice] = useState(false);
 
+  const [businesses, setBusinesses] = useState([]);  // for super admin
+  const [businessId, setBusinessId] = useState(null);  // selected business
+
+
   const [receiptFormat, setReceiptFormat] = useState("80mm");
 
   
+  // 1️⃣ Define the fetch function
+  const fetchProducts = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await axiosWithAuth(token).get("/stock/products/simple-pos", {
+        params: businessId ? { business_id: businessId } : {},
+      });
+      setProducts(res.data);
+    } catch (err) {
+      console.error("Failed to load products:", err);
+    }
+  };
   
   // =========================
     //  🔹 ADD THESE STATES FOR REPRINT
@@ -230,6 +246,10 @@ const handleLoadInvoice = async (invoiceNo) => {
 
 
 
+ // 2️⃣ Place the useEffect here
+  useEffect(() => {
+    fetchProducts();
+  }, [businessId]); // refetch whenever businessId changes
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -268,21 +288,29 @@ const handleLoadInvoice = async (invoiceNo) => {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    axiosWithAuth(token)
-      .get("/stock/category/simple")
+    axiosWithAuth()      .get("/stock/category/simple")
       .then((res) => setCategories(res.data))
       .catch(() => alert("Failed to load categories"));
 
-    axiosWithAuth(token)
-      .get("/stock/products/simple-pos")
-      .then((res) => setProducts(res.data))
-      .catch(() => alert("Failed to load products"));
+    
 
-    axiosWithAuth(token)
-      .get("/bank/simple")
+    axiosWithAuth()      .get("/bank/simple")
       .then((res) => setBanks(res.data))
       .catch(() => setBanks([]));
+
+    // ✅ fetch businesses if user is super admin
+    const currentUserRoles = JSON.parse(localStorage.getItem("user_roles") || "[]");
+    if (currentUserRoles.includes("super_admin")) {
+      axiosWithAuth()        .get("/business/simple")  // assuming backend endpoint returns {id, name}
+        .then((res) => setBusinesses(res.data))
+        .catch(() => setBusinesses([]));
+    }
   }, []);
+
+
+  
+
+  
 
   // =========================
   // CART LOGIC
@@ -314,7 +342,7 @@ const handleLoadInvoice = async (invoiceNo) => {
     // ✅ AUTO OPEN PAYMENT SESSION (only when cart was empty)
     setTimeout(() => {
       setPaymentMethod("cash");
-      setShowBankDropdown(false);
+      
       setBankId("");
       setAmountEdited(false);
     }, 0);
@@ -338,8 +366,9 @@ const handleLoadInvoice = async (invoiceNo) => {
   const netTotal = grossTotal - totalDiscount;
 
   const filteredProducts = activeCategory
-    ? products.filter((p) => p.category_name === activeCategory.name)
+    ? products.filter((p) => p.category_id === activeCategory.id)
     : [];
+
 
   // =========================
   // SYNC PAYMENT
@@ -358,7 +387,7 @@ const handleLoadInvoice = async (invoiceNo) => {
       // ✅ reset payment session
       setPaymentMethod("cash");
       setBankId("");
-      setShowBankDropdown(false);
+      
     }
   }, [netTotal, cartItems.length, amountEdited, reprintMode]);
 
@@ -366,14 +395,26 @@ const handleLoadInvoice = async (invoiceNo) => {
 
 
   const handlePrintReceipt = (invoiceNo) => {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const business = storedUser.business;
+
+    if (!business?.name) {
+      alert("Business information missing. Please login again.");
+      return;
+    }
+
     const receiptData = {
-      SHOP_NAME,
+      RECEIPT_NAME: business.name,
+      BUSINESS_ADDRESS: business.address || "",
+      BUSINESS_PHONE: business.phone || "",
+      BUSINESS_LOGO: business.logo || "",
+
       invoice: invoiceNo,
       invoiceDate: new Date().toISOString().split("T")[0],
-      customerName,
-      customerPhone,
-      refNo,
-      paymentMethod,
+      customerName: customerName || "-",
+      customerPhone: customerPhone || "-",
+      refNo: refNo || "-",
+      paymentMethod: paymentMethod || "-",
 
       grossTotal,
       totalDiscount,
@@ -391,9 +432,6 @@ const handleLoadInvoice = async (invoiceNo) => {
         net_amount: i.qty * i.selling_price - (i.discount || 0),
       })),
 
-      formatCurrency: (amount) =>
-        `₦${Number(amount || 0).toLocaleString("en-NG")}`,
-
       amountInWords: numberToWords(netTotal),
     };
 
@@ -407,9 +445,18 @@ const handleLoadInvoice = async (invoiceNo) => {
   // =========================
   const handleSubmit = async () => {
     if (!cartItems.length) return alert("Cart is empty");
-    if (!paymentMethod) return alert("Select payment method");
-    if (amountPaid < 0) return alert("amount cannot be negative");
-    if (paymentMethod !== "cash" && !bankId) return alert("Please select a bank");
+    if (amountPaid < 0)
+      return alert("Amount cannot be negative");
+
+    // Only validate payment if amountPaid > 0
+    if (amountPaid > 0) {
+      if (!paymentMethod)
+        return alert("Select payment method");
+
+      if (paymentMethod !== "cash" && !bankId)
+        return alert("Please select a bank");
+    }
+
 
     const token = localStorage.getItem("token");
 
@@ -425,18 +472,28 @@ const handleLoadInvoice = async (invoiceNo) => {
           selling_price: i.selling_price,
           discount: i.discount || 0,
         })),
+        // ✅ only include for super admin
+        ...(businessId && { business_id: businessId }),
       };
+
 
       const saleRes = await axiosWithAuth(token).post("/sales/", salePayload);
       const invoiceNo = saleRes.data.invoice_no;
 
-      const paymentPayload = {
-        amount_paid: amountPaid,
-        payment_method: paymentMethod,
-        ...(paymentMethod !== "cash" && { bank_id: bankId }),
-      };
+      if (amountPaid > 0) {
+        const paymentPayload = {
+          amount_paid: amountPaid,
+          payment_method: paymentMethod,
+          ...(paymentMethod !== "cash" && { bank_id: bankId }),
+        };
 
-      await axiosWithAuth(token).post(`/payments/sale/${invoiceNo}`, paymentPayload);
+        await axiosWithAuth(token).post(
+          `/payments/${invoiceNo}/payments`,
+          paymentPayload
+        );
+      }
+
+
 
       handlePrintReceipt(invoiceNo);
 
@@ -455,6 +512,12 @@ const handleLoadInvoice = async (invoiceNo) => {
       else alert(detail || "Transaction failed");
     }
   };
+
+
+  const activeCategories = categories.filter((cat) =>
+  products.some((p) => p.category_id === cat.id)
+);
+
 
   return (
     <div className="poscard-container">
@@ -528,6 +591,23 @@ const handleLoadInvoice = async (invoiceNo) => {
                   <option value="A4">A4</option>
                 </select>
               </div>
+
+              {businesses.length > 0 && (
+                <div className="business-select">
+                  <label>Business</label>
+                  <select
+                    value={businessId || ""}
+                    onChange={(e) => setBusinessId(Number(e.target.value))}
+                    disabled={reprintMode}
+                  >
+                    <option value="">-- Select Business --</option>
+                    {businesses.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
 
               <input
                 type="text"
@@ -694,15 +774,18 @@ const handleLoadInvoice = async (invoiceNo) => {
                 <label>Method</label>
                 <select
                   value={paymentMethod}
-                  disabled={reprintMode || cartItems.length === 0}
+                  disabled={
+                    reprintMode ||
+                    cartItems.length === 0 ||
+                    amountPaid === 0
+                  }
                   onChange={(e) => {
                     const method = e.target.value;
                     setPaymentMethod(method);
 
-                    const showBank = method !== "cash";
-                    setShowBankDropdown(showBank);
-
-                    if (!showBank) setBankId("");
+                    if (method === "cash") {
+                      setBankId("");
+                    }
                   }}
                 >
                   <option value="">-- Select --</option>
@@ -710,9 +793,12 @@ const handleLoadInvoice = async (invoiceNo) => {
                   <option value="transfer">Transfer</option>
                   <option value="pos">POS</option>
                 </select>
+
               </div>
 
-              {showBankDropdown && (
+              {amountPaid > 0 &&
+                paymentMethod !== "cash" && (
+
                 <div className="payment-row compact">
                   <label>Bank</label>
                   <select
@@ -750,7 +836,7 @@ const handleLoadInvoice = async (invoiceNo) => {
                     )
                   }
                 >
-                  {reprintMode ? "Reprint" : "Preview"}
+                  {reprintMode ? "🖨️ Reprint" : "🖨️ Preview"}
                 </button>
 
                 <button
@@ -758,7 +844,7 @@ const handleLoadInvoice = async (invoiceNo) => {
                   disabled={cartItems.length === 0 || reprintMode}
                   onClick={handleSubmit}
                 >
-                  Complete Sale
+                  🖨️ Print Receipt
                 </button>
               </div>
 
@@ -774,7 +860,8 @@ const handleLoadInvoice = async (invoiceNo) => {
       {/* BOTTOM */}
       <div className="poscard-items">
         <div className="category-bar">
-          {categories.map((cat) => (
+          {activeCategories.map((cat) => (
+
             <div
               key={cat.id}
               className={`category-tab ${

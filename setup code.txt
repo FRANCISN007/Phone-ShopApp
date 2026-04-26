@@ -1,0 +1,122 @@
+Shopman is a business management app that helps small businesses track sales, inventory, and daily transactions 
+
+Simple, reliable, and built for everyday business operations.
+
+clear cache for Railway deployment
+rm -rf node_modules package-lock.json && npm install && npm run build
+CI=false npm run build
+CI=false npm install && CI=false npm run build
+
+https://hemshotel.com/dashboard
+
+postgresql://postgres:nHvOvZeqKxcJopjZxdKXeUkbJDNckSqI@hopper.proxy.rlwy.net:33265/railway
+
+shopman-backend-production.up.railway.app
+
+echo fix > rebuild.txt
+
+psycopg2-binary
+
+REACT_APP_API_BASE_URL=https://shopman-backend-production.up.railway.app
+shopman-frontend-production.up.railway.app
+
+https://dash.cloudflare.com/14406a6e16feea1598ca72c66e3e9753/shopman.uk/dns/records
+
+backup- poweershell
+pg_dump -h hopper.proxy.rlwy.net -p 33265 -U postgres -d railway -F c -f backup.dump
+
+
+BACKUP
+& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" `
+>> -h hopper.proxy.rlwy.net `
+>> -p 33265 `
+>> -U postgres `
+>> -d railway `
+>> -F c `
+>> -f C:\backup\railway_backup.dump
+
+password
+nHvOvZeqKxcJopjZxdKXeUkbJDNckSqI
+
+drop database
+& "C:\Program Files\PostgreSQL\18\bin\dropdb.exe" `
+-U postgres `
+-p 5433 `
+railway_local
+
+create database
+& "C:\Program Files\PostgreSQL\18\bin\createdb.exe" `
+-U postgres `
+-p 5433 `
+railway_local
+
+restore database
+& "C:\Program Files\PostgreSQL\18\bin\pg_restore.exe" `
+-U postgres `
+-p 5433 `
+-d railway_local `
+C:\backup\railway_backup.dump
+ 
+restore and rewrite
+& "C:\Program Files\PostgreSQL\18\bin\pg_restore.exe" `
+-U postgres `
+-p 5433 `
+-d railway_local `
+--clean `
+--if-exists `
+C:\backup\railway_backup.dump
+
+
+
+Restore backup to Host
+& "C:\Program Files\PostgreSQL\18\bin\pg_restore.exe" `
+-h hopper.proxy.rlwy.net `
+-p 33265 `
+-U postgres `
+-d railway `
+--clean `
+--if-exists `
+C:\backup\railway_backup.dump
+
+OR
+
+& "C:\Program Files\PostgreSQL\18\bin\pg_restore.exe" -h hopper.proxy.rlwy.net -p 33265 -U postgres -d railway --clean --if-exists -v C:\backup\railway_backup.dump
+
+
+
+
+
+postgresql://postgres:nHvOvZeqKxcJopjZxdKXeUkbJDNckSqI@hopper.proxy.rlwy.net:33265/railway
+psql -U postgres -h localhost -p 5433      posstgres 18
+\q     to exit sql
+psql -U postgres -h localhost -p 5433 -d railway_local    this to go into postgress thru powershell 
+
+
+
+
+pip install --upgrade psycopg2-binary
+
+
+
+
+Custom Build Command
+Override the default build command that is run when building your app. Docs↗
+Build command
+npm install && npm run build
+Watch Paths
+
+Custom Start Command
+Command that will be run to start new deployments. Docs↗
+Start command
+npm start
+Add pre-deploy step (Docs↗)
+
+emailjs- hems
+service_h1whxjl
+template_q87oeec
+lsob-mW-ooAUT74xr
+
+
+railway-hems datbase public
+postgresql://postgres:AFljUdWbGwEnXOeJhuavXaqoUakvaRYg@shortline.proxy.rlwy.net:26248/railway
+

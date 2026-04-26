@@ -3,10 +3,12 @@ import axios from "axios";
 import "./PosSales.css";
 import { numberToWords } from "../../utils/numberToWords";
 
-import { SHOP_NAME } from "../../config/constants";
+//import { SHOP_NAME } from "../../config/constants";
 
 // At the top of PosSales.jsx
 import { printReceipt } from "../../components/pos/printReceipt";
+//import { SHOP_NAME, RECEIPT_NAME as RECEIPT_CONSTANT } from "../../config/constants";
+
 
 
 
@@ -14,12 +16,27 @@ const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||
   `http://${window.location.hostname}:8000`;
 
+
 const PosSales = ({ onClose }) => {
+
+  const createEmptyRow = () => ({
+    barcode: "",
+    productId: "",
+    quantity: 1,
+    sellingPrice: 0,
+    discount: 0
+  });
+
+
+   const [saleItems, setSaleItems] = useState(
+    Array.from({ length: 6 }, createEmptyRow)
+  );
+
   const [products, setProducts] = useState([]);
   const [banks, setBanks] = useState([]);
-  const [saleItems, setSaleItems] = useState([
-    { productId: "", quantity: 1, sellingPrice: 0, discount: 0 }
-  ]);
+
+  
+
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -28,42 +45,64 @@ const PosSales = ({ onClose }) => {
   const [invoiceNo, setInvoiceNo] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [refNo, setRefNo] = useState("");
-  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  //const [showBankDropdown, setShowBankDropdown] = useState(false);
+
+  const [businesses, setBusinesses] = useState([]);  // for super admin
+  const [businessId, setBusinessId] = useState(null);  // selected business
+
 
 
   const [receiptFormat, setReceiptFormat] = useState("80mm"); // default
+
+
+
 
   const getGrossAmount = (item) => (item.quantity ?? 0) * (item.sellingPrice ?? 0);
 
   const getNetAmount = (item) => getGrossAmount(item) - (item.discount ?? 0);
 
+
+  const validItems = saleItems.filter(item => item.productId);
+
+
   
   /* ===============================
      Total
   ================================ */
-  const grossTotal = saleItems.reduce(
+  const grossTotal = validItems.reduce(
     (acc, item) => acc + getGrossAmount(item),
     0
   );
 
-  const totalDiscount = saleItems.reduce(
+  const totalDiscount = validItems.reduce(
     (acc, item) => acc + (item.discount || 0),
     0
   );
 
-  const netTotal = saleItems.reduce(
+  const netTotal = validItems.reduce(
     (acc, item) => acc + getNetAmount(item),
     0
   );
 
 
+
+
   
   const [amountPaid, setAmountPaid] = useState(0);
 
-  // ✅ Always keep amountPaid equal to netTotal (POSCard behavior)
+
+
+
+
+
   useEffect(() => {
-    setAmountPaid(netTotal);
-  }, [netTotal]);
+  if (amountPaid === 0) {
+    setPaymentMethod("");
+    setBankId("");
+  
+  }
+}, [amountPaid]);
+
 
   const [productSearch, setProductSearch] = useState({});
   const [activeSearchRow, setActiveSearchRow] = useState(null);
@@ -83,8 +122,10 @@ const PosSales = ({ onClose }) => {
      Currency Formatter
   ================================ */
   const formatCurrency = (amount) => {
-    return `N${Number(amount || 0).toLocaleString("en-NG")}`;
+    return Number(amount || 0).toLocaleString("en-NG");
   };
+
+
 
 
   const handlePrintPreview = () => {
@@ -99,35 +140,33 @@ const PosSales = ({ onClose }) => {
   ================================ */
   useEffect(() => {
     const token = localStorage.getItem("token");
-    
+
     axios.get(`${API_BASE_URL}/stock/products/simple`, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setProducts(res.data))
+    })
+      .then(res => setProducts(res.data))
       .catch(console.error);
 
-    axios
-    .get(`${API_BASE_URL}/bank/simple`, {
+    axios.get(`${API_BASE_URL}/bank/simple`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    .then((res) => {
-      if (Array.isArray(res.data)) {
-        setBanks(res.data);
-      } else {
-        console.error("Banks API did not return an array:", res.data);
-        setBanks([]);
-      }
-    })
-    .catch((err) => {
-      console.error("Failed to load banks:", err);
-      setBanks([]);
-    });
+      .then(res => setBanks(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setBanks([]));
 
-    const today = new Date().toISOString().split("T")[0];
-    setInvoiceDate(today);
+    // ✅ FETCH BUSINESSES (LIKE POSCARD)
+    const currentUserRoles = JSON.parse(localStorage.getItem("user_roles") || "[]");
 
-    // ✅ Generate first invoice immediately
-    
+    if (currentUserRoles.includes("super_admin")) {
+      axios.get(`${API_BASE_URL}/business/simple`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(res => setBusinesses(res.data))
+        .catch(() => setBusinesses([]));
+    }
+
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
   }, []);
+
 
 
   useEffect(() => {
@@ -135,6 +174,93 @@ const PosSales = ({ onClose }) => {
   document.addEventListener("click", closeDropdown);
   return () => document.removeEventListener("click", closeDropdown);
 }, []);
+
+  
+  const handleBarcodeScan = async (rowIndex, barcodeValue) => {
+    if (!barcodeValue || barcodeValue.length < 4) return;
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/stock/products/scan/${barcodeValue}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            business_id: businessId || undefined,
+          },
+        }
+      );
+
+      const product = res.data;
+
+      const newItems = [...saleItems];
+
+      // 🔍 Check if product already exists in another row
+      const existingIndex = newItems.findIndex(
+        (item, i) =>
+          i !== rowIndex &&
+          Number(item.productId) === Number(product.id)
+      );
+
+      if (existingIndex !== -1) {
+        // ✅ Merge: increase quantity instead of duplicate row
+        newItems[existingIndex] = {
+          ...newItems[existingIndex],
+          quantity: (newItems[existingIndex].quantity || 0) + 1,
+        };
+
+        // 🧹 Clear current row (since we merged it)
+        newItems[rowIndex] = createEmptyRow();
+
+        setSaleItems(newItems);
+        return;
+      }
+
+      // ✅ Normal behavior (new product)
+      newItems[rowIndex] = {
+        ...newItems[rowIndex],
+        barcode: product.barcode,
+        productId: product.id,
+        sellingPrice: product.selling_price || 0,
+        quantity: 1,
+      };
+
+      setSaleItems(newItems);
+
+      // ➕ AUTO MOVE TO NEXT ROW
+      const nextRow = rowIndex + 1;
+
+      if (nextRow >= newItems.length) {
+        setSaleItems([...newItems, createEmptyRow()]);
+      }
+
+    } catch (err) {
+      console.error("Scan failed", err);
+
+      const newItems = [...saleItems];
+
+      // ❗ Reset only product fields (keep barcode)
+      newItems[rowIndex] = {
+        ...newItems[rowIndex],
+        productId: "",
+        sellingPrice: 0,
+      };
+
+      setSaleItems(newItems);
+
+      // 🚫 Prevent repeated alerts per row
+      if (!newItems[rowIndex].barcodeErrorShown) {
+        alert("Product not found for scanned barcode");
+
+        newItems[rowIndex].barcodeErrorShown = true;
+        setSaleItems([...newItems]);
+      }
+    }
+  };
+
+
+
 
 
 
@@ -155,28 +281,31 @@ const PosSales = ({ onClose }) => {
      Add / Update / Remove Items
   ================================ */
   const addItem = () => {
-    setSaleItems([
-      ...saleItems,
-      { productId: "", quantity: 1, sellingPrice: 0, discount: 0 },
-    ]);
+    setSaleItems([...saleItems, createEmptyRow()]);
   };
 
+
   const updateItem = (index, key, value) => {
-  const newItems = [...saleItems];
-  newItems[index][key] = value;
+    const newItems = [...saleItems];
+    newItems[index][key] = value;
 
-  if (key === "productId") {
-    const product = products.find((p) => p.id === Number(value));
-    newItems[index].sellingPrice = product
-      ? product.selling_price || 0
-      : 0;
-    newItems[index].sellingPriceFormatted = product
-      ? product.selling_price_formatted || formatCurrency(product.selling_price)
-      : "0";
-  }
+    if (key === "productId") {
+      const product = products.find((p) => p.id === Number(value));
 
-  setSaleItems(newItems);
-};
+      if (product) {
+        newItems[index].sellingPrice = product.selling_price || 0;
+
+        // ✅ ADD THIS LINE (VERY IMPORTANT)
+        newItems[index].barcode = product.barcode || "";
+      } else {
+        newItems[index].sellingPrice = 0;
+        newItems[index].barcode = "";
+      }
+    }
+
+    setSaleItems(newItems);
+  };
+
 
 
   const removeItem = (index) => {
@@ -192,7 +321,8 @@ const PosSales = ({ onClose }) => {
   =============================== */
   const resetForm = () => {
     // Reset everything except invoice
-    setSaleItems([{ productId: "", quantity: 1, sellingPrice: 0 }]);
+    setSaleItems(Array.from({ length: 6 }, createEmptyRow));
+
     setCustomerName("");
     setCustomerPhone("");
     setPaymentMethod(""); // ✅ reset to blank
@@ -208,73 +338,82 @@ const PosSales = ({ onClose }) => {
      Print Receipt
   ================================ */
   const handlePrintReceipt = (invoice) => {
+
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+    const business = storedUser.business;
+
+    if (!business || !business.name) {
+      alert("Business information missing. Please login again.");
+      return;
+    }
+
     const receiptData = {
-      SHOP_NAME,
+      RECEIPT_NAME: business.name,
+      BUSINESS_ADDRESS: business.address || "",
+      BUSINESS_PHONE: business.phone || "",
+      BUSINESS_LOGO: business.logo || "",
+
       invoice,
       invoiceDate,
-      customerName,
-      customerPhone,
-      refNo,
-      paymentMethod,
-      amountPaid,
+      customerName: customerName || "-",
+      customerPhone: customerPhone || "-",
+      refNo: refNo || "-",
+      paymentMethod: paymentMethod || "-",
+      amountPaid: amountPaid || 0,
+      grossTotal: grossTotal || 0,
+      totalDiscount: totalDiscount || 0,
+      netTotal: netTotal || 0,
+      balance: (netTotal || 0) - (amountPaid || 0),
 
-      grossTotal,
-      totalDiscount,
-      netTotal,
+      items: saleItems
+        .filter(item => item.productId)
+        .map(item => {
 
-      balance: netTotal - amountPaid,
-
-      items: saleItems.map(item => {
-        const product = products.find(p => p.id === Number(item.productId));
+        const product = products.find(p => Number(p.id) === Number(item.productId));
         return {
-          product_name: product?.name || "",
-          quantity: item.quantity,
-          selling_price: item.sellingPrice,
-          gross_amount: getGrossAmount(item),
+          product_name: product?.name || "-",
+          quantity: item.quantity || 0,
+          selling_price: item.sellingPrice || 0,
+          gross_amount: getGrossAmount(item) || 0,
           discount: item.discount || 0,
-          net_amount: getNetAmount(item),
+          net_amount: getNetAmount(item) || 0,
         };
       }),
 
-      amountInWords: numberToWords(netTotal),
-      formatCurrency
+      amountInWords: numberToWords(netTotal || 0),
     };
 
-
-    // ✅ Use the selected format dynamically
     printReceipt(receiptFormat, receiptData);
   };
 
 
 
+
+
+
+
 const validateSale = () => {
-  if (!saleItems.length) {
+  const validItems = saleItems.filter(item => item.productId);
+
+  if (!validItems.length) {
     alert("Add at least one product");
     return false;
   }
 
-  for (let i = 0; i < saleItems.length; i++) {
-    const item = saleItems[i];
+  for (let i = 0; i < validItems.length; i++) {
+    const item = validItems[i];
 
-    // ✅ Product
-    if (!item.productId) {
-      alert(`Product not selected on row ${i + 1}`);
-      return false;
-    }
-
-    // ✅ Quantity
     if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
       alert(`Invalid quantity on row ${i + 1}`);
       return false;
     }
 
-    // ✅ Selling price
     if (!Number.isFinite(item.sellingPrice) || item.sellingPrice <= 0) {
       alert(`Invalid selling price on row ${i + 1}`);
       return false;
     }
 
-    // ✅ Discount
     const discount = Number(item.discount) || 0;
     const gross = item.quantity * item.sellingPrice;
 
@@ -289,15 +428,14 @@ const validateSale = () => {
     }
   }
 
-  // ✅ Net total must be positive
   if (!Number.isFinite(netTotal) || netTotal <= 0) {
     alert("Net total must be greater than zero");
     return false;
   }
 
-
   return true;
 };
+
 
 
 
@@ -311,23 +449,52 @@ const validateSale = () => {
 const handleSubmit = async () => {
   if (!validateSale()) return;
 
+  // ✅ SUPER ADMIN MUST SELECT BUSINESS
+  if (businesses.length > 0 && !businessId) {
+    return alert("Please select a business");
+  }
+
+  // ❌ Amount cannot be negative (always validate this first)
+  if (amountPaid < 0) {
+    return alert("Amount cannot be negative");
+  }
+
+  // ✅ If there is payment, then method is required
+  if (amountPaid > 0) {
+
+    if (!paymentMethod) {
+      return alert("Select payment method");
+    }
+
+    // ✅ Bank required only for non-cash methods
+    if (paymentMethod !== "cash" && !bankId) {
+      return alert("Please select a bank");
+    }
+
+  }
+
+
   const token = localStorage.getItem("token");
 
   try {
     const salePayload = {
       invoice_date: invoiceDate,
-      customer_name: customerName.trim(),
+      customer_name: customerName.trim() || "Walk-in",
       customer_phone: customerPhone.trim() || null,
       ref_no: refNo.trim() || null,
-      items: saleItems.map(item => ({
-        product_id: Number(item.productId),
-        quantity: item.quantity,
-        selling_price: item.sellingPrice,
-        discount: item.discount || 0,
-      })),
+      items: saleItems
+        .filter(item => item.productId)  // ✅ remove empty rows
+        .map(item => ({
+          product_id: Number(item.productId),
+          quantity: item.quantity,
+          selling_price: item.sellingPrice,
+          discount: item.discount || 0,
+        })),
+
+      // ✅ EXACTLY LIKE POSCARD
+      ...(businessId && { business_id: businessId }),
     };
 
-    // ✅ ONE REQUEST ONLY
     const saleRes = await axios.post(
       `${API_BASE_URL}/sales/`,
       salePayload,
@@ -337,38 +504,27 @@ const handleSubmit = async () => {
     const invoice = saleRes.data.invoice_no;
     setInvoiceNo(invoice);
 
-    /* ===============================
-       CREATE PAYMENT (uses invoice_no)
-    ================================ */
+    // ✅ USE invoice VARIABLE (NOT invoiceNo STATE)
     if (amountPaid > 0) {
-    const paymentPayload = {
-      amount_paid: amountPaid,
-      payment_method: paymentMethod,
-    };
+      const paymentPayload = {
+        amount_paid: amountPaid,
+        payment_method: paymentMethod,
+        ...(paymentMethod !== "cash" && { bank_id: bankId }),
+      };
 
-    if (paymentMethod !== "cash") {
-      if (!bankId) {
-        alert("Please select a bank");
-        return;
-      }
-      paymentPayload.bank_id = bankId;
+      await axios.post(
+        `${API_BASE_URL}/payments/${invoice}/payments`,
+        paymentPayload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
     }
 
-    await axios.post(
-      `${API_BASE_URL}/payments/sale/${invoice}`,
-      paymentPayload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
+    //handlePrintReceipt(invoice);
+    handlePrintReceipt(invoice); // pass the actual business
 
-
-    handlePrintReceipt(invoice);
     alert("Sale completed successfully");
 
     resetForm();
-    
-    
-
     setAmountPaid(0);
     setBankId("");
     setInvoiceNo("");
@@ -384,6 +540,7 @@ const handleSubmit = async () => {
     }
   }
 };
+
 
 
 
@@ -431,6 +588,24 @@ const handleSubmit = async () => {
     {/* Top Info */}
     <div className="pos-meta-grid">
       <div className="input-group">
+
+        {businesses.length > 0 && (
+            <div className="input-group">
+              <label>Business</label>
+              <select
+                value={businessId || ""}
+                onChange={(e) => setBusinessId(Number(e.target.value))}
+              >
+                <option value="">-- Select Business --</option>
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
         <label>Customer Name</label>
         <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
       </div>
@@ -457,6 +632,7 @@ const handleSubmit = async () => {
     <table className="pos-sales-table">
       <thead>
         <tr>
+          <th>Barcode</th>   {/* NEW */}
           <th>Product</th>
           <th>Qty</th>
           <th>Price</th>
@@ -472,6 +648,49 @@ const handleSubmit = async () => {
         
         {saleItems.map((item, index) => (
           <tr key={index}>
+
+            <td>
+              <input
+                type="text"
+                placeholder="Scan barcode..."
+                value={item.barcode || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+
+                  const newItems = [...saleItems];
+                  newItems[index].barcode = value;
+                  newItems[index].barcodeErrorShown = false;
+
+                  setSaleItems(newItems);
+
+                  // ✅ AUTO FETCH (for manual typing)
+                  if (value.length >= 6) {   // adjust based on your barcode length
+                    clearTimeout(newItems[index].barcodeTimer);
+
+                    newItems[index].barcodeTimer = setTimeout(() => {
+                      handleBarcodeScan(index, value.trim());
+                    }, 300); // debounce
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+
+                    const barcodeValue = e.target.value.trim();
+
+                    if (barcodeValue.length < 6) return;
+
+                    handleBarcodeScan(index, barcodeValue);
+                  }
+                }}
+              />
+
+
+
+
+            </td>
+
+
             <td>
               <div
                 className="product-search-wrapper"
@@ -628,7 +847,7 @@ const handleSubmit = async () => {
         </td>
 
         {/* Empty cells */}
-        <td colSpan="4"></td>
+        <td colSpan="5"></td>
 
         {/* 🔢 NET TOTAL — Net column */}
         <td className="gross-total-cell">
@@ -677,11 +896,14 @@ const handleSubmit = async () => {
                   <label>Method</label>
                   <select
                     value={paymentMethod}
+                    disabled={amountPaid === 0}
                     onChange={(e) => {
                       const method = e.target.value;
                       setPaymentMethod(method);
-                      setShowBankDropdown(method !== "cash");
-                      if (method === "cash") setBankId("");
+
+                      if (method === "cash") {
+                        setBankId("");
+                      }
                     }}
                   >
                     <option value="">-- Select --</option>
@@ -689,9 +911,12 @@ const handleSubmit = async () => {
                     <option value="transfer">Transfer</option>
                     <option value="pos">POS</option>
                   </select>
+
+
                 </div>
 
-                {showBankDropdown && (
+                {amountPaid > 0 && paymentMethod !== "cash" && (
+
                   <div className="payment-row compact">
                     <label>Bank</label>
                     <select value={bankId} onChange={(e) => setBankId(e.target.value)}>
@@ -708,7 +933,7 @@ const handleSubmit = async () => {
                     Print Preview
                   </button>
                   <button className="submit-btn" onClick={handleSubmit}>
-                    Complete Sale
+                    🖨️ Print Receipt
                   </button>
                 </div>
               </div>

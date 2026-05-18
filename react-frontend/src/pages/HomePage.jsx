@@ -69,7 +69,7 @@ const HomePage = () => {
               alt="ShopMan"
               className="shopman-mini-logo"
             />
-            <span>ShopMan</span>
+            <span>SHopMan</span>
           </div>
         </div>
 

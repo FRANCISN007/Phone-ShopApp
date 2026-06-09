@@ -438,14 +438,16 @@ const ListProduct = () => {
             >
               {/* Barcode */}
               <div className="form-group">
-                <label>Barcode *</label>
+                <label>Barcode</label>
                 <input
                   type="text"
                   value={editProduct.barcode || ""}
                   onChange={(e) =>
-                    setEditProduct({ ...editProduct, barcode: e.target.value })
+                    setEditProduct({
+                      ...editProduct,
+                      barcode: e.target.value
+                    })
                   }
-                  required
                 />
               </div>
 

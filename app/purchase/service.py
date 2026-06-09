@@ -491,12 +491,11 @@ def delete_purchase(
     # 2️⃣ Reverse Inventory for all items
     # ===================================
     for item in purchase.items:
-        inventory_service.add_stock(
-            db,
+        inventory_service.revert_purchase_stock(
+            db=db,
             product_id=item.product_id,
-            quantity=-item.quantity,  # 🔁 reverse stock
+            quantity=item.quantity,
             current_user=current_user,
-            commit=False,
         )
 
     # ===================================

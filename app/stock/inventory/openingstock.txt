@@ -1,0 +1,14 @@
+ALTER TABLE inventory
+ADD COLUMN opening_stock DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+
+inventory model
+inventory service  all code
+
+product service-  def import_products_from_excel
+
+delete sales 
+
+payments router- def list_payments_by_sale
+
+frontend- stock- list inventory.jsx

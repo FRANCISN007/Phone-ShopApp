@@ -165,7 +165,7 @@
   border: 3px solid #4e0ee6; /* distinct border */
   border-radius: 15px;
   padding: 20px;
-  width: 700px;          /* moderate rectangle width */
+  width: 750px;          /* moderate rectangle width */
   height: 380px;         /* fixed height */
   background-color: #a06d6d;
   margin: 15px auto;     /* center horizontally */
@@ -320,7 +320,7 @@
 
 
 .sales-frame {
-  width: 700px !important;
+  width: 750px !important;
   height: 420px !important;
 }
 
@@ -331,7 +331,7 @@
 }
 
 .accounts-frame {
-  width: 700px !important;
+  width: 750px !important;
   height: 350px !important;
 }
 

@@ -174,22 +174,36 @@ def get_products(
 
 
 
-def import_products_from_excel(db: Session, file: UploadFile, current_user, business_id: int | None):
-    
+def import_products_from_excel(
+    db: Session,
+    file: UploadFile,
+    current_user,
+    business_id: int | None
+):
     # -----------------------------
     # 1️⃣ RESOLVE BUSINESS
     # -----------------------------
     if "admin" in current_user.roles:
         business_id = current_user.business_id
+
         if not business_id:
-            raise HTTPException(status_code=400, detail="Admin has no business")
+            raise HTTPException(
+                status_code=400,
+                detail="Admin has no business"
+            )
 
     elif "super_admin" in current_user.roles:
         if not business_id:
-            raise HTTPException(status_code=400, detail="business_id is required")
+            raise HTTPException(
+                status_code=400,
+                detail="business_id is required"
+            )
 
     else:
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(
+            status_code=403,
+            detail="Not allowed"
+        )
 
     # -----------------------------
     # 2️⃣ READ EXCEL
@@ -197,41 +211,112 @@ def import_products_from_excel(db: Session, file: UploadFile, current_user, busi
     try:
         df = pd.read_excel(file.file)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid Excel file")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Excel file"
+        )
 
-    # Normalize columns
-    df.columns = [c.strip().lower() for c in df.columns]
+    # Normalize headers
+    df.columns = [str(c).strip().lower() for c in df.columns]
 
-    required_cols = ["barcode", "name", "category"]
+    # -----------------------------
+    # REQUIRED COLUMNS
+    # -----------------------------
+    required_cols = ["name", "category"]
 
     for col in required_cols:
         if col not in df.columns:
-            raise HTTPException(status_code=400, detail=f"Missing column: {col}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing column: {col}"
+            )
 
     created = 0
     skipped = 0
 
     # -----------------------------
-    # 3️⃣ LOOP ROWS
+    # 3️⃣ PROCESS ROWS
     # -----------------------------
-    for _, row in df.iterrows():
+    for index, row in df.iterrows():
+
         try:
+            # -----------------------------
+            # BASIC FIELDS
+            # -----------------------------
             name = str(row.get("name", "")).strip()
             category_name = str(row.get("category", "")).strip()
 
-            if not name or not category_name:
+            if not name:
+                print(f"Row {index + 2}: Missing product name")
                 skipped += 1
                 continue
 
-            barcode = str(row.get("barcode", "")).strip()
-
-            if not barcode:
+            if not category_name:
+                print(f"Row {index + 2}: Missing category")
                 skipped += 1
                 continue
 
-            product_type = str(row.get("type")).strip() if row.get("type") else None
-            cost_price = float(row.get("cost_price")) if row.get("cost_price") else None
-            selling_price = float(row.get("selling_price")) if row.get("selling_price") else None
+            # -----------------------------
+            # OPTIONAL BARCODE
+            # -----------------------------
+            barcode = row.get("barcode")
+
+            if pd.isna(barcode):
+                barcode = None
+            else:
+                barcode = str(barcode).strip()
+
+                if barcode == "":
+                    barcode = None
+
+            # -----------------------------
+            # OPTIONAL TYPE
+            # -----------------------------
+            product_type = (
+                str(row.get("type")).strip()
+                if pd.notna(row.get("type"))
+                else None
+            )
+
+            # -----------------------------
+            # OPTIONAL COST PRICE
+            # -----------------------------
+            try:
+                cost_price = (
+                    float(row.get("cost_price"))
+                    if pd.notna(row.get("cost_price"))
+                    else None
+                )
+            except Exception:
+                cost_price = None
+
+            # -----------------------------
+            # OPTIONAL SELLING PRICE
+            # -----------------------------
+            try:
+                selling_price = (
+                    float(row.get("selling_price"))
+                    if pd.notna(row.get("selling_price"))
+                    else None
+                )
+            except Exception:
+                selling_price = None
+
+            # -----------------------------
+            # OPENING STOCK (QTY)
+            # -----------------------------
+            try:
+                qty = (
+                    float(row.get("qty"))
+                    if pd.notna(row.get("qty"))
+                    else 0
+                )
+
+                if qty < 0:
+                    qty = 0
+
+            except Exception:
+                qty = 0
 
             # -----------------------------
             # CATEGORY LOOKUP
@@ -246,33 +331,59 @@ def import_products_from_excel(db: Session, file: UploadFile, current_user, busi
             )
 
             if not category:
+                print(
+                    f"Row {index + 2}: "
+                    f"Category '{category_name}' not found "
+                    f"for business {business_id}"
+                )
+
                 skipped += 1
                 continue
 
             # -----------------------------
-            # DUPLICATE CHECK
+            # PRODUCT DUPLICATE CHECK
             # -----------------------------
-            exists = db.query(models.Product).filter(
-                models.Product.name == name,
-                models.Product.category_id == category.id,
-                models.Product.business_id == business_id,
-            ).first()
+            existing_product = (
+                db.query(models.Product)
+                .filter(
+                    models.Product.name == name,
+                    models.Product.category_id == category.id,
+                    models.Product.business_id == business_id,
+                )
+                .first()
+            )
 
-            if exists:
+            if existing_product:
+                print(
+                    f"Row {index + 2}: "
+                    f"Product '{name}' already exists"
+                )
+
                 skipped += 1
                 continue
 
-            # Optional barcode duplicate check
+            # -----------------------------
+            # BARCODE DUPLICATE CHECK
+            # -----------------------------
             if barcode:
-                barcode_exists = db.query(models.Product).filter(
-                    models.Product.barcode == barcode,
-                    models.Product.business_id == business_id
-                ).first()
+
+                barcode_exists = (
+                    db.query(models.Product)
+                    .filter(
+                        models.Product.barcode == barcode,
+                        models.Product.business_id == business_id,
+                    )
+                    .first()
+                )
 
                 if barcode_exists:
+                    print(
+                        f"Row {index + 2}: "
+                        f"Barcode '{barcode}' already exists"
+                    )
+
                     skipped += 1
                     continue
-
 
             # -----------------------------
             # CREATE PRODUCT
@@ -285,8 +396,8 @@ def import_products_from_excel(db: Session, file: UploadFile, current_user, busi
                 cost_price=cost_price,
                 selling_price=selling_price,
                 barcode=barcode,
-                sku=f"SKU-{uuid4().hex[:8]}",  # auto SKU (hidden)
-                is_active=True
+                sku=f"SKU-{uuid4().hex[:8]}",
+                is_active=True,
             )
 
             db.add(db_product)
@@ -295,20 +406,36 @@ def import_products_from_excel(db: Session, file: UploadFile, current_user, busi
             # -----------------------------
             # CREATE INVENTORY
             # -----------------------------
-            db.add(
-                inventory_models.Inventory(
-                    product_id=db_product.id,
-                    quantity_in=0,
-                    quantity_out=0,
-                    adjustment_total=0,
-                    current_stock=0,
-                    business_id=business_id,
-                )
+            inventory = inventory_models.Inventory(
+                product_id=db_product.id,
+                business_id=business_id,
+                opening_stock=qty,
+                quantity_in=0,
+                quantity_out=0,
+                adjustment_total=0,
+                current_stock=qty,
             )
+
+            db.add(inventory)
 
             created += 1
 
-        except Exception:
+            print(
+                f"Row {index + 2}: "
+                f"Imported '{name}' "
+                f"(Opening Stock={qty})"
+            )
+
+        except Exception as e:
+
+            print(
+                f"Row {index + 2} FAILED\n"
+                f"Name: {row.get('name')}\n"
+                f"Category: {row.get('category')}\n"
+                f"Barcode: {row.get('barcode')}\n"
+                f"Error: {str(e)}"
+            )
+
             skipped += 1
             continue
 
@@ -317,16 +444,20 @@ def import_products_from_excel(db: Session, file: UploadFile, current_user, busi
     # -----------------------------
     try:
         db.commit()
-    except IntegrityError:
+
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Import failed due to duplicates")
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Import failed due to database constraint: {str(e)}"
+        )
 
     return {
         "message": "Import completed",
         "created": created,
         "skipped": skipped,
     }
-
 
 
 def search_products(db: Session, query: str, current_user):
@@ -438,10 +569,13 @@ def update_product(
         .filter(models.Product.id == product_id)
     )
 
-    # 🔐 Tenant isolation
+    # --------------------------------
+    # TENANT ISOLATION
+    # --------------------------------
     if "super_admin" not in current_user.roles:
         query = query.filter(
-            models.Product.business_id == current_user.business_id
+            models.Product.business_id ==
+            current_user.business_id
         )
 
     db_product = query.first()
@@ -451,19 +585,28 @@ def update_product(
 
     update_data = product.model_dump(exclude_unset=True)
 
-    # -----------------------
-    # Handle category update (Tenant Safe)
-    # -----------------------
+    # --------------------------------
+    # CATEGORY UPDATE
+    # --------------------------------
     if "category" in update_data:
-        category_name = update_data.pop("category").strip()
 
-        category_query = db.query(category_models.Category).filter(
-            category_models.Category.name == category_name
+        category_name = (
+            update_data.pop("category")
+            .strip()
+        )
+
+        category_query = (
+            db.query(category_models.Category)
+            .filter(
+                category_models.Category.name ==
+                category_name
+            )
         )
 
         if "super_admin" not in current_user.roles:
             category_query = category_query.filter(
-                category_models.Category.business_id == current_user.business_id
+                category_models.Category.business_id ==
+                current_user.business_id
             )
 
         category = category_query.first()
@@ -471,25 +614,69 @@ def update_product(
         if not category:
             raise HTTPException(
                 status_code=400,
-                detail=f"Category '{category_name}' does not exist."
+                detail=(
+                    f"Category '{category_name}' "
+                    f"does not exist."
+                )
             )
 
         db_product.category_id = category.id
 
-    # -----------------------
-    # Duplicate protection (Tenant Safe)
-    # -----------------------
-    new_name = update_data.get("name", db_product.name)
+    # --------------------------------
+    # BARCODE UPDATE (OPTIONAL)
+    # --------------------------------
+    if "barcode" in update_data:
 
-    duplicate_query = db.query(models.Product).filter(
-        models.Product.id != product_id,
-        models.Product.name == new_name,
-        models.Product.category_id == db_product.category_id,
+        barcode = update_data.pop("barcode")
+
+        if barcode is not None:
+            barcode = str(barcode).strip()
+
+        if barcode == "":
+            barcode = None
+
+        if barcode:
+            barcode_exists = (
+                db.query(models.Product)
+                .filter(
+                    models.Product.barcode == barcode,
+                    models.Product.id != product_id,
+                    models.Product.business_id ==
+                    db_product.business_id
+                )
+                .first()
+            )
+
+            if barcode_exists:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Barcode already exists."
+                )
+
+        db_product.barcode = barcode
+
+    # --------------------------------
+    # DUPLICATE PRODUCT CHECK
+    # --------------------------------
+    new_name = update_data.get(
+        "name",
+        db_product.name
+    )
+
+    duplicate_query = (
+        db.query(models.Product)
+        .filter(
+            models.Product.id != product_id,
+            models.Product.name == new_name,
+            models.Product.category_id ==
+            db_product.category_id,
+        )
     )
 
     if "super_admin" not in current_user.roles:
         duplicate_query = duplicate_query.filter(
-            models.Product.business_id == current_user.business_id
+            models.Product.business_id ==
+            current_user.business_id
         )
 
     duplicate = duplicate_query.first()
@@ -497,12 +684,15 @@ def update_product(
     if duplicate:
         raise HTTPException(
             status_code=400,
-            detail="Product with same name already exists in this category."
+            detail=(
+                "Product with same name "
+                "already exists in this category."
+            )
         )
 
-    # -----------------------
-    # Update remaining fields
-    # -----------------------
+    # --------------------------------
+    # UPDATE REMAINING FIELDS
+    # --------------------------------
     for field, value in update_data.items():
         setattr(db_product, field, value)
 
@@ -510,8 +700,6 @@ def update_product(
     db.refresh(db_product)
 
     return db_product
-
-
 
 
 def delete_product(db: Session, product_id: int, current_user):

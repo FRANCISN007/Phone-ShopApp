@@ -88,7 +88,7 @@ const DashboardPage = () => {
   const accountsSubMenu = [
     { label: "Create Expenses", action: "create", icon: "➕" },
     { label: "List Expenses", action: "list", icon: "📋" },
-    { label: "Create Revenue Item", action: "revenueitem", icon: "➕" },
+    { label: "Create Revenue Catetory", action: "revenueitem", icon: "➕" },
     { label: "Profit and Loss", action: "profitloss", icon: "🧾" },
     { label: "Create Bank", action: "bankmanagement", icon: "🏦" },
     { label: "Backup", action: "backup", icon: "💾" },

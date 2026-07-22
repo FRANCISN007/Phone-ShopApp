@@ -79,6 +79,7 @@ const ListInventory = ({ onClose }) => {
             <tr>
               <th>ID</th>
               <th>Product Name</th>
+              <th>Opening Stock</th>
               <th>Quantity Received</th>
               <th>Quantity Sold</th>
               <th>Adjustments</th>
@@ -99,6 +100,7 @@ const ListInventory = ({ onClose }) => {
                 <tr key={item.id}>
                   <td>{item.id}</td>
                   <td>{item.product_name}</td>
+                  <td>{item.opening_stock}</td>
                   <td>{item.quantity_in}</td>
                   <td>{item.quantity_out}</td>
                   <td>{item.adjustment_total}</td>
@@ -125,7 +127,7 @@ const ListInventory = ({ onClose }) => {
           </tbody>
           <tfoot>
             <tr className="grand-total-row">
-              <td colSpan="7"><strong>Grand Total:</strong></td>
+              <td colSpan="8"><strong>Grand Total:</strong></td>
               <td colSpan="3">
                 {Number(grandTotal).toLocaleString("en-NG", {
                   minimumFractionDigits: 0,

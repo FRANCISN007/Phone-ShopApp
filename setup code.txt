@@ -26,17 +26,34 @@ backup- poweershell
 pg_dump -h hopper.proxy.rlwy.net -p 33265 -U postgres -d railway -F c -f backup.dump
 
 
-BACKUP
-& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" `
->> -h hopper.proxy.rlwy.net `
->> -p 33265 `
->> -U postgres `
->> -d railway `
->> -F c `
->> -f C:\backup\railway_backup.dump
 
-password
+ cd C:\Users\KLOUNGE\Documents\PHONE_SHOP\shopman-backend
+BACKUP shopman
+& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" `
+-h hopper.proxy.rlwy.net `    
+-p 33265 `
+-U postgres `
+-d railway `
+-F c `
+-f C:\backup\railway_backup.dump
+
+you will find this hopper.proxy.rlwy.net in the railway postrgresql setting service
+
+password is the PGPASSWORD under variables on the postgresql service
 nHvOvZeqKxcJopjZxdKXeUkbJDNckSqI
+
+
+BACKUP hemshotel
+& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" `
+-h shortline.proxy.rlwy.net `
+-p 26248 `
+-U postgres `
+-d railway `
+-F c `
+-f "C:\backup\railway_backup.dump"
+
+password is the PGPASSWORD under variables on the postgresql service
+AFljUdWbGwEnXOeJhuavXaqoUakvaRYg
 
 drop database
 & "C:\Program Files\PostgreSQL\18\bin\dropdb.exe" `

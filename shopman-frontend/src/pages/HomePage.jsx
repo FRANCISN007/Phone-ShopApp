@@ -69,7 +69,7 @@ const HomePage = () => {
               alt="ShopMan"
               className="shopman-mini-logo"
             />
-            <span>ShopMan</span>
+            <span>SHopMan</span>
           </div>
         </div>
 
@@ -97,7 +97,9 @@ const HomePage = () => {
           <div className="welcome-text">
             <h1>Welcome to Shopman Business Platform</h1>
             <p>
-              Your trusted and reliable solution for managing and growing your business efficiently.
+              Streamline your business with Shopman's complete business management solution.
+              Track sales, purchases, inventory, payments, debtors management, monitor stock levels,
+              generate profit and loss reports, and gain real-time insights to help your business grow.
             </p>
           </div>
 

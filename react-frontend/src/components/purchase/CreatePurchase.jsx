@@ -184,6 +184,11 @@ const CreatePurchase = ({ onClose, currentUser }) => {
       return;
     }
 
+    if (!vendorId) {
+      setMessage("❌ Please select a vendor");
+      return;
+    }
+
     if (isSuperAdmin && !businessId) {
       setMessage("❌ Please select a business");
       return;

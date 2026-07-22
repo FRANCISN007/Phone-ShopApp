@@ -223,7 +223,7 @@ const ListPurchase = () => {
       // Prepare payload strictly matching backend schema
       const payload = {
         invoice_no: editData.invoice_no,
-        vendor_id: editData.vendor_id ? Number(editData.vendor_id) : null,
+        vendor_id: Number(editData.vendor_id),
         items: editData.items.map((item) => ({
           id: item.id, // must send existing id
           product_id: Number(item.product_id),
@@ -232,6 +232,10 @@ const ListPurchase = () => {
         })),
       };
 
+      if (!editData.vendor_id) {
+        alert("Please select a vendor.");
+        return;
+      }
 
     await axiosWithAuth().put(`/purchase/${editData.id}`, payload);
 
@@ -274,12 +278,19 @@ const ListPurchase = () => {
           ))}
         </select>
 
-        <select value={selectedBusinessId} onChange={(e) => setSelectedBusinessId(e.target.value)}>
-          <option value="">{isSuperAdmin ? "All Businesses" : "Select Business"}</option>
-          {businesses.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
+        {isSuperAdmin && (
+          <select
+            value={selectedBusinessId}
+            onChange={(e) => setSelectedBusinessId(e.target.value)}
+          >
+            <option value="">All Businesses</option>
+            {businesses.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
@@ -474,23 +485,25 @@ const ListPurchase = () => {
               </label>
 
               {/* Business */}
-              <label>
-                Business
-                <select
-                  name="business_id"
-                  value={editData.business_id}
-                  onChange={(e) =>
-                    setEditData({ ...editData, business_id: e.target.value })
-                  }
-                >
-                  <option value="">-- Select Business --</option>
-                  {businesses.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {isSuperAdmin && (
+                <label>
+                  Business
+                  <select
+                    name="business_id"
+                    value={editData.business_id}
+                    onChange={(e) =>
+                      setEditData({ ...editData, business_id: e.target.value })
+                    }
+                  >
+                    <option value="">-- Select Business --</option>
+                    {businesses.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               {/* Actions */}
               <div className="modal-actions">

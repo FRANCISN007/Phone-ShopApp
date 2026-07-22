@@ -6,6 +6,9 @@ const ListProduct = () => {
 
   /* ================= State ================= */
 
+  const roles = JSON.parse(localStorage.getItem("user_roles") || "[]");
+  const isSuperAdmin = roles.includes("super_admin");
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [businesses, setBusinesses] = useState([]);
@@ -45,6 +48,12 @@ const ListProduct = () => {
   /* ================= Fetch Functions ================= */
 
   const fetchProducts = async () => {
+    // Super Admin must choose a business first
+    if (isSuperAdmin && !selectedBusinessId) {
+      setProducts([]);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -54,23 +63,13 @@ const ListProduct = () => {
         { params: getParams() }
       );
 
-      setProducts(res.data);
-
+      setProducts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
       setError("Failed to fetch products");
+      setProducts([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-
-  const fetchCategories = async () => {
-    try {
-      const res = await axiosWithAuth().get("/stock/category/simple");
-      setCategories(res.data);
-    } catch (err) {
-      console.error("Failed to load categories:", err);
     }
   };
 
@@ -86,23 +85,56 @@ const ListProduct = () => {
   };
 
 
+  const fetchCategories = async () => {
+    try {
+      const res = await axiosWithAuth().get("/stock/category/simple");
+      setCategories(res.data || []);
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+    }
+  };
+
+  /* ================= Initial Load ================= */
+
   /* ================= Initial Load ================= */
 
   useEffect(() => {
     fetchCategories();
-    fetchBusinesses();
+
+    if (isSuperAdmin) {
+      fetchBusinesses();
+      setProducts([]);          // Do NOT load products yet
+    } else {
+      fetchProducts();          // Normal users load immediately
+    }
   }, []);
 
 
+  /* ================= Business Changed ================= */
+
   useEffect(() => {
-    if (!selectedBusinessId) {
-      setProducts([]);
-      return;
+    if (isSuperAdmin) {
+      if (!selectedBusinessId) {
+        setProducts([]);
+        return;
+      }
     }
 
     fetchProducts();
+  }, [selectedBusinessId, isSuperAdmin]);
 
-  }, [selectedBusinessId]);
+
+    useEffect(() => {
+      if (!isSuperAdmin) return;
+
+      if (!selectedBusinessId) {
+        setProducts([]);
+        return;
+      }
+
+      fetchProducts();
+
+    }, [selectedBusinessId, isSuperAdmin]);
 
 
 
@@ -167,7 +199,7 @@ const ListProduct = () => {
 
     try {
 
-      if (!selectedBusinessId) {
+      if (isSuperAdmin && !selectedBusinessId) {
         alert("Please select a business first");
         return;
       }
@@ -261,27 +293,21 @@ const ListProduct = () => {
 
         <div className="filters">
 
-          <select
-            value={selectedBusinessId}
-            onChange={(e) =>
-              setSelectedBusinessId(e.target.value)
-            }
-            className="filter-select"
-          >
-            <option value="">
-              Select Business
-            </option>
+          {isSuperAdmin && (
+            <select
+              value={selectedBusinessId}
+              onChange={(e) => setSelectedBusinessId(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Select Business</option>
 
-
-            {businesses.map(b => (
-              <option
-                key={b.id}
-                value={b.id}
-              >
-                {b.name}
-              </option>
-            ))}
-          </select>
+              {businesses.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
 
 
           <input
@@ -352,16 +378,13 @@ const ListProduct = () => {
         <tbody>
 
           {filteredProducts.length === 0 ? (
-
             <tr>
-              <td colSpan={9} style={{ textAlign: "center" }}>
-                {!selectedBusinessId
-                  ? "Please select a business to view products"
-                  : "No products found"}
+              <td colSpan={10} style={{ textAlign: "center" }}>
+                {isSuperAdmin && !selectedBusinessId
+                  ? "Please select a business."
+                  : "No products found."}
               </td>
-
             </tr>
-
           ) : (
 
             filteredProducts.map(p => (

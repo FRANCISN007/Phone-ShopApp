@@ -4,6 +4,7 @@ import { loginUser } from "../../api/authService";
 import "./LogReg.css";
 import emailjs from "@emailjs/browser";
 
+
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -98,29 +99,23 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="auth-page-wrapper">
+    <div className="auth-page-wrapper1">
       {/* LEFT SIDE DESCRIPTION */}
-      <div className="auth-left-panel">
-        <h1 className="app-title">SHopMan App</h1>
-        <p className="app-description">
-          This App is a complete Inventory management system & Sales solution designed to
-          simplify, automate, and centralize operations across:
-        </p>
-        <ul className="app-features">
-          <li>POS Sales Point</li>
-          <li>Purchases</li>
-          <li>Payments & Receipts</li>
-          <li>Stock Valuation</li>
-          <li>Debtor Control</li>
-          <li>Profit & Loss Account</li>
-        </ul>
-        <p className="app-tagline">
-          User-friendly • Fast • Reliable • All-in-One Inventory Management System
-        </p>
-      </div>
+      
+      {/* ================= TOP LEFT SMALL SHOPMAN BRAND ================= */}
+        <div className="shopman-brand-top">
+          <div className="shopman-mini-badge">
+            <img
+              src="/images/shopman-logo.jpeg"
+              alt="ShopMan"
+              className="shopman-mini-logo"
+            />
+            <span>SHopMan</span>
+          </div>
+        </div>
 
       {/* RIGHT SIDE LOGIN FORM */}
-      <div className="auth-container">
+      <div className="auth-container1">
         <div className="logo-badgelogin">
           <span className="logo-icon">◆</span>
           <span>ShopMan</span>

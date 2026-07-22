@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axiosWithAuth from "../../utils/axiosWithAuth";
 import "./CreateProduct.css";
 
-const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
+const CreateProduct = ({ onClose, isSuperAdmin = false }) => {
   const [visible, setVisible] = useState(true);
 
   const [form, setForm] = useState({
@@ -13,7 +13,7 @@ const CreateProduct = ({ onClose, isSuperAdmin = true }) => {
     selling_price: "",
     sku: "",
     barcode: "",
-    business_id: "",
+    ...(isSuperAdmin && { business_id: "" }),
   });
 
   const [categories, setCategories] = useState([]);
